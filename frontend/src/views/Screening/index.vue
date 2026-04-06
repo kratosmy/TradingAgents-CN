@@ -595,7 +595,7 @@ const batchAnalyze = async () => {
     router.push({
       name: 'BatchAnalysis',
       query: {
-        stocks: selectedStocks.value.map(s => s.code || s.symbol || '').filter(Boolean).join(','),
+        stocks: selectedStocks.value.map(s => s.code || s.symbol).join(','),
         market: normalizeMarketForAnalysis(filters.market)
       }
     })
@@ -606,8 +606,7 @@ const batchAnalyze = async () => {
 
 
 const analyzeSingle = (stock: StockInfo) => {
-  const stockCode = stock.code || stock.symbol || ''
-  if (!stockCode) return
+  const stockCode = stock.code || stock.symbol
   router.push({
     name: 'SingleAnalysis',
     query: {
@@ -623,7 +622,7 @@ const viewStockDetail = (stock: StockInfo) => {
   // 跳转到股票详情页面
   router.push({
     name: 'StockDetail',
-    params: { code: stockCode }
+    params: { code: stock.code || stock.symbol }
   })
 }
 
@@ -631,11 +630,7 @@ const isFavorited = (code: string) => favoriteSet.value.has(code)
 
 const toggleFavorite = async (stock: StockInfo) => {
   try {
-    const code = stock.code || stock.symbol || ''
-    if (!code) {
-      ElMessage.error('股票代码缺失，无法加入自选')
-      return
-    }
+    const code = stock.code || stock.symbol
     if (favoriteSet.value.has(code)) {
       // 取消自选
       const res = await favoritesApi.remove(code)
@@ -657,7 +652,7 @@ const toggleFavorite = async (stock: StockInfo) => {
       const payload = {
         symbol: code,
         stock_code: code,  // 兼容字段
-        stock_name: stock.name || code,
+        stock_name: stock.name,
         market: marketType
       }
       const res = await favoritesApi.add(payload)

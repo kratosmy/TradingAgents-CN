@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
+import { ElMessage } from 'element-plus'
 import { authApi } from '@/api/auth'
 import type { User, LoginForm, RegisterForm } from '@/types/auth'
 
@@ -25,7 +26,7 @@ export interface AuthState {
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => {
-    const token = useStorage('auth-token', null).value || null
+    const persistedToken = useStorage('auth-token', null).value || null
     const refreshToken = useStorage('refresh-token', null).value || null
 
     // 验证token格式
@@ -40,7 +41,7 @@ export const useAuthStore = defineStore('auth', {
       return token.split('.').length === 3
     }
 
-    const validToken = isValidToken(token) ? token : null
+    const validToken = isValidToken(persistedToken) ? persistedToken : null
     const validRefreshToken = isValidToken(refreshToken) ? refreshToken : null
 
     // 如果token无效，清除相关数据
@@ -461,7 +462,10 @@ export const useAuthStore = defineStore('auth', {
           const err = error as { code?: string; message?: string }
           console.error('❌ 检查认证状态失败:', err)
           // 如果是网络错误或超时，不清除认证信息，只是标记为未认证
-          if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+          if (
+            error instanceof Error &&
+            (((error as Error & { code?: string }).code === 'ECONNABORTED') || error.message.includes('timeout'))
+          ) {
             console.warn('⚠️ 网络超时，保留认证信息但标记为未认证状态')
             this.isAuthenticated = false
           } else {

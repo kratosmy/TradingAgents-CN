@@ -429,6 +429,13 @@ const formData = ref({
   performance_metrics: normalizePerformanceMetrics(defaultFormData.performance_metrics)
 })
 
+const mergePerformanceMetrics = (
+  metrics?: Partial<typeof defaultFormData.performance_metrics>
+) => ({
+  ...defaultFormData.performance_metrics,
+  ...(metrics || {})
+})
+
 // 用于跟踪当前选择的模型（用于下拉列表）
 const selectedModelKey = ref<string>('')
 
@@ -606,7 +613,7 @@ watch(
         suitable_roles: config.suitable_roles || defaultFormData.suitable_roles,
         features: config.features || defaultFormData.features,
         recommended_depths: config.recommended_depths || defaultFormData.recommended_depths,
-        performance_metrics: normalizePerformanceMetrics(config.performance_metrics)
+        performance_metrics: mergePerformanceMetrics(config.performance_metrics)
       }
       modelOptions.value = getModelOptions(config.provider)
 
@@ -652,7 +659,7 @@ watch(
           suitable_roles: props.config.suitable_roles || defaultFormData.suitable_roles,
           features: props.config.features || defaultFormData.features,
           recommended_depths: props.config.recommended_depths || defaultFormData.recommended_depths,
-          performance_metrics: normalizePerformanceMetrics(props.config.performance_metrics)
+          performance_metrics: mergePerformanceMetrics(props.config.performance_metrics)
         }
         modelOptions.value = getModelOptions(props.config.provider)
 

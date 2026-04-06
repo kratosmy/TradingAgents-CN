@@ -2074,9 +2074,6 @@ const isQuickAnalysisRole = (roles: string[] | undefined): boolean => {
 }
 
 /**
- * 判断是否适合深度分析
- */
-/**
  * 显示分析深度的模型推荐说明
  */
 const checkModelSuitability = async () => {

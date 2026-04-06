@@ -220,12 +220,12 @@ const loading = ref(false)
 const searchKeyword = ref('')
 const marketFilter = ref('')
 const dateRange = ref<[string, string] | null>(null)
-const selectedReports = ref<ReportListItem[]>([])
+const selectedReports = ref<any[]>([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const totalReports = ref(0)
 
-const reports = ref<ReportListItem[]>([])
+const reports = ref<any[]>([])
 
 // 计算属性
 const filteredReports = computed(() => {
@@ -414,9 +414,8 @@ const deleteReport = async (report: ReportListItem) => {
       throw new Error(result.message || '删除失败')
     }
   } catch (error) {
-    const err = error as Error
-    if (err.message !== 'cancel') {
-      console.error('删除报告失败:', err)
+    if (!(error instanceof Error) || error.message !== 'cancel') {
+      console.error('删除报告失败:', error)
       ElMessage.error('删除报告失败')
     }
   }
@@ -430,8 +429,8 @@ const refreshReports = () => {
   fetchReports()
 }
 
-const getTypeColor = (type: string): TagType => {
-  const colorMap: Record<string, TagType> = {
+const getTypeColor = (type: string): 'warning' | 'primary' | 'success' | 'info' | 'danger' => {
+  const colorMap: Record<string, 'warning' | 'primary' | 'success' | 'info' | 'danger'> = {
     single: 'primary',
     batch: 'success',
     portfolio: 'warning'
@@ -448,8 +447,8 @@ const getTypeText = (type: string) => {
   return textMap[type] || type
 }
 
-const getStatusType = (status: string): TagType => {
-  const statusMap: Record<string, TagType> = {
+const getStatusType = (status: string): 'warning' | 'primary' | 'success' | 'info' | 'danger' => {
+  const statusMap: Record<string, 'warning' | 'primary' | 'success' | 'info' | 'danger'> = {
     completed: 'success',
     processing: 'warning',
     failed: 'danger'

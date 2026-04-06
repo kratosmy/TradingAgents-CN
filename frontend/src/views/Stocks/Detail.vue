@@ -185,14 +185,14 @@
               <!-- 报告列表预览 -->
               <div class="reports-preview">
                 <el-tag
-                  v-for="reportKey in reportKeys"
-                  :key="reportKey"
+                  v-for="(_content, key) in lastAnalysis.reports"
+                  :key="key"
                   size="small"
                   effect="plain"
                   class="report-tag"
-                  @click="openReport(reportKey)"
+                  @click="openReport(String(key))"
                 >
-                  {{ formatReportName(reportKey) }}
+                  {{ formatReportName(String(key)) }}
                 </el-tag>
               </div>
             </div>
@@ -291,10 +291,10 @@
     >
       <el-tabs v-model="activeReportTab" type="border-card">
         <el-tab-pane
-          v-for="reportKey in reportKeys"
-          :key="reportKey"
-          :label="formatReportName(reportKey)"
-          :name="reportKey"
+          v-for="(content, key) in lastAnalysis?.reports"
+          :key="key"
+          :label="formatReportName(String(key))"
+          :name="String(key)"
         >
           <div class="report-content">
             <el-scrollbar height="500px">
@@ -386,7 +386,6 @@ const router = useRouter()
 const analysisStatus = ref<'idle' | 'running' | 'completed' | 'failed'>('idle')
 const analysisProgress = ref(0)
 const analysisMessage = ref('')
-const currentTaskId = ref<string | null>(null)
 const lastAnalysis = ref<any | null>(null)
 const lastTaskInfo = ref<any | null>(null) // 保存任务信息（包含 end_time 等）
 
@@ -395,19 +394,18 @@ const showReportsDialog = ref(false)
 const activeReportTab = ref('')
 
 // 股票代码（从路由参数获取）
-const code = computed(() => {
-  const routeCode = String(route.params.code || '').toUpperCase()
-  if (!routeCode) {
-    ElMessage.error('股票代码不能为空')
-    router.push({ name: 'Dashboard' })
-    return ''
-  }
-  return routeCode
-})
+const code = computed(() => String(route.params.code || '').toUpperCase())
 const symbol = computed(() => code.value.split('.')[0])  // 提取6位代码
 const stockName = ref('')
 const market = ref('')
 const isFav = ref(false)
+
+watch(code, (routeCode) => {
+  if (!routeCode) {
+    ElMessage.error('股票代码不能为空')
+    router.replace({ name: 'Dashboard' })
+  }
+}, { immediate: true })
 
 // ECharts K线配置
 const kOption = ref<EChartsOption>({
@@ -1153,9 +1151,9 @@ function formatReportName(key: string): string {
 function renderMarkdown(content: string): string {
   if (!content) return '<p>暂无内容</p>'
   try {
-    return String(marked.parse(content))
-  } catch (e) {
-    console.error('Markdown渲染失败:', e)
+    return marked(content) as string
+  } catch (error) {
+    console.error('Markdown渲染失败:', error)
     return `<pre>${content}</pre>`
   }
 }

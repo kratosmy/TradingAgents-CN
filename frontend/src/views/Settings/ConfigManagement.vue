@@ -1439,8 +1439,8 @@ const buildDataSourceGroups = () => {
           }
           return null
         })
-        .filter(Boolean)
-        .sort((a, b) => (b?.priority ?? 0) - (a?.priority ?? 0)) // 按优先级降序排列
+        .filter((item): item is DataSourceConfig & { priority: number; enabled: boolean } => Boolean(item))
+        .sort((a, b) => b.priority - a.priority) // 按优先级降序排列
 
       groups.push({
         categoryId: category.id,
@@ -1599,8 +1599,8 @@ const loadProviderInfoMap = async () => {
 }
 
 // 获取厂家标签类型
-const getProviderTagType = (provider: string): TagType => {
-  const typeMap: Record<string, TagType> = {
+const getProviderTagType = (provider: string): 'warning' | 'primary' | 'success' | 'info' | 'danger' => {
+  const typeMap: Record<string, 'warning' | 'primary' | 'success' | 'info' | 'danger'> = {
     'openai': 'primary',
     'google': 'success',
     'anthropic': 'warning',
@@ -1626,14 +1626,15 @@ const getCapabilityLevelText = (level: number) => {
 }
 
 // 🆕 获取能力等级标签类型
-const getCapabilityLevelType = (level: number): TagType | undefined => {
-  const typeMap: Partial<Record<number, TagType>> = {
+const getCapabilityLevelType = (level: number): 'warning' | 'primary' | 'success' | 'info' | 'danger' => {
+  const typeMap: Record<number, 'warning' | 'primary' | 'success' | 'info' | 'danger'> = {
     1: 'info',
+    2: 'info',
     3: 'success',
     4: 'warning',
     5: 'danger'
   }
-  return typeMap[level]
+  return typeMap[level] || 'info'
 }
 
 // 🆕 获取角色文本

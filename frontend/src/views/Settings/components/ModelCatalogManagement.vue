@@ -381,7 +381,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Refresh, Document } from '@element-plus/icons-vue'
-import { configApi, type FetchProviderModelsRequest, type LLMProvider } from '@/api/config'
+import { configApi, type LLMProvider } from '@/api/config'
 
 // 数据
 const loading = ref(false)

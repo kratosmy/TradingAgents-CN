@@ -81,7 +81,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
+import { useWindowSize } from '@vueuse/core'
+import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import SidebarMenu from '@/components/Layout/SidebarMenu.vue'
 import UserProfile from '@/components/Layout/UserProfile.vue'
@@ -113,7 +115,7 @@ const handleMainClick = () => {
 }
 
 // 监听窗口大小变化：在小屏幕上自动折叠侧边栏
-watch(width, (newWidth) => {
+watch(width, (newWidth: number) => {
   if (newWidth < 768 && !appStore.sidebarCollapsed) {
     appStore.setSidebarCollapsed(true)
   }

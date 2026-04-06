@@ -149,7 +149,11 @@ const rules: FormRules = {
 watch(
   () => props.category,
   (category) => {
-    formData.value = normalizeCategory(category)
+    if (category) {
+      formData.value = { ...category, description: category.description || '' }
+    } else {
+      formData.value = { ...defaultFormData }
+    }
   },
   { immediate: true }
 )
@@ -159,7 +163,11 @@ watch(
   () => props.visible,
   (visible) => {
     if (visible) {
-      formData.value = normalizeCategory(props.category)
+      if (props.category) {
+        formData.value = { ...props.category, description: props.category.description || '' }
+      } else {
+        formData.value = { ...defaultFormData }
+      }
     }
   }
 )

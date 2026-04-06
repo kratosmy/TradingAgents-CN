@@ -282,7 +282,9 @@ const loadList = async () => {
         const body2 = (res2 as any)?.data?.data || {}
         tasks = body2.tasks || []
         total.value = body2.total ?? tasks.length
-      } catch {}
+      } catch (error) {
+        console.warn('回退获取任务列表失败', error)
+      }
     } else {
       total.value = body.total ?? tasks.length
     }
@@ -361,7 +363,7 @@ const openReport = (row:any): void => {
     ElMessage.warning('未找到报告ID')
     return
   }
-  void router.push({ name: 'ReportDetail', params: { id } })
+  router.push({ name: 'ReportDetail', params: { id } })
 }
 
 const retryTask = (_row:any) => { ElMessage.info('重试功能待实现') }

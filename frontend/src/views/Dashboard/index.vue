@@ -248,7 +248,7 @@
             </div>
 
             <!-- 港股账户 -->
-            <div class="account-section" v-if="typeof paperAccount.cash !== 'number' && paperAccount.cash?.HKD !== undefined">
+            <div class="account-section" v-if="hasCurrency(paperAccount.cash, 'HKD')">
               <div class="account-section-title">🇭🇰 港股账户</div>
               <div class="account-item">
                 <div class="account-label">现金</div>
@@ -265,7 +265,7 @@
             </div>
 
             <!-- 美股账户 -->
-            <div class="account-section" v-if="typeof paperAccount.cash !== 'number' && paperAccount.cash?.USD !== undefined">
+            <div class="account-section" v-if="hasCurrency(paperAccount.cash, 'USD')">
               <div class="account-section-title">🇺🇸 美股账户</div>
               <div class="account-item">
                 <div class="account-label">现金</div>
@@ -567,6 +567,19 @@ const goToPaperTrading = () => {
 // 格式化金额
 const formatMoney = (value: number) => {
   return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+const hasCurrency = (value: PaperAccountSummary['cash'], currency: 'CNY' | 'HKD' | 'USD') =>
+  typeof value === 'object' && value !== null && currency in value
+
+const getCurrencyAmount = (
+  value: PaperAccountSummary['cash'] | PaperAccountSummary['equity'] | PaperAccountSummary['positions_value'],
+  currency: 'CNY' | 'HKD' | 'USD'
+) => {
+  if (typeof value === 'number') {
+    return currency === 'CNY' ? value : 0
+  }
+  return value?.[currency] || 0
 }
 
 // 生命周期

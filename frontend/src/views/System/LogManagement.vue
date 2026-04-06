@@ -355,14 +355,15 @@ const exportLogs = async () => {
   }
 }
 
-const getLogTypeColor = (type: string): TagType | undefined => {
-  const colors: Partial<Record<string, TagType>> = {
+const getLogTypeColor = (type: string): 'warning' | 'primary' | 'success' | 'info' | 'danger' => {
+  const colors: Record<string, 'warning' | 'primary' | 'success' | 'info' | 'danger'> = {
     error: 'danger',
     webapi: 'primary',
     worker: 'success',
-    access: 'info'
+    access: 'info',
+    other: 'info'
   }
-  return colors[type]
+  return colors[type] || 'info'
 }
 
 const formatDate = (dateStr: string) => {

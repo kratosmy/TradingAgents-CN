@@ -464,7 +464,7 @@ export const testApiConnection = async (): Promise<boolean> => {
     console.log('🔍 [API_TEST] 基础URL:', import.meta.env.VITE_API_BASE_URL || '使用代理')
     console.log('🔍 [API_TEST] 代理目标:', 'http://localhost:8000 (根据vite.config.ts)')
 
-    const response = await request.get('/api/health', {
+    const response = await request.get<ApiResponse, ApiResponse>('/api/health', {
       timeout: 5000,
       skipErrorHandler: true
     } as RequestConfig)
@@ -497,7 +497,7 @@ export class ApiClient {
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     // 响应拦截器已经返回 response.data，所以这里直接返回
-    return await request.get(url, { params, ...config })
+    return await request.get<ApiResponse<T>, ApiResponse<T>>(url, { params, ...config } as RequestConfig)
   }
 
   // POST请求
@@ -507,7 +507,7 @@ export class ApiClient {
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     // 响应拦截器已经返回 response.data，所以这里直接返回
-    return await request.post(url, data, config)
+    return await request.post<ApiResponse<T>, ApiResponse<T>>(url, data, config)
   }
 
   // PUT请求
@@ -517,7 +517,7 @@ export class ApiClient {
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     // 响应拦截器已经返回 response.data，所以这里直接返回
-    return await request.put(url, data, config)
+    return await request.put<ApiResponse<T>, ApiResponse<T>>(url, data, config)
   }
 
   // DELETE请求
@@ -526,7 +526,7 @@ export class ApiClient {
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     // 响应拦截器已经返回 response.data，所以这里直接返回
-    return await request.delete(url, config)
+    return await request.delete<ApiResponse<T>, ApiResponse<T>>(url, config)
   }
 
   // PATCH请求
@@ -536,7 +536,7 @@ export class ApiClient {
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     // 响应拦截器已经返回 response.data，所以这里直接返回
-    return await request.patch(url, data, config)
+    return await request.patch<ApiResponse<T>, ApiResponse<T>>(url, data, config)
   }
 
   // 上传文件
@@ -550,7 +550,7 @@ export class ApiClient {
     formData.append('file', file)
 
     // 响应拦截器已经返回 response.data，所以这里直接返回
-    return await request.post(url, formData, {
+    return await request.post<ApiResponse<T>, ApiResponse<T>>(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -571,12 +571,12 @@ export class ApiClient {
     config?: RequestConfig
   ): Promise<void> {
     // 对于 blob 响应，响应拦截器返回的就是 blob 数据
-    const blobData = await request.get(url, {
+    const blobData = await request.get<Blob, Blob>(url, {
       responseType: 'blob',
       ...config
-    })
+    } as RequestConfig)
 
-    const blob = blobData instanceof Blob ? blobData : new Blob([blobData as unknown as BlobPart])
+    const blob = blobData instanceof Blob ? blobData : new Blob([blobData])
     const downloadUrl = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = downloadUrl

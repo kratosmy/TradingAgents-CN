@@ -269,7 +269,7 @@ import {
 } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 
-type TokenRecord = {
+interface TokenRecord {
   timestamp: string
   provider: string
   model: string
@@ -281,7 +281,7 @@ type TokenRecord = {
   duration: number
 }
 
-type ModelRankingItem = {
+interface ModelRankingItem {
   name: string
   requests: number
   tokens: number

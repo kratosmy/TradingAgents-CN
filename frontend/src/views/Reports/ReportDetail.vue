@@ -290,16 +290,14 @@ import { marked } from 'marked'
 import { getMarketByStockCode } from '@/utils/market'
 import type { CurrencyAmount } from '@/api/paper'
 
-type ReportModuleContent = string | Record<string, unknown>
-
-type ReportDetailData = {
+interface ReportDetailData {
   id: string
   analysis_id?: string
-  stock_symbol: string
+  analysis_date?: string
   stock_name?: string
+  stock_symbol: string
   status: string
   created_at: string
-  analysis_date?: string
   analysts: string[]
   model_info?: string
   recommendation?: string
@@ -307,7 +305,7 @@ type ReportDetailData = {
   confidence_score?: number
   key_points?: string[]
   summary?: string
-  reports: Record<string, ReportModuleContent>
+  reports: Record<string, string | Record<string, unknown>>
 }
 
 // 路由和认证
@@ -328,8 +326,8 @@ const reportModuleKeys = computed<string[]>(() => report.value ? Object.keys(rep
 // 获取模型配置列表
 const fetchLLMConfigs = async () => {
   try {
-    const systemConfig = await configApi.getSystemConfig()
-    llmConfigs.value = systemConfig.llm_configs || []
+    const response = await configApi.getSystemConfig()
+    llmConfigs.value = response.llm_configs || []
   } catch (error) {
     console.error('获取模型配置失败:', error)
   }
@@ -376,6 +374,11 @@ const fetchReportDetail = async () => {
 
 // 下载报告
 const downloadReport = async (format: string = 'markdown') => {
+  const currentReport = report.value
+  if (!currentReport) {
+    return
+  }
+
   try {
     if (!report.value) return
     const currentReport = report.value
@@ -454,18 +457,22 @@ const getFileExtension = (format: string): string => {
 
 // 判断是否可以应用到交易
 const canApplyToTrading = computed(() => {
-  if (!report.value) return false
-  const rec = report.value.recommendation || ''
+  const currentReport = report.value
+  if (!currentReport) return false
+  const rec = currentReport.recommendation || ''
   // 检查是否包含买入或卖出建议
   return rec.includes('买入') || rec.includes('卖出') || rec.toLowerCase().includes('buy') || rec.toLowerCase().includes('sell')
 })
 
 // 解析投资建议
 const parseRecommendation = () => {
-  if (!report.value) return null
+  const currentReport = report.value
+  if (!currentReport) return null
 
-  const rec = report.value.recommendation || ''
-  const traderPlan = report.value.reports?.trader_investment_plan || ''
+  const rec = currentReport.recommendation || ''
+  const traderPlan = typeof currentReport.reports?.trader_investment_plan === 'string'
+    ? currentReport.reports.trader_investment_plan
+    : ''
 
   // 解析操作类型
   let action: 'buy' | 'sell' | null = null
@@ -489,8 +496,8 @@ const parseRecommendation = () => {
   return {
     action,
     targetPrice,
-    confidence: report.value.confidence_score || 0,
-    riskLevel: report.value.risk_level || '中等'
+    confidence: currentReport.confidence_score || 0,
+    riskLevel: currentReport.risk_level || '中等'
   }
 }
 
@@ -525,6 +532,10 @@ const getCashByCurrency = (account: any, stockSymbol: string): number => {
 // 应用到模拟交易
 const applyToTrading = async () => {
   const recommendation = parseRecommendation()
+  const currentReport = report.value
+  if (!currentReport) {
+    return
+  }
   if (!recommendation) {
     ElMessage.warning('无法解析投资建议，请检查报告内容')
     return
@@ -867,8 +878,8 @@ const getModuleDisplayName = (moduleName: string) => {
 const renderMarkdown = (content: string) => {
   if (!content) return ''
   try {
-    return String(marked.parse(content))
-  } catch (e) {
+    return marked.parse(content) as string
+  } catch (_error) {
     return `<pre style="white-space: pre-wrap; font-family: inherit;">${content}</pre>`
   }
 }
@@ -921,16 +932,11 @@ const getRiskColor = (riskLevel: string) => {
   return colorMap[riskLevel] || '#E6A23C'
 }
 
-watch(
-  () => route.params.id,
-  async () => {
-    report.value = null
-    activeModule.value = ''
-    await fetchLLMConfigs()
-    await fetchReportDetail()
-  },
-  { immediate: true }
-)
+// 生命周期
+onMounted(() => {
+  fetchLLMConfigs() // 先加载模型配置
+  fetchReportDetail() // 再加载报告详情
+})
 </script>
 
 <style lang="scss" scoped>

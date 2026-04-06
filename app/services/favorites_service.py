@@ -134,7 +134,7 @@ class FavoritesService:
                         it["change_percent"] = q.get("pct_chg")
                 # 兜底：对未命中的代码使用在线源补齐（可选）
                 missing = [c for c in codes if c not in quotes_map]
-                if missing:
+                if missing and quotes_map:
                     try:
                         quotes_online = await get_quotes_service().get_quotes(missing)
                         for it in items:

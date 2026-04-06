@@ -612,7 +612,7 @@ const handleMenuSelect = (index: string) => {
 
 const handleThemeChange = (theme: string | number | boolean | undefined) => {
   if (typeof theme === 'string') {
-    appStore.setTheme(theme as any)
+    appStore.setTheme(theme as 'light' | 'dark' | 'auto')
   }
 }
 
@@ -623,7 +623,7 @@ const saveGeneralSettings = async () => {
       email: generalSettings.value.email,
       preferences: buildPreferencesPayload({
         language: generalSettings.value.language
-      })
+      } as any
     })
 
     if (success) {
@@ -646,7 +646,7 @@ const saveAppearanceSettings = async () => {
       preferences: buildPreferencesPayload({
         ui_theme: appearanceSettings.value.theme,
         sidebar_width: appearanceSettings.value.sidebarWidth
-      })
+      } as any
     })
 
     if (success) {
@@ -676,7 +676,7 @@ const saveAnalysisSettings = async () => {
         default_analysts: analysisSettings.value.defaultAnalysts,
         auto_refresh: analysisSettings.value.autoRefresh,
         refresh_interval: analysisSettings.value.refreshInterval
-      })
+      } as any
     })
 
     if (success) {
@@ -697,7 +697,7 @@ const saveNotificationSettings = async () => {
         analysis_complete_notification: notificationSettings.value.analysisComplete,
         system_maintenance_notification: notificationSettings.value.systemMaintenance,
         notifications_enabled: notificationSettings.value.desktop || notificationSettings.value.analysisComplete || notificationSettings.value.systemMaintenance
-      })
+      } as any
     })
 
     if (success) {

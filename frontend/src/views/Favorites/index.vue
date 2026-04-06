@@ -646,8 +646,8 @@ const filteredFavorites = computed<FavoriteItem[]>(() => {
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
     result = result.filter((item: FavoriteItem) =>
-      (item.stock_code || '').toLowerCase().includes(keyword) ||
-      (item.stock_name || '').toLowerCase().includes(keyword)
+      (item.stock_code || item.symbol || '').toLowerCase().includes(keyword) ||
+      item.stock_name.toLowerCase().includes(keyword)
     )
   }
 
@@ -1025,8 +1025,8 @@ const handleSelectionChange = (selection: FavoriteItem[]) => {
 // 显示单个股票同步对话框
 const showSingleSyncDialog = (row: FavoriteItem) => {
   currentSyncStock.value = {
-    stock_code: row.stock_code || '',
-    stock_name: row.stock_name || ''
+    stock_code: row.stock_code || row.symbol || '',
+    stock_name: row.stock_name
   }
   singleSyncDialogVisible.value = true
 }
@@ -1120,8 +1120,8 @@ const handleBatchSync = async () => {
   batchSyncLoading.value = true
   try {
     const symbols = selectedStocks.value
-      .map(stock => stock.stock_code)
-      .filter((code): code is string => Boolean(code))
+      .map(stock => stock.stock_code || stock.symbol)
+      .filter((stockCode): stockCode is string => Boolean(stockCode))
 
     const res = await stockSyncApi.syncBatch({
       symbols,

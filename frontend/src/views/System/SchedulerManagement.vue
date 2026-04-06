@@ -575,7 +575,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type TabPaneName } from 'element-plus'
 import {
   Timer,
   List,
@@ -602,7 +602,6 @@ import {
   markExecutionFailed,
   deleteExecution,
   type Job,
-  type JobHistory,
   type JobExecution,
   type SchedulerStats
 } from '@/api/scheduler'
@@ -635,7 +634,7 @@ const currentJob = ref<Job | null>(null)
 // 执行历史
 const historyDialogVisible = ref(false)
 const historyLoading = ref(false)
-const historyList = ref<JobHistory[]>([])
+const historyList = ref<JobExecution[]>([])
 const historyTotal = ref(0)
 const historyPage = ref(1)
 const historyPageSize = ref(20)
@@ -867,7 +866,7 @@ const handleHistoryPageChange = (page: number) => {
   loadHistory()
 }
 
-const handleHistoryTabChange = (tabName: string) => {
+const handleHistoryTabChange = (tabName: TabPaneName) => {
   if (tabName === 'execution') {
     executionPage.value = 1
     loadExecutions()

@@ -122,7 +122,7 @@ import { ElMessage } from 'element-plus'
 import { 
   Connection, 
   ArrowRight, 
-  Refresh 
+  Refresh
 } from '@element-plus/icons-vue'
 import { 
   getSyncStatus, 

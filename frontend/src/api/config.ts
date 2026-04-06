@@ -2,8 +2,7 @@
  * 配置管理API
  */
 
-import { ApiClient } from './request'
-import type { ApiResponse } from './request'
+import { ApiClient, type ApiResponse } from './request'
 
 // 配置相关类型定义
 
@@ -161,8 +160,29 @@ export interface ConfigTestRequest {
 export interface ConfigTestResponse {
   success: boolean
   message: string
+  response_time?: number
   details?: Record<string, any>
 }
+
+const unwrapData = <T>(promise: Promise<ApiResponse<T>>): Promise<T> =>
+  promise.then((response) => response.data)
+
+const unwrapMessageAndData = <T extends Record<string, any>>(
+  promise: Promise<ApiResponse<T>>
+): Promise<T & { message: string }> =>
+  promise.then((response) => ({
+    ...response.data,
+    message: response.message,
+  }))
+
+const unwrapStatusAndData = <T extends Record<string, any>>(
+  promise: Promise<ApiResponse<T>>
+): Promise<T & { success: boolean; message: string }> =>
+  promise.then((response) => ({
+    success: response.success,
+    message: response.message,
+    ...(response.data || {}),
+  }))
 
 
 // 系统设置元数据
@@ -181,39 +201,39 @@ const unwrapResponse = <T>(promise: Promise<ApiResponse<T>>): Promise<T> =>
 export const configApi = {
   // 获取系统配置
   getSystemConfig(): Promise<SystemConfig> {
-    return unwrapResponse(ApiClient.get<SystemConfig>('/api/config/system'))
+    return unwrapData(ApiClient.get<SystemConfig>('/api/config/system'))
   },
 
   // ========== 大模型厂家管理 ==========
 
   // 获取所有大模型厂家
   getLLMProviders(): Promise<LLMProvider[]> {
-    return unwrapResponse(ApiClient.get<LLMProvider[]>('/api/config/llm/providers'))
+    return unwrapData(ApiClient.get<LLMProvider[]>('/api/config/llm/providers'))
   },
 
   // 添加大模型厂家
   addLLMProvider(provider: Partial<LLMProvider>): Promise<{ message: string; id: string }> {
-    return unwrapResponse(ApiClient.post<{ message: string; id: string }>('/api/config/llm/providers', provider))
+    return unwrapMessageAndData(ApiClient.post<{ id: string }>('/api/config/llm/providers', provider))
   },
 
   // 更新大模型厂家
   updateLLMProvider(id: string, provider: Partial<LLMProvider>): Promise<{ message: string }> {
-    return unwrapResponse(ApiClient.put<{ message: string }>(`/api/config/llm/providers/${id}`, provider))
+    return unwrapMessageAndData(ApiClient.put<Record<string, never>>(`/api/config/llm/providers/${id}`, provider))
   },
 
   // 删除大模型厂家
   deleteLLMProvider(id: string): Promise<{ message: string }> {
-    return unwrapResponse(ApiClient.delete<{ message: string }>(`/api/config/llm/providers/${id}`))
+    return unwrapMessageAndData(ApiClient.delete<Record<string, never>>(`/api/config/llm/providers/${id}`))
   },
 
   // 启用/禁用大模型厂家
   toggleLLMProvider(id: string, isActive: boolean): Promise<{ message: string }> {
-    return unwrapResponse(ApiClient.patch<{ message: string }>(`/api/config/llm/providers/${id}/toggle`, { is_active: isActive }))
+    return unwrapMessageAndData(ApiClient.patch<Record<string, never>>(`/api/config/llm/providers/${id}/toggle`, { is_active: isActive }))
   },
 
   // 迁移环境变量到厂家管理
   migrateEnvToProviders(): Promise<{ message: string; data: any }> {
-    return unwrapResponse(ApiClient.post<{ message: string; data: any }>('/api/config/llm/providers/migrate-env'))
+    return unwrapMessageAndData(ApiClient.post<{ data: any }>('/api/config/llm/providers/migrate-env'))
   },
 
   // 🆕 初始化聚合渠道厂家配置
@@ -223,7 +243,7 @@ export const configApi = {
 
   // 测试厂家API
   testProviderAPI(providerId: string): Promise<{ success: boolean; message: string; data?: any }> {
-    return unwrapResponse(ApiClient.post<{ success: boolean; message: string; data?: any }>(`/api/config/llm/providers/${providerId}/test`))
+    return unwrapStatusAndData(ApiClient.post<Record<string, any>>(`/api/config/llm/providers/${providerId}/test`))
   },
 
   // 获取可用的模型列表（按厂家分组）
@@ -232,7 +252,7 @@ export const configApi = {
     provider_name: string
     models: Array<{ name: string; display_name: string }>
   }>> {
-    return unwrapResponse(ApiClient.get<Array<{
+    return unwrapData(ApiClient.get<Array<{
       provider: string
       provider_name: string
       models: Array<{ name: string; display_name: string }>
@@ -259,7 +279,7 @@ export const configApi = {
       capabilities?: string[]
     }>
   }>> {
-    return unwrapResponse(ApiClient.get<Array<{
+    return unwrapData(ApiClient.get<Array<{
       provider: string
       provider_name: string
       models: Array<{
@@ -296,7 +316,7 @@ export const configApi = {
       capabilities?: string[]
     }>
   }> {
-    return unwrapResponse(ApiClient.get<{
+    return unwrapData(ApiClient.get<{
       provider: string
       provider_name: string
       models: Array<{
@@ -321,17 +341,17 @@ export const configApi = {
     provider_name: string
     models: Array<{ name: string; display_name: string; description?: string }>
   }): Promise<{ success: boolean; message: string }> {
-    return unwrapResponse(ApiClient.post<{ success: boolean; message: string }>('/api/config/model-catalog', catalog))
+    return unwrapStatusAndData(ApiClient.post<Record<string, never>>('/api/config/model-catalog', catalog))
   },
 
   // 删除模型目录
   deleteModelCatalog(provider: string): Promise<{ success: boolean; message: string }> {
-    return unwrapResponse(ApiClient.delete<{ success: boolean; message: string }>(`/api/config/model-catalog/${provider}`))
+    return unwrapStatusAndData(ApiClient.delete<Record<string, never>>(`/api/config/model-catalog/${provider}`))
   },
 
   // 初始化默认模型目录
   initModelCatalog(): Promise<{ success: boolean; message: string }> {
-    return unwrapResponse(ApiClient.post<{ success: boolean; message: string }>('/api/config/model-catalog/init'))
+    return unwrapStatusAndData(ApiClient.post<Record<string, never>>('/api/config/model-catalog/init'))
   },
 
   // 从厂家 API 获取模型列表
@@ -350,33 +370,19 @@ export const configApi = {
       currency?: string
     }>
   }> {
-    return unwrapResponse(ApiClient.post<{
-      success: boolean
-      message?: string
-      models?: Array<{
-        id: string
-        name: string
-        context_length?: number
-        max_tokens?: number
-        description?: string
-        capabilities?: string[]
-        input_price_per_1k?: number
-        output_price_per_1k?: number
-        currency?: string
-      }>
-    }>(`/api/config/llm/providers/${provider}/fetch-models`, filters || {}))
+    return unwrapStatusAndData(ApiClient.post<Record<string, any>>(`/api/config/llm/providers/${provider}/fetch-models`))
   },
 
   // ========== 大模型配置管理 ==========
 
   // 获取所有大模型配置
   getLLMConfigs(): Promise<LLMConfig[]> {
-    return unwrapResponse(ApiClient.get<LLMConfig[]>('/api/config/llm'))
+    return unwrapData(ApiClient.get<LLMConfig[]>('/api/config/llm'))
   },
 
   // 添加或更新大模型配置
   updateLLMConfig(config: Partial<LLMConfig>): Promise<{ message: string; model_name: string }> {
-    return unwrapResponse(ApiClient.post<{ message: string; model_name: string }>('/api/config/llm', config))
+    return unwrapMessageAndData(ApiClient.post<{ model_name: string }>('/api/config/llm', config))
   },
 
   // 删除大模型配置
@@ -386,22 +392,22 @@ export const configApi = {
 
   // 设置默认大模型
   setDefaultLLM(name: string): Promise<{ message: string; default_llm: string }> {
-    return unwrapResponse(ApiClient.post<{ message: string; default_llm: string }>('/api/config/llm/set-default', { name }))
+    return unwrapMessageAndData(ApiClient.post<{ default_llm: string }>('/api/config/llm/set-default', { name }))
   },
 
   // 获取所有数据源配置
   getDataSourceConfigs(): Promise<DataSourceConfig[]> {
-    return unwrapResponse(ApiClient.get<DataSourceConfig[]>('/api/config/datasource'))
+    return unwrapData(ApiClient.get<DataSourceConfig[]>('/api/config/datasource'))
   },
 
   // 添加数据源配置
   addDataSourceConfig(config: Partial<DataSourceConfig>): Promise<{ message: string; name: string }> {
-    return unwrapResponse(ApiClient.post<{ message: string; name: string }>('/api/config/datasource', config))
+    return unwrapMessageAndData(ApiClient.post<{ name: string }>('/api/config/datasource', config))
   },
 
   // 设置默认数据源
   setDefaultDataSource(name: string): Promise<{ message: string; default_data_source: string }> {
-    return unwrapResponse(ApiClient.post<{ message: string; default_data_source: string }>('/api/config/datasource/set-default', { name }))
+    return unwrapMessageAndData(ApiClient.post<{ default_data_source: string }>('/api/config/datasource/set-default', { name }))
   },
 
   // 更新数据源配置
@@ -416,11 +422,11 @@ export const configApi = {
 
   // 市场分类管理
   getMarketCategories(): Promise<MarketCategory[]> {
-    return unwrapResponse(ApiClient.get<MarketCategory[]>('/api/config/market-categories'))
+    return unwrapData(ApiClient.get<MarketCategory[]>('/api/config/market-categories'))
   },
 
   addMarketCategory(category: Partial<MarketCategory>): Promise<{ message: string; id: string }> {
-    return unwrapResponse(ApiClient.post<{ message: string; id: string }>('/api/config/market-categories', category))
+    return unwrapMessageAndData(ApiClient.post<{ id: string }>('/api/config/market-categories', category))
   },
 
   updateMarketCategory(id: string, category: Partial<MarketCategory>): Promise<{ message: string }> {
@@ -433,7 +439,7 @@ export const configApi = {
 
   // 数据源分组管理
   getDataSourceGroupings(): Promise<DataSourceGrouping[]> {
-    return unwrapResponse(ApiClient.get<DataSourceGrouping[]>('/api/config/datasource-groupings'))
+    return unwrapData(ApiClient.get<DataSourceGrouping[]>('/api/config/datasource-groupings'))
   },
 
   addDataSourceToCategory(dataSourceName: string, categoryId: string, priority?: number): Promise<{ message: string }> {
@@ -462,7 +468,7 @@ export const configApi = {
 
   // 获取系统设置元数据
   getSystemSettingsMeta(): Promise<{ items: SettingMeta[] }> {
-    return unwrapResponse(ApiClient.get<{ items: SettingMeta[] }>('/api/config/settings/meta'))
+    return unwrapData(ApiClient.get<{ items: SettingMeta[] }>('/api/config/settings/meta'))
   },
 
 
@@ -470,12 +476,12 @@ export const configApi = {
 
   // 获取所有数据库配置
   getDatabaseConfigs(): Promise<DatabaseConfig[]> {
-    return unwrapResponse(ApiClient.get<DatabaseConfig[]>('/api/config/database'))
+    return unwrapData(ApiClient.get<DatabaseConfig[]>('/api/config/database'))
   },
 
   // 获取指定的数据库配置
   getDatabaseConfig(dbName: string): Promise<DatabaseConfig> {
-    return unwrapResponse(ApiClient.get<DatabaseConfig>(`/api/config/database/${encodeURIComponent(dbName)}`))
+    return unwrapData(ApiClient.get<DatabaseConfig>(`/api/config/database/${encodeURIComponent(dbName)}`))
   },
 
   // 添加数据库配置
@@ -495,17 +501,17 @@ export const configApi = {
 
   // 测试数据库配置连接
   testDatabaseConfig(dbName: string): Promise<ConfigTestResponse> {
-    return unwrapResponse(ApiClient.post<ConfigTestResponse>(`/api/config/database/${encodeURIComponent(dbName)}/test`))
+    return unwrapStatusAndData(ApiClient.post<Record<string, any>>(`/api/config/database/${encodeURIComponent(dbName)}/test`))
   },
 
   // 获取系统设置
   getSystemSettings(): Promise<Record<string, any>> {
-    return unwrapResponse(ApiClient.get<Record<string, any>>('/api/config/settings'))
+    return unwrapData(ApiClient.get<Record<string, any>>('/api/config/settings'))
   },
 
   // 获取默认模型配置
   getDefaultModels(): Promise<{ quick_analysis_model: string; deep_analysis_model: string }> {
-    return unwrapResponse(ApiClient.get<Record<string, any>>('/api/config/settings')).then(settings => ({
+    return unwrapData(ApiClient.get<Record<string, any>>('/api/config/settings')).then(settings => ({
       quick_analysis_model: settings.quick_analysis_model || 'qwen-turbo',
       deep_analysis_model: settings.deep_analysis_model || 'qwen-max'
     }))
@@ -518,12 +524,12 @@ export const configApi = {
 
   // 测试配置连接
   testConfig(testRequest: ConfigTestRequest): Promise<ConfigTestResponse> {
-    return unwrapResponse(ApiClient.post<ConfigTestResponse>('/api/config/test', testRequest))
+    return unwrapStatusAndData(ApiClient.post<Record<string, any>>('/api/config/test', testRequest))
   },
 
   // 导出配置
   exportConfig(): Promise<{ message: string; data: any; exported_at: string }> {
-    return unwrapResponse(ApiClient.post<{ message: string; data: any; exported_at: string }>('/api/config/export'))
+    return unwrapMessageAndData(ApiClient.post<{ data: any; exported_at: string }>('/api/config/export'))
   },
 
   // 导入配置
@@ -538,7 +544,7 @@ export const configApi = {
 
   // 配置重载
   reloadConfig(): Promise<{ success: boolean; message: string; data?: any }> {
-    return unwrapResponse(ApiClient.post<{ success: boolean; message: string; data?: any }>('/api/config/reload'))
+    return unwrapStatusAndData(ApiClient.post<Record<string, any>>('/api/config/reload'))
   }
 }
 

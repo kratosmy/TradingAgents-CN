@@ -168,15 +168,7 @@ export class OperationLogsApi {
     if (params.action_type) queryParams.append('action_type', params.action_type)
     
     const url = `/api/system/logs/export/csv${queryParams.toString() ? '?' + queryParams.toString() : ''}`
-    const token = useAuthStore().token
-    return fetch(url, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined
-    }).then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`导出操作日志失败: HTTP ${response.status}`)
-      }
-      return response.blob()
-    })
+    return ApiClient.get<Blob>(url, undefined, { responseType: 'blob' }).then(response => response as unknown as Blob)
   }
 }
 
@@ -233,7 +225,7 @@ export const getActionTypeName = (actionType: string): string => {
   return ActionTypeNames[actionType as keyof typeof ActionTypeNames] || actionType
 }
 
-export const getActionTypeTagColor = (actionType: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+export const getActionTypeTagColor = (actionType: string): 'warning' | 'primary' | 'success' | 'info' | 'danger' => {
   return ActionTypeTagColors[actionType as keyof typeof ActionTypeTagColors] || 'info'
 }
 

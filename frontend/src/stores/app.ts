@@ -2,6 +2,14 @@ import { defineStore } from 'pinia'
 import type { RouteLocationNormalized } from 'vue-router'
 import { useStorage } from '@vueuse/core'
 
+const defaultPreferences: AppState['preferences'] = {
+  defaultMarket: 'A股',
+  defaultDepth: '3',
+  autoRefresh: true,
+  refreshInterval: 30,
+  showWelcome: true
+}
+
 export interface AppState {
   // 应用基础状态
   loading: boolean
@@ -62,7 +70,7 @@ export const useAppStore = defineStore('app', {
 
     currentRoute: null,
 
-    preferences: (useStorage<AppPreferences>('user-preferences', defaultPreferences).value || defaultPreferences) as AppPreferences,
+    preferences: useStorage<AppState['preferences']>('user-preferences', defaultPreferences).value || defaultPreferences,
 
     version: '0.1.16',
     buildTime: new Date().toISOString(),
@@ -182,7 +190,11 @@ export const useAppStore = defineStore('app', {
     // 重置偏好设置
     resetPreferences() {
       this.preferences = {
-        ...defaultPreferences
+        defaultMarket: 'A股',
+        defaultDepth: '3',
+        autoRefresh: true,
+        refreshInterval: 30,
+        showWelcome: true
       }
     },
     
@@ -214,8 +226,7 @@ export const useAppStore = defineStore('app', {
         this.setApiConnected(connected)
         return connected
       } catch (error) {
-        const err = error as Error
-        if (err.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           console.warn('API连接检查超时')
         } else {
           console.warn('API连接检查失败:', err)
@@ -246,8 +257,7 @@ export const useAppStore = defineStore('app', {
           this.setApiConnected(false)
         }
       } catch (error) {
-        const err = error as Error
-        if (err.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           console.warn('获取API版本超时')
         } else {
           console.warn('获取API版本失败:', err)

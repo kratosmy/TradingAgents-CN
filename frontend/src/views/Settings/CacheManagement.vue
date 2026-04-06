@@ -236,7 +236,7 @@ const cacheStats = ref<CacheStats>({
 })
 
 // 缓存详情数据
-const cacheDetails = ref<CacheDetailItem[]>([])
+const cacheDetails = ref<cacheApi.CacheDetailItem[]>([])
 
 // 清理天数标记
 const cleanupMarks = {
@@ -271,8 +271,8 @@ const getProgressColor = (percentage: number): string => {
   return '#f56c6c'
 }
 
-const getCacheTypeTag = (type: string): TagType => {
-  const typeMap: Record<string, TagType> = {
+const getCacheTypeTag = (type: string): 'warning' | 'primary' | 'success' | 'info' | 'danger' => {
+  const typeMap: Record<string, 'warning' | 'primary' | 'success' | 'info' | 'danger'> = {
     'stock': 'primary',
     'news': 'success',
     'analysis': 'warning'

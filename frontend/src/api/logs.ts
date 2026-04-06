@@ -59,26 +59,22 @@ export const LogsApi = {
    * 获取日志文件列表
    */
   listLogFiles(): Promise<LogFileInfo[]> {
-    return unwrapResponse(ApiClient.get<LogFileInfo[]>('/api/system/system-logs/files'))
+    return ApiClient.get<LogFileInfo[]>('/api/system/system-logs/files').then(response => response.data)
   },
 
   /**
    * 读取日志文件内容
    */
   readLogFile(request: LogReadRequest): Promise<LogContentResponse> {
-    return unwrapResponse(ApiClient.post<LogContentResponse>('/api/system/system-logs/read', request))
+    return ApiClient.post<LogContentResponse>('/api/system/system-logs/read', request).then(response => response.data)
   },
 
   /**
    * 导出日志文件
    */
   async exportLogs(request: LogExportRequest): Promise<Blob> {
-    const response = await fetch('/api/system/system-logs/export', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(request)
+    const response = await ApiClient.post<Blob>('/api/system/system-logs/export', request, {
+      responseType: 'blob'
     })
     if (!response.ok) {
       throw new Error(`导出日志失败: HTTP ${response.status}`)
@@ -90,7 +86,7 @@ export const LogsApi = {
    * 获取日志统计信息
    */
   getStatistics(days: number = 7): Promise<LogStatistics> {
-    return unwrapResponse(ApiClient.get<LogStatistics>('/api/system/system-logs/statistics', { days }))
+    return ApiClient.get<LogStatistics>('/api/system/system-logs/statistics', { days }).then(response => response.data)
   },
 
   /**

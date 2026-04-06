@@ -93,6 +93,28 @@ const routes: RouteRecordRaw[] = [
   },
 
   {
+    path: '/watch',
+    name: 'Watchlist',
+    component: () => import('@/layouts/BasicLayout.vue'),
+    meta: {
+      title: '自选股监控',
+      icon: 'Star',
+      requiresAuth: true,
+      transition: 'slide-up'
+    },
+    children: [
+      {
+        path: '',
+        name: 'WatchlistHome',
+        component: () => import('@/views/Watchlist/index.vue'),
+        meta: {
+          title: '自选股监控',
+          requiresAuth: true
+        }
+      }
+    ]
+  },
+  {
     path: '/favorites',
     name: 'Favorites',
     component: () => import('@/layouts/BasicLayout.vue'),
@@ -458,7 +480,7 @@ router.beforeEach(async (to, _from, next) => {
 })
 
 // 全局后置守卫
-router.afterEach((_to, _from) => {
+router.afterEach(() => {
   // 结束进度条
   NProgress.done()
 
@@ -479,3 +501,4 @@ export default router
 
 // 导出路由配置供其他地方使用
 export { routes }
+

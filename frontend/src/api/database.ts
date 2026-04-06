@@ -155,20 +155,9 @@ export const databaseApi = {
     format?: string
     sanitize?: boolean  // 是否脱敏（清空敏感字段，用于演示系统）
   }): Promise<Blob> {
-    const token = useAuthStore().token
-    return fetch('/api/system/database/export', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify(options)
-    }).then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`导出数据失败: HTTP ${response.status}`)
-      }
-      return response.blob()
-    })
+    return ApiClient.post<Blob>('/api/system/database/export', options, {
+      responseType: 'blob'
+    }).then(response => response as unknown as Blob)
   },
 
   // 清理旧数据

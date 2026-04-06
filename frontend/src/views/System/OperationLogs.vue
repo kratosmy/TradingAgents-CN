@@ -341,8 +341,13 @@ const actionTypeChart = ref<HTMLDivElement | null>(null)
 const operationTrendChart = ref<HTMLDivElement | null>(null)
 
 // 筛选表单
-const filterForm = reactive({
-  dateRange: [] as string[],
+const filterForm = reactive<{
+  dateRange: [string, string] | []
+  actionType: string
+  success: '' | boolean
+  keyword: string
+}>({
+  dateRange: [],
   actionType: '',
   success: '' as '' | boolean,
   keyword: ''
@@ -363,7 +368,7 @@ const logs = ref<OperationLog[]>([])
 const statsData = ref<OperationLogStats | null>(null)
 
 // 方法
-const getActionTypeTag = (actionType: string): TagType => {
+const getActionTypeTag = (actionType: string): 'warning' | 'primary' | 'success' | 'info' | 'danger' => {
   return getActionTypeTagColor(actionType)
 }
 

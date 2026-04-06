@@ -128,7 +128,10 @@ const initApp = async () => {
     const err = error as { code?: string; message?: string }
     console.warn('⚠️ 应用初始化失败，但应用将继续启动:', err)
     // 如果是网络错误，不影响应用启动
-    if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+    if (
+      error instanceof Error &&
+      (((error as Error & { code?: string }).code === 'ECONNABORTED') || error.message.includes('timeout'))
+    ) {
       console.log('📱 离线模式：应用将在没有后端连接的情况下启动')
     }
   } finally {
