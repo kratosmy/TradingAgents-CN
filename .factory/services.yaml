@@ -1,0 +1,35 @@
+commands:
+  install: ./.factory/init.sh
+  test: .venv-mission/bin/python -m pytest tests/ -v
+  lint: npm --prefix frontend run lint
+  typecheck: npm --prefix frontend run type-check
+  build: npm --prefix frontend run build
+
+services:
+  mongodb:
+    start: echo using-existing-mongodb-on-27017
+    stop: echo leaving-existing-mongodb-on-27017-running
+    healthcheck: python3 -c "import socket; s=socket.create_connection(('127.0.0.1',27017),2); s.close()"
+    port: 27017
+    depends_on: []
+
+  redis:
+    start: echo using-existing-redis-on-6379
+    stop: echo leaving-existing-redis-on-6379-running
+    healthcheck: redis-cli -p 6379 -a tradingagents123 ping
+    port: 6379
+    depends_on: []
+
+  backend:
+    start: .venv-mission/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
+    stop: fuser -k 8001/tcp || true
+    healthcheck: curl -sf http://localhost:8001/api/health
+    port: 8001
+    depends_on: [mongodb, redis]
+
+  frontend:
+    start: npm --prefix frontend run dev -- --host 0.0.0.0 --port 3000
+    stop: fuser -k 3000/tcp || true
+    healthcheck: curl -sf http://localhost:3000
+    port: 3000
+    depends_on: [backend]
