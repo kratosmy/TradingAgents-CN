@@ -11,6 +11,7 @@ fi
 .venv-mission/bin/python -m ensurepip --upgrade >/dev/null 2>&1 || true
 .venv-mission/bin/python -m pip install --upgrade pip setuptools wheel
 .venv-mission/bin/python -m pip install -r requirements.txt
+.venv-mission/bin/python -m pip install pytest
 
 if [ ! -d "frontend/node_modules" ]; then
   npm --prefix frontend install
