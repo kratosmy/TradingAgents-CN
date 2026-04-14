@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 # Import router and dependencies to override
 from app.routers import sse as sse_router_mod
 from app.routers.sse import router as sse_router
-from app.routers.auth import get_current_user
+from app.routers.auth_db import get_current_user
 from app.services.queue_service import QueueService, get_queue_service as real_get_queue_service
 
 

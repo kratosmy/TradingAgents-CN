@@ -28,6 +28,23 @@ _AUTOMATED_TEST_DIRS = {
     "unit",
 }
 
+# A small number of root-level modules have since been repaired into hermetic
+# pytest suites. Keep them collected explicitly while the remaining historical
+# `tests/test_*.py` scripts stay reclassified as direct-run/manual checks.
+_AUTOMATED_TOP_LEVEL_FILES = {
+    "test_conditional_logic_config.py",
+    "test_config_system.py",
+    "test_debate_flow_simulation.py",
+    "test_progress_time_calculation.py",
+    "test_research_depth_5_levels.py",
+    "test_research_depth_mapping.py",
+    "test_request_deduplication.py",
+    "test_sanitize_export.py",
+    "test_sse_and_worker_config.py",
+    "test_system_config_summary_sse_queue.py",
+    "test_tradingagents_runtime_settings.py",
+}
+
 _EXCLUDED_TOP_LEVEL_DIRS = {
     "0.1.14",      # archived historical regression snapshots
     "data",        # test fixtures / captured data, not pytest suites
@@ -49,6 +66,8 @@ def pytest_ignore_collect(collection_path, path=None, config=None):
                 return True
             return True
         if candidate.is_file():
+            if candidate.name in _AUTOMATED_TOP_LEVEL_FILES:
+                return False
             return any(
                 fnmatch(candidate.name, pattern)
                 for pattern in ("test*.py", "*_test.py")

@@ -16,6 +16,15 @@ import warnings
 from app.core.config import settings
 
 
+def _run_async_compat(coro_func, *args, **kwargs):
+    """在同步上下文中安全执行异步函数；若当前事件循环已运行则返回 None。"""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro_func(*args, **kwargs))
+    return None
+
+
 class ConfigManagerCompat:
     """
     ConfigManager 兼容类
@@ -65,16 +74,12 @@ class ConfigManagerCompat:
         try:
             # 尝试从新配置系统加载
             from app.services.config_service import config_service
-            
-            # 在同步上下文中运行异步代码
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # 如果事件循环正在运行，返回默认值
-                return self._get_default_settings()
-            else:
-                config = loop.run_until_complete(config_service.get_system_config())
-                if config and config.system_settings:
-                    return config.system_settings
+
+            config = _run_async_compat(config_service.get_system_config)
+            if config and config.system_settings:
+                merged_settings = self._get_default_settings()
+                merged_settings.update(dict(config.system_settings))
+                return merged_settings
         except Exception:
             pass
         
@@ -93,17 +98,15 @@ class ConfigManagerCompat:
         """
         try:
             from app.services.config_service import config_service
-            
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # 如果事件循环正在运行，无法保存
+
+            result = _run_async_compat(
+                config_service.update_system_settings,
+                settings_dict,
+            )
+            if result is None:
                 warnings.warn("Cannot save settings in running event loop", RuntimeWarning)
                 return False
-            else:
-                loop.run_until_complete(
-                    config_service.update_system_settings(settings_dict)
-                )
-                return True
+            return True
         except Exception as e:
             warnings.warn(f"Failed to save settings: {e}", RuntimeWarning)
             return False
@@ -117,25 +120,23 @@ class ConfigManagerCompat:
         """
         try:
             from app.services.config_service import config_service
-            
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
+
+            config = _run_async_compat(config_service.get_system_config)
+            if config is None:
                 return []
-            else:
-                config = loop.run_until_complete(config_service.get_system_config())
-                if config and config.llm_configs:
-                    return [
-                        {
-                            "provider": llm.provider,
-                            "model_name": llm.model_name,
-                            "api_key": llm.api_key or "",
-                            "base_url": llm.base_url,
-                            "max_tokens": llm.max_tokens,
-                            "temperature": llm.temperature,
-                            "enabled": llm.enabled,
-                        }
-                        for llm in config.llm_configs
-                    ]
+            if config and config.llm_configs:
+                return [
+                    {
+                        "provider": llm.provider,
+                        "model_name": llm.model_name,
+                        "api_key": llm.api_key or "",
+                        "base_url": llm.base_url,
+                        "max_tokens": llm.max_tokens,
+                        "temperature": llm.temperature,
+                        "enabled": llm.enabled,
+                    }
+                    for llm in config.llm_configs
+                ]
         except Exception:
             pass
         
