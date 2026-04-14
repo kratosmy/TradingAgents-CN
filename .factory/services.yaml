@@ -16,13 +16,31 @@ services:
   redis:
     start: echo using-existing-redis-on-6379
     stop: echo leaving-existing-redis-on-6379-running
-    healthcheck: redis-cli -p 6379 -a tradingagents123 ping
+    healthcheck: .venv-mission/bin/python -c "from redis import Redis; client = Redis(host='127.0.0.1', port=6379, password='tradingagents123', decode_responses=True); assert client.ping() is True"
     port: 6379
     depends_on: []
 
   backend:
-    start: echo reusing-existing-backend-on-8001
-    stop: echo leaving-existing-backend-on-8001-running
+    start: >-
+      sh -c 'mkdir -p .logs &&
+      if curl -sf http://localhost:8001/api/health >/dev/null 2>&1; then
+        echo backend-already-healthy-on-8001;
+      elif [ -f .logs/mission-backend-8001.pid ] && kill -0 "$(cat .logs/mission-backend-8001.pid)" 2>/dev/null; then
+        echo managed-backend-already-running-on-8001;
+      else
+        PORT=8001 .venv-mission/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 > .logs/mission-backend-8001.log 2>&1 &
+        echo $! > .logs/mission-backend-8001.pid;
+      fi'
+    stop: >-
+      sh -c 'if [ -f .logs/mission-backend-8001.pid ]; then
+        pid=$(cat .logs/mission-backend-8001.pid);
+        if kill -0 "$pid" 2>/dev/null; then
+          kill "$pid";
+        fi;
+        rm -f .logs/mission-backend-8001.pid;
+      else
+        echo no-managed-backend-pid-for-8001;
+      fi'
     healthcheck: curl -sf http://localhost:8001/api/health
     port: 8001
     depends_on: [mongodb, redis]
