@@ -42,15 +42,21 @@ class WatchDigestCard(BaseModel):
     exchange: Optional[str] = None
     current_price: Optional[float] = None
     change_percent: Optional[float] = None
+    digest_status: str = "not_started"
     summary: str = ""
     recommendation: Optional[str] = None
     risk_level: str = "未配置"
     confidence_score: Optional[float] = None
     schedule_type: Optional[str] = None
+    schedule_summary: str = "未配置"
+    cron_expr: Optional[str] = None
     rule_status: str = "inactive"
+    generated_at: Optional[str] = None
     updated_at: Optional[str] = None
     report_id: Optional[str] = None
     task_id: Optional[str] = None
+    task_status: Optional[str] = None
+    task_updated_at: Optional[str] = None
 
 
 class WatchRuleResponse(BaseModel):

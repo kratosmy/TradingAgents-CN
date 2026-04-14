@@ -95,11 +95,11 @@ class _FakeCollection:
 
 
 class _FakeDb:
-    def __init__(self, *, watch_rules_docs=None):
+    def __init__(self, *, watch_rules_docs=None, watch_digests_docs=None, analysis_task_docs=None):
         self.watch_rules = _FakeCollection(watch_rules_docs)
-        self.watch_digests = _FakeCollection()
+        self.watch_digests = _FakeCollection(watch_digests_docs)
         self.analysis_reports = _FakeCollection()
-        self.analysis_tasks = _FakeCollection()
+        self.analysis_tasks = _FakeCollection(analysis_task_docs)
 
 
 @pytest.mark.asyncio
@@ -277,3 +277,208 @@ async def test_trigger_digest_refresh_requires_watchlist_membership_and_uses_can
             stock_name="平安银行",
             market="A股",
         )
+
+
+@pytest.mark.asyncio
+async def test_list_digest_cards_projects_canonical_watchlist_with_compact_placeholders_and_task_metadata(monkeypatch):
+    service = WatchDigestService()
+    service.db = _FakeDb(
+        watch_rules_docs=[
+            {
+                "user_id": "user-1",
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "schedule_type": "daily_post_market",
+                "cron_expr": None,
+                "status": "active",
+                "created_at": datetime(2026, 4, 15, 8, 0, tzinfo=timezone.utc),
+                "updated_at": datetime(2026, 4, 15, 8, 30, tzinfo=timezone.utc),
+            }
+        ],
+        watch_digests_docs=[
+            {
+                "user_id": "user-1",
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "summary": "白酒龙头保持强势。",
+                "recommendation": "继续持有",
+                "risk_level": "低",
+                "confidence_score": 0.91,
+                "status": "ready",
+                "report_id": "report-1",
+                "task_id": "task-ready",
+                "generated_at": datetime(2026, 4, 15, 9, 0, tzinfo=timezone.utc),
+                "updated_at": datetime(2026, 4, 15, 9, 30, tzinfo=timezone.utc),
+            }
+        ],
+        analysis_task_docs=[
+            {
+                "user_id": "user-1",
+                "task_id": "task-old",
+                "stock_code": "000001",
+                "status": "failed",
+                "created_at": datetime(2026, 4, 15, 7, 0, tzinfo=timezone.utc),
+            },
+            {
+                "user_id": "user-1",
+                "task_id": "task-pending",
+                "stock_symbol": "000001",
+                "status": "pending",
+                "created_at": datetime(2026, 4, 15, 10, 0, tzinfo=timezone.utc),
+            },
+            {
+                "user_id": "user-2",
+                "task_id": "task-other-user",
+                "stock_code": "000001",
+                "status": "running",
+                "created_at": datetime(2026, 4, 15, 11, 0, tzinfo=timezone.utc),
+            },
+        ],
+    )
+
+    async def _get_user_favorites(user_id):
+        assert user_id == "user-1"
+        return [
+            {
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "board": "主板",
+                "exchange": "上海证券交易所",
+                "current_price": 1678.0,
+                "change_percent": 1.8,
+            },
+            {
+                "stock_code": "000001",
+                "stock_name": "平安银行",
+                "market": "A股",
+                "board": "主板",
+                "exchange": "深圳证券交易所",
+                "current_price": 11.2,
+                "change_percent": -0.6,
+                "alert_price_low": 10.5,
+            },
+            {
+                "symbol": "600519",
+                "stock_name": "重复条目应忽略",
+                "market": "A股",
+            },
+        ]
+
+    monkeypatch.setattr(watch_digest_module.favorites_service, "get_user_favorites", _get_user_favorites)
+
+    cards = await service.list_digest_cards("user-1")
+
+    assert [card["stock_code"] for card in cards] == ["600519", "000001"]
+
+    ready_card = cards[0]
+    placeholder_card = cards[1]
+
+    assert ready_card == {
+        "stock_code": "600519",
+        "stock_name": "贵州茅台",
+        "market": "A股",
+        "board": "主板",
+        "exchange": "上海证券交易所",
+        "current_price": 1678.0,
+        "change_percent": 1.8,
+        "digest_status": "ready",
+        "summary": "白酒龙头保持强势。",
+        "recommendation": "继续持有",
+        "risk_level": "低",
+        "confidence_score": 0.91,
+        "schedule_type": "daily_post_market",
+        "schedule_summary": "每天盘后",
+        "cron_expr": None,
+        "rule_status": "active",
+        "generated_at": "2026-04-15T09:00:00+00:00",
+        "updated_at": "2026-04-15T09:30:00+00:00",
+        "report_id": "report-1",
+        "task_id": "task-ready",
+        "task_status": None,
+        "task_updated_at": None,
+        "schedule_label": "每天盘后",
+    }
+    assert placeholder_card == {
+        "stock_code": "000001",
+        "stock_name": "平安银行",
+        "market": "A股",
+        "board": "主板",
+        "exchange": "深圳证券交易所",
+        "current_price": 11.2,
+        "change_percent": -0.6,
+        "digest_status": "pending",
+        "summary": "暂无摘要，请先执行一次解读。",
+        "recommendation": None,
+        "risk_level": "关注",
+        "confidence_score": None,
+        "schedule_type": None,
+        "schedule_summary": "未配置",
+        "cron_expr": None,
+        "rule_status": "inactive",
+        "generated_at": None,
+        "updated_at": "2026-04-15T10:00:00+00:00",
+        "report_id": None,
+        "task_id": "task-pending",
+        "task_status": "pending",
+        "task_updated_at": "2026-04-15T10:00:00+00:00",
+        "schedule_label": "未配置",
+    }
+    assert "report_body" not in placeholder_card
+
+
+@pytest.mark.asyncio
+async def test_trigger_refresh_for_all_deduplicates_watchlist_membership_and_preserves_task_metadata(monkeypatch):
+    service = WatchDigestService()
+
+    async def _get_user_favorites(user_id):
+        assert user_id == "user-1"
+        return [
+            {"stock_code": "600519", "stock_name": "贵州茅台", "market": "A股"},
+            {"symbol": "600519", "stock_name": "重复条目应忽略", "market": "A股"},
+            {"stock_code": "000001", "stock_name": "平安银行", "market": "A股"},
+            {"stock_code": "", "stock_name": "空代码应忽略", "market": "A股"},
+        ]
+
+    captured_calls = []
+
+    async def _trigger_digest_refresh(*, user_id, stock_code, stock_name, market):
+        captured_calls.append((user_id, stock_code, stock_name, market))
+        return {
+            "task_id": f"task-{stock_code}",
+            "status": "pending",
+            "message": "任务已创建，等待执行",
+            "stock_code": stock_code,
+            "stock_name": stock_name,
+            "market": market,
+        }
+
+    monkeypatch.setattr(watch_digest_module.favorites_service, "get_user_favorites", _get_user_favorites)
+    monkeypatch.setattr(service, "trigger_digest_refresh", _trigger_digest_refresh)
+
+    tasks = await service.trigger_refresh_for_all("user-1")
+
+    assert captured_calls == [
+        ("user-1", "600519", "贵州茅台", "A股"),
+        ("user-1", "000001", "平安银行", "A股"),
+    ]
+    assert tasks == [
+        {
+            "stock_code": "600519",
+            "stock_name": "贵州茅台",
+            "market": "A股",
+            "task_id": "task-600519",
+            "status": "pending",
+            "message": "任务已创建，等待执行",
+        },
+        {
+            "stock_code": "000001",
+            "stock_name": "平安银行",
+            "market": "A股",
+            "task_id": "task-000001",
+            "status": "pending",
+            "message": "任务已创建，等待执行",
+        },
+    ]

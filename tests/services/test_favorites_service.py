@@ -665,8 +665,12 @@ def test_watch_digest_cards_project_migrated_legacy_entry_once(monkeypatch):
     async def _empty_digests(user_id):
         return {}
 
+    async def _empty_tasks(user_id, stock_codes):
+        return {}
+
     monkeypatch.setattr(watch_digest_service, "get_user_rules", _empty_rules)
     monkeypatch.setattr(watch_digest_service, "_get_latest_digests_map", _empty_digests)
+    monkeypatch.setattr(watch_digest_service, "_get_latest_tasks_map", _empty_tasks)
 
     cards = asyncio.run(watch_digest_service.list_digest_cards(user_id))
 

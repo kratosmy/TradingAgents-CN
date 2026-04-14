@@ -55,7 +55,16 @@ def test_watch_routes_are_mounted_and_reachable(api_client, monkeypatch):
 
     async def _trigger_refresh_for_all(user_id):
         assert user_id == "user-1"
-        return [{"stock_code": "600519", "stock_name": "贵州茅台", "market": "A股", "task_id": "task-1"}]
+        return [
+            {
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "task_id": "task-1",
+                "status": "pending",
+                "message": "任务已创建，等待执行",
+            }
+        ]
 
     async def _run_digest_refresh(*args, **kwargs):
         return None
@@ -82,7 +91,20 @@ def test_watch_routes_are_mounted_and_reachable(api_client, monkeypatch):
     assert rules_resp.json()["data"][0]["stock_code"] == "600519"
 
     assert refresh_resp.status_code == 200
-    assert refresh_resp.json()["data"] == {"count": 1, "stocks": ["600519"]}
+    assert refresh_resp.json()["data"] == {
+        "count": 1,
+        "stocks": ["600519"],
+        "tasks": [
+            {
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "task_id": "task-1",
+                "status": "pending",
+                "message": "任务已创建，等待执行",
+            }
+        ],
+    }
 
 
 def test_watch_rule_upsert_and_delete_routes_surface_stable_contract(api_client, monkeypatch):

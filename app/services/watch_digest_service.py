@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from apscheduler.triggers.cron import CronTrigger
 
@@ -91,19 +91,24 @@ class WatchDigestService:
         return result.deleted_count > 0
 
     async def list_digest_cards(self, user_id: str) -> List[Dict[str, Any]]:
-        favorites = await favorites_service.get_user_favorites(user_id)
+        favorites = list(self._iter_unique_favorites(await favorites_service.get_user_favorites(user_id)))
         rules = await self.get_user_rules(user_id)
         rules_map = {item["stock_code"]: item for item in rules}
         digests_map = await self._get_latest_digests_map(user_id)
+        tasks_map = await self._get_latest_tasks_map(
+            user_id,
+            {item["stock_code"] for item in favorites if item.get("stock_code")},
+        )
 
         cards: List[Dict[str, Any]] = []
         for favorite in favorites:
-            stock_code = favorite.get("stock_code") or favorite.get("symbol")
+            stock_code = self._extract_stock_code(favorite)
             if not stock_code:
                 continue
 
             digest = digests_map.get(stock_code) or {}
             rule = rules_map.get(stock_code) or {}
+            task = tasks_map.get(stock_code) or {}
             schedule_type = rule.get("schedule_type")
             card = WatchDigestCard(
                 stock_code=stock_code,
@@ -113,15 +118,27 @@ class WatchDigestService:
                 exchange=favorite.get("exchange"),
                 current_price=favorite.get("current_price"),
                 change_percent=favorite.get("change_percent"),
+                digest_status=digest.get("status") or task.get("status") or "not_started",
                 summary=digest.get("summary") or "暂无摘要，请先执行一次解读。",
                 recommendation=digest.get("recommendation"),
                 risk_level=digest.get("risk_level") or self._risk_from_alerts(favorite),
                 confidence_score=digest.get("confidence_score"),
                 schedule_type=schedule_type,
+                schedule_summary=rule.get("schedule_summary")
+                or self._build_schedule_summary(schedule_type, rule.get("cron_expr")),
+                cron_expr=rule.get("cron_expr"),
                 rule_status=rule.get("status", "inactive"),
-                updated_at=self._serialize_datetime(digest.get("updated_at") or digest.get("generated_at")),
+                generated_at=self._serialize_datetime(digest.get("generated_at")),
+                updated_at=self._serialize_datetime(
+                    digest.get("updated_at")
+                    or digest.get("generated_at")
+                    or task.get("updated_at")
+                    or task.get("created_at")
+                ),
                 report_id=digest.get("report_id"),
-                task_id=digest.get("task_id"),
+                task_id=digest.get("task_id") or task.get("task_id"),
+                task_status=task.get("status"),
+                task_updated_at=self._serialize_datetime(task.get("updated_at") or task.get("created_at")),
             ).model_dump()
             card["schedule_label"] = SCHEDULE_LABELS.get(schedule_type or "", "未配置")
             cards.append(card)
@@ -242,10 +259,10 @@ class WatchDigestService:
         return payload
 
     async def trigger_refresh_for_all(self, user_id: str) -> List[Dict[str, Any]]:
-        favorites = await favorites_service.get_user_favorites(user_id)
+        favorites = list(self._iter_unique_favorites(await favorites_service.get_user_favorites(user_id)))
         tasks = []
         for favorite in favorites:
-            stock_code = favorite.get("stock_code")
+            stock_code = self._extract_stock_code(favorite)
             if not stock_code:
                 continue
             created = await self.trigger_digest_refresh(
@@ -254,14 +271,16 @@ class WatchDigestService:
                 stock_name=favorite.get("stock_name") or stock_code,
                 market=favorite.get("market", "A股"),
             )
-            tasks.append(
-                {
-                    "stock_code": stock_code,
-                    "stock_name": favorite.get("stock_name") or stock_code,
-                    "market": favorite.get("market", "A股"),
-                    "task_id": created["task_id"],
-                }
-            )
+            task_payload = {
+                "stock_code": created.get("stock_code") or stock_code,
+                "stock_name": created.get("stock_name") or favorite.get("stock_name") or stock_code,
+                "market": created.get("market") or favorite.get("market", "A股"),
+                "task_id": created["task_id"],
+                "status": created.get("status"),
+            }
+            if created.get("message"):
+                task_payload["message"] = created["message"]
+            tasks.append(task_payload)
         return tasks
 
     async def rebuild_scheduler_jobs(self) -> int:
@@ -278,13 +297,15 @@ class WatchDigestService:
 
     async def _get_latest_digests_map(self, user_id: str) -> Dict[str, Dict[str, Any]]:
         db = await self._get_db()
-        pipeline = [
-            {"$match": {"user_id": user_id}},
-            {"$sort": {"updated_at": -1, "generated_at": -1}},
-            {"$group": {"_id": "$stock_code", "doc": {"$first": "$$ROOT"}}},
-        ]
-        rows = await db.watch_digests.aggregate(pipeline).to_list(length=None)
-        return {row["_id"]: row["doc"] for row in rows}
+        rows = await db.watch_digests.find({"user_id": user_id}).to_list(length=None)
+        return self._get_latest_docs_by_stock(rows)
+
+    async def _get_latest_tasks_map(self, user_id: str, stock_codes: Set[str]) -> Dict[str, Dict[str, Any]]:
+        if not stock_codes:
+            return {}
+        db = await self._get_db()
+        rows = await db.analysis_tasks.find({"user_id": user_id}).to_list(length=None)
+        return self._get_latest_docs_by_stock(rows, allowed_codes=stock_codes)
 
     def _serialize_rule(self, doc: Dict[str, Any]) -> Dict[str, Any]:
         return WatchRuleResponse(
@@ -309,10 +330,67 @@ class WatchDigestService:
             return value.isoformat()
         return str(value)
 
+    def _iter_unique_favorites(self, favorites: Iterable[Dict[str, Any]]) -> Iterable[Dict[str, Any]]:
+        seen: Set[str] = set()
+        for favorite in favorites:
+            stock_code = self._extract_stock_code(favorite)
+            if not stock_code or stock_code in seen:
+                continue
+            seen.add(stock_code)
+            yield {**favorite, "stock_code": stock_code}
+
+    def _get_latest_docs_by_stock(
+        self,
+        docs: Iterable[Dict[str, Any]],
+        *,
+        allowed_codes: Optional[Set[str]] = None,
+    ) -> Dict[str, Dict[str, Any]]:
+        latest: Dict[str, Dict[str, Any]] = {}
+        for doc in docs:
+            stock_code = self._extract_stock_code(doc)
+            if not stock_code:
+                continue
+            if allowed_codes is not None and stock_code not in allowed_codes:
+                continue
+            current = latest.get(stock_code)
+            if current is None or self._document_sort_key(doc) > self._document_sort_key(current):
+                latest[stock_code] = doc
+        return latest
+
+    def _document_sort_key(self, doc: Dict[str, Any]) -> tuple[float, float, float]:
+        return (
+            self._coerce_sortable_datetime(doc.get("updated_at")),
+            self._coerce_sortable_datetime(doc.get("generated_at")),
+            self._coerce_sortable_datetime(doc.get("created_at")),
+        )
+
+    def _coerce_sortable_datetime(self, value: Any) -> float:
+        if isinstance(value, datetime):
+            moment = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+            return moment.timestamp()
+        if isinstance(value, str):
+            normalized = value.strip().replace("Z", "+00:00")
+            if not normalized:
+                return float("-inf")
+            try:
+                return datetime.fromisoformat(normalized).timestamp()
+            except ValueError:
+                return float("-inf")
+        return float("-inf")
+
     def _risk_from_alerts(self, favorite: Dict[str, Any]) -> str:
         if favorite.get("alert_price_high") or favorite.get("alert_price_low"):
             return "关注"
         return "未解读"
+
+    def _extract_stock_code(self, payload: Dict[str, Any]) -> Optional[str]:
+        raw_stock_code = payload.get("stock_code") or payload.get("stock_symbol") or payload.get("symbol")
+        if raw_stock_code is None:
+            return None
+        try:
+            return self._normalize_stock_code(raw_stock_code)
+        except ValueError:
+            return None
 
     async def _require_watchlist_membership(self, user_id: str, stock_code: str) -> Dict[str, Any]:
         favorite = await favorites_service.get_favorite(user_id, stock_code)

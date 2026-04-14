@@ -127,6 +127,7 @@ async def refresh_all_watch_digests(
         {
             "count": len(tasks),
             "stocks": [item["stock_code"] for item in tasks],
+            "tasks": tasks,
         },
         "已批量创建解读任务",
     )
