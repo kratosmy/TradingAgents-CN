@@ -111,6 +111,11 @@ class _FakeUserFavoritesCollection(_FakeLookupCollection):
         return None
 
     async def update_one(self, query, update, upsert=False):
+        overlap = set(update.get("$set", {})).intersection(update.get("$setOnInsert", {}))
+        if overlap:
+            field = sorted(overlap)[0]
+            raise ValueError(f"Updating the path '{field}' would create a conflict at '{field}'")
+
         document = None
         for candidate in self.docs:
             if _matches(candidate, query):

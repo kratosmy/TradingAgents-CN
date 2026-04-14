@@ -268,6 +268,19 @@ class FavoritesService:
 
         return {"user_id": user_id, **payload}
 
+    def _build_canonical_upsert_update(self, document: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        set_payload = dict(document)
+        set_on_insert: Dict[str, Any] = {}
+
+        for immutable_field in ("user_id", "created_at"):
+            if immutable_field in set_payload:
+                set_on_insert[immutable_field] = set_payload.pop(immutable_field)
+
+        update: Dict[str, Dict[str, Any]] = {"$set": set_payload}
+        if set_on_insert:
+            update["$setOnInsert"] = set_on_insert
+        return update
+
     async def _ensure_canonical_favorites(self, user_id: str) -> List[Dict[str, Any]]:
         db = await self._get_db()
         canonical_doc = await db.user_favorites.find_one({"user_id": user_id})
@@ -330,10 +343,7 @@ class FavoritesService:
         )
         await db.user_favorites.update_one(
             {"user_id": user_id},
-            {
-                "$setOnInsert": {"user_id": user_id, "created_at": now},
-                "$set": merged_doc,
-            },
+            self._build_canonical_upsert_update(merged_doc),
             upsert=True,
         )
         return merged_favorites
@@ -493,7 +503,7 @@ class FavoritesService:
 
             await db.user_favorites.update_one(
                 {"user_id": user_id},
-                {"$set": canonical_doc, "$setOnInsert": {"user_id": user_id}},
+                self._build_canonical_upsert_update(canonical_doc),
                 upsert=True,
             )
             return True
@@ -528,7 +538,7 @@ class FavoritesService:
         )
         await db.user_favorites.update_one(
             {"user_id": user_id},
-            {"$set": updated_doc},
+            self._build_canonical_upsert_update(updated_doc),
             upsert=True,
         )
         return True
@@ -586,7 +596,7 @@ class FavoritesService:
         )
         await db.user_favorites.update_one(
             {"user_id": user_id},
-            {"$set": updated_doc},
+            self._build_canonical_upsert_update(updated_doc),
             upsert=True,
         )
         return True
