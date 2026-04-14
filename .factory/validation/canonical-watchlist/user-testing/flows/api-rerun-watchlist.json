@@ -1,0 +1,372 @@
+{
+  "groupId": "api-rerun-watchlist",
+  "testedAt": "2026-04-14T17:04:58.244274+00:00",
+  "isolation": {
+    "missionDir": "/home/kratos/.factory/missions/f5a15d60-e8ab-48fc-95a4-044b49b5770b",
+    "baseUrl": "http://localhost:8001",
+    "username": "admin",
+    "userId": "69dda80330a15ce8e8b4ed97",
+    "symbols": {
+      "primary": "688001",
+      "missing": "699999"
+    }
+  },
+  "toolsUsed": [
+    "python3 urllib against live API"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-WATCH-006",
+      "title": "Watchlist membership check reflects add and remove mutations",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "GET /api/favorites/check/688001 before add",
+          "expected": "200 with is_favorite false",
+          "observed": "200 with is_favorite=False"
+        },
+        {
+          "action": "POST /api/favorites/ with the primary symbol",
+          "expected": "200 add success",
+          "observed": "200 with message=添加成功"
+        },
+        {
+          "action": "GET /api/favorites/check/688001 after add",
+          "expected": "200 with is_favorite true",
+          "observed": "200 with is_favorite=True"
+        },
+        {
+          "action": "DELETE /api/favorites/688001 then re-check membership",
+          "expected": "delete succeeds and follow-up check returns false",
+          "observed": "delete 200, final check 200 with is_favorite=False"
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "canonical-watchlist/api-rerun-watchlist/api-rerun-watchlist-evidence.json"
+        ],
+        "network": [
+          "GET /api/favorites/check/688001 -> 200",
+          "POST /api/favorites/ -> 200",
+          "GET /api/favorites/check/688001 -> 200",
+          "DELETE /api/favorites/688001 -> 200",
+          "GET /api/favorites/check/688001 -> 200"
+        ],
+        "responseExcerpts": {
+          "beforeAdd": {
+            "success": true,
+            "data": {
+              "stock_code": "688001",
+              "is_favorite": false
+            },
+            "message": "ok",
+            "timestamp": "2026-04-15T01:04:57.895596+08:00"
+          },
+          "add": {
+            "success": true,
+            "data": {
+              "stock_code": "688001"
+            },
+            "message": "添加成功",
+            "timestamp": "2026-04-15T01:04:57.966534+08:00"
+          },
+          "afterAdd": {
+            "success": true,
+            "data": {
+              "stock_code": "688001",
+              "is_favorite": true
+            },
+            "message": "ok",
+            "timestamp": "2026-04-15T01:04:57.987511+08:00"
+          },
+          "delete": {
+            "success": true,
+            "data": {
+              "stock_code": "688001"
+            },
+            "message": "移除成功",
+            "timestamp": "2026-04-15T01:04:58.139065+08:00"
+          },
+          "afterDelete": {
+            "success": true,
+            "data": {
+              "stock_code": "688001",
+              "is_favorite": false
+            },
+            "message": "ok",
+            "timestamp": "2026-04-15T01:04:58.155913+08:00"
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WATCH-007",
+      "title": "Watchlist metadata updates are partial and persistent",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "GET /api/favorites/ before updating 688001",
+          "expected": "existing item includes baseline tags, notes, and alerts",
+          "observed": {
+            "stock_code": "688001",
+            "stock_name": "华兴源创",
+            "market": "A股",
+            "tags": [
+              "api-rerun",
+              "baseline"
+            ],
+            "notes": "initial metadata for rerun",
+            "alert_price_high": 100.5,
+            "alert_price_low": 88.8
+          }
+        },
+        {
+          "action": "PUT /api/favorites/688001 with only notes and alert_price_high",
+          "expected": "200 update success without resetting omitted fields",
+          "observed": "200 with message=更新成功"
+        },
+        {
+          "action": "GET /api/favorites/ after partial update",
+          "expected": "notes and alert_price_high updated; tags and alert_price_low unchanged",
+          "observed": {
+            "stock_code": "688001",
+            "stock_name": "华兴源创",
+            "market": "A股",
+            "tags": [
+              "api-rerun",
+              "baseline"
+            ],
+            "notes": "partial update persisted",
+            "alert_price_high": 111.1,
+            "alert_price_low": 88.8
+          }
+        },
+        {
+          "action": "GET /api/favorites/ later in the flow after missing-item checks",
+          "expected": "updated values persist",
+          "observed": {
+            "stock_code": "688001",
+            "stock_name": "华兴源创",
+            "market": "A股",
+            "tags": [
+              "api-rerun",
+              "baseline"
+            ],
+            "notes": "partial update persisted",
+            "alert_price_high": 111.1,
+            "alert_price_low": 88.8
+          }
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "canonical-watchlist/api-rerun-watchlist/api-rerun-watchlist-evidence.json"
+        ],
+        "network": [
+          "GET /api/favorites/ -> 200",
+          "PUT /api/favorites/688001 -> 200",
+          "GET /api/favorites/ -> 200",
+          "GET /api/favorites/ -> 200"
+        ],
+        "responseExcerpts": {
+          "beforeUpdate": {
+            "stock_code": "688001",
+            "stock_name": "华兴源创",
+            "market": "A股",
+            "tags": [
+              "api-rerun",
+              "baseline"
+            ],
+            "notes": "initial metadata for rerun",
+            "alert_price_high": 100.5,
+            "alert_price_low": 88.8
+          },
+          "updateResponse": {
+            "success": true,
+            "data": {
+              "stock_code": "688001"
+            },
+            "message": "更新成功",
+            "timestamp": "2026-04-15T01:04:58.031093+08:00"
+          },
+          "afterUpdate": {
+            "stock_code": "688001",
+            "stock_name": "华兴源创",
+            "market": "A股",
+            "tags": [
+              "api-rerun",
+              "baseline"
+            ],
+            "notes": "partial update persisted",
+            "alert_price_high": 111.1,
+            "alert_price_low": 88.8
+          },
+          "laterList": {
+            "stock_code": "688001",
+            "stock_name": "华兴源创",
+            "market": "A股",
+            "tags": [
+              "api-rerun",
+              "baseline"
+            ],
+            "notes": "partial update persisted",
+            "alert_price_high": 111.1,
+            "alert_price_low": 88.8
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WATCH-008",
+      "title": "Updating or deleting a missing watchlist item returns not found",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "PUT /api/favorites/699999 for a stock not in the watchlist",
+          "expected": "404 not found",
+          "observed": "404 with body={'detail': '自选股不存在'}"
+        },
+        {
+          "action": "DELETE /api/favorites/699999 for a stock not in the watchlist",
+          "expected": "404 not found",
+          "observed": "404 with body={'detail': '自选股不存在'}"
+        },
+        {
+          "action": "Compare the surrounding list item before and after the missing-item calls",
+          "expected": "existing item remains unchanged",
+          "observed": {
+            "before": {
+              "stock_code": "688001",
+              "stock_name": "华兴源创",
+              "market": "A股",
+              "tags": [
+                "api-rerun",
+                "baseline"
+              ],
+              "notes": "partial update persisted",
+              "alert_price_high": 111.1,
+              "alert_price_low": 88.8
+            },
+            "after": {
+              "stock_code": "688001",
+              "stock_name": "华兴源创",
+              "market": "A股",
+              "tags": [
+                "api-rerun",
+                "baseline"
+              ],
+              "notes": "partial update persisted",
+              "alert_price_high": 111.1,
+              "alert_price_low": 88.8
+            }
+          }
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "canonical-watchlist/api-rerun-watchlist/api-rerun-watchlist-evidence.json"
+        ],
+        "network": [
+          "PUT /api/favorites/699999 -> 404",
+          "DELETE /api/favorites/699999 -> 404",
+          "GET /api/favorites/ -> 200"
+        ],
+        "responseExcerpts": {
+          "missingUpdate": {
+            "detail": "自选股不存在"
+          },
+          "missingDelete": {
+            "detail": "自选股不存在"
+          },
+          "controlItemAfterErrors": {
+            "stock_code": "688001",
+            "stock_name": "华兴源创",
+            "market": "A股",
+            "tags": [
+              "api-rerun",
+              "baseline"
+            ],
+            "notes": "partial update persisted",
+            "alert_price_high": 111.1,
+            "alert_price_low": 88.8
+          }
+        }
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-WATCH-021",
+      "title": "Protected watchlist, rule, and digest endpoints reject unauthenticated access",
+      "status": "pass",
+      "steps": [
+        {
+          "action": "GET /api/favorites/ without authentication",
+          "expected": "401 with no data disclosure",
+          "observed": "401 with body={'detail': 'No authorization header'}"
+        },
+        {
+          "action": "GET /api/favorites/check/688001 without authentication",
+          "expected": "401 with no membership disclosure",
+          "observed": "401 with body={'detail': 'No authorization header'}"
+        },
+        {
+          "action": "GET /api/watch/rules without authentication",
+          "expected": "401",
+          "observed": "401 with body={'detail': 'No authorization header'}"
+        },
+        {
+          "action": "GET /api/watch/digests without authentication",
+          "expected": "401",
+          "observed": "401 with body={'detail': 'No authorization header'}"
+        }
+      ],
+      "evidence": {
+        "artifacts": [
+          "canonical-watchlist/api-rerun-watchlist/api-rerun-watchlist-evidence.json"
+        ],
+        "network": [
+          "GET /api/favorites/ -> 401",
+          "GET /api/favorites/check/688001 -> 401",
+          "GET /api/watch/rules -> 401",
+          "GET /api/watch/digests -> 401"
+        ],
+        "responseExcerpts": {
+          "favoritesList": {
+            "detail": "No authorization header"
+          },
+          "favoriteCheck": {
+            "detail": "No authorization header"
+          },
+          "watchRules": {
+            "detail": "No authorization header"
+          },
+          "watchDigests": {
+            "detail": "No authorization header"
+          }
+        }
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "cleanupNotes": [
+    {
+      "symbols": [
+        "688001",
+        "699999"
+      ],
+      "cleanupVerification": true,
+      "finalPrimaryPresentInList": false,
+      "cleanupResponses": {
+        "cleanupPrimaryDeleteStatus": 404,
+        "cleanupMissingDeleteStatus": 404,
+        "finalPrimaryMembership": false,
+        "finalMissingMembership": false
+      }
+    }
+  ],
+  "summary": "Tested 4 assertions against http://localhost:8001: 4 passed, 0 failed. Cleanup verification for 688001 and 699999 returned True."
+}

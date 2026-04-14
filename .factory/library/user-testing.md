@@ -43,7 +43,9 @@ Testing surfaces, required tools, and validation concurrency guidance.
 
 ## Setup Notes
 
+- If `.venv-mission` is missing, run `./.factory/init.sh` before using the manifest service commands or backend validator.
 - Backend on `8001` may now be restarted under mission control when needed to load code changes before validation.
+- Backend startup can take roughly 35-40 seconds before `/api/health` responds because app startup runs database/config/bootstrap work; poll health instead of assuming an immediate bind.
 - Start frontend on `3000`.
 - Reuse existing MongoDB (`27017`) and Redis (`6379`).
 - If `/api/watch/*` is unreachable, treat that as a contract failure for web watch validation rather than silently skipping `/watch` flows.

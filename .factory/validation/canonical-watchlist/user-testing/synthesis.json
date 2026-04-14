@@ -1,55 +1,27 @@
 {
   "milestone": "canonical-watchlist",
-  "round": 1,
-  "status": "fail",
+  "round": 2,
+  "status": "pass",
   "assertionsSummary": {
-    "total": 14,
-    "passed": 10,
+    "total": 4,
+    "passed": 4,
     "failed": 0,
-    "blocked": 4
+    "blocked": 0
   },
   "passedAssertions": [
-    "VAL-CROSS-002",
-    "VAL-WATCH-001",
-    "VAL-WATCH-002",
-    "VAL-WATCH-003",
-    "VAL-WATCH-004",
-    "VAL-WATCH-005",
-    "VAL-WATCH-009",
-    "VAL-WATCH-010",
-    "VAL-WATCH-011",
-    "VAL-WATCH-022"
+    "VAL-WATCH-006",
+    "VAL-WATCH-007",
+    "VAL-WATCH-008",
+    "VAL-WATCH-021"
   ],
   "failedAssertions": [],
-  "blockedAssertions": [
-    {
-      "id": "VAL-WATCH-006",
-      "blockedBy": "Watch rule creation is currently failing on the live backend with HTTP 500, so create/update rule behavior cannot be validated successfully."
-    },
-    {
-      "id": "VAL-WATCH-007",
-      "blockedBy": "Custom watch rule updates also fail with HTTP 500, leaving the rules list empty."
-    },
-    {
-      "id": "VAL-WATCH-008",
-      "blockedBy": "Invalid custom-rule input is not surfaced as a contract-level 400; the backend returns HTTP 500 instead."
-    },
-    {
-      "id": "VAL-WATCH-021",
-      "blockedBy": "Rule deletion cannot be validated because rule creation never succeeded; delete attempts return 404 not found."
-    }
-  ],
+  "blockedAssertions": [],
   "appliedUpdates": [
     {
       "target": "user-testing.md",
-      "description": "Added flow validator guidance sections for API and integrated web+API validators, including shared service and isolation boundaries.",
+      "description": "Documented that reruns may need `./.factory/init.sh` to create `.venv-mission` before manifest service commands work, and that backend startup on 8001 may need ~35-40 seconds before `/api/health` responds.",
       "source": "setup"
-    },
-    {
-      "target": "user-testing.md",
-      "description": "Documented effective web-validation limitation: agent-browser cannot launch in this environment because Chromium is missing libasound.so.2 and dependency install requires interactive sudo.",
-      "source": "flow-report"
     }
   ],
-  "previousRound": null
+  "previousRound": ".factory/validation/canonical-watchlist/user-testing/synthesis.round1.json"
 }
