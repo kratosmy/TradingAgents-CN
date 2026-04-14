@@ -20,6 +20,7 @@ Environment variables, external dependencies, and setup notes.
 - Port `8001` is already served by an existing process that the mission reuses; workers should not try to stop or replace it.
 - Current checked-in `venv` is not reliable for mission work; workers should use `.venv-mission`.
 - True WeChat Mini Program runtime tooling is not available in this environment, so Mini validation is limited to source/build-level evidence unless that tooling is added later.
+- Backend startup may log permission-denied warnings when trying to write `config/settings.json` or `config/pricing.json`; current evidence shows the server can still start and serve requests despite those warnings.
 
 ## External identity and integration expectations
 
