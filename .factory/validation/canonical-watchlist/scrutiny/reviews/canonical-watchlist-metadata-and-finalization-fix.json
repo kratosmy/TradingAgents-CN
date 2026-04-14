@@ -1,0 +1,21 @@
+{
+  "featureId": "canonical-watchlist-metadata-and-finalization-fix",
+  "reviewedAt": "2026-04-14T14:15:21.325649+00:00",
+  "commitId": "e9a8a403",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix addresses both prior blocking scrutiny failures: it keeps empty prematurely-finalized canonical docs retry-safe for late-visible legacy favorites, and it preserves arbitrary metadata fields through normalization, merge, migration, and CRUD updates.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "The canonical migration state machine now relies on `legacy_migration_completed_with_favorites` in addition to `canonical_version`, `legacy_migrated_at`, and `legacy_migration_checked_at`, but the mission shared-state docs still do not describe this persisted flag or the conditions under which empty canonical docs remain retry-open versus finalized.",
+      "evidence": "app/services/favorites_service.py:257-289 persists and reads `legacy_migration_completed_with_favorites`; AGENTS.md and .factory/library/architecture.md describe canonical migration invariants at a high level but do not document this marker or its retry/finalization semantics."
+    }
+  ],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/canonical-watchlist/scrutiny/reviews/canonical-watchlist-domain-migration.json",
+  "summary": "Reviewed the fix handoff, transcript skeleton, backend-worker skill guidance, the original failing commit `c42f32a2`, and the fix commit `e9a8a403`. The new migration discriminator prevents premature empty canonical finalization from freezing out later-visible legacy favorites, while metadata extraction/merge logic now preserves non-reserved fields across migration and later CRUD updates. Focused regressions cover both failure modes and the worker handoff records passing focused and full backend pytest suites, so this fix adequately addresses the original scrutiny failure."
+}

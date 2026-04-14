@@ -1,15 +1,21 @@
 {
   "featureId": "canonical-watchlist-migration-retry-fix",
-  "reviewedAt": "2026-04-14T13:59:00.742258+00:00",
+  "reviewedAt": "2026-04-14T14:15:57.571123+00:00",
   "commitId": "a492527e",
   "transcriptSkeletonReviewed": true,
   "diffReviewed": true,
   "status": "pass",
   "codeReview": {
-    "summary": "The fix directly addresses the original migration-marker bug by separating a retry-safe 'checked' state from a finalized legacy merge, and the added regressions cover both delayed legacy visibility and the post-merge delete/no-resurface contract without introducing new feature-scope defects in the reviewed diff.",
+    "summary": "The fix closes the blocking retry-path bug from the original migration review by separating an empty first migration check from a finalized legacy merge, and it preserves the no-resurface semantics after canonical deletes with focused regression coverage.",
     "issues": []
   },
-  "sharedStateObservations": [],
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "The canonical watchlist migration now relies on an additional persisted invariant, `legacy_migration_completed_with_favorites`, to distinguish a finalized merge that consumed visible legacy data from an empty canonical document that must still retry. Shared architecture/contracts docs still describe canonical ownership and identifier rules but do not document this migration-state field or how `legacy_migration_checked_at`, `legacy_migrated_at`, and `legacy_migration_completed_with_favorites` interact.",
+      "evidence": "app/services/favorites_service.py:172-236 and 239-317 persist/read `legacy_migration_checked_at`, `legacy_migrated_at`, and `legacy_migration_completed_with_favorites`; .factory/library/architecture.md and .factory/library/contracts.md contain no migration-marker guidance."
+    }
+  ],
   "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/canonical-watchlist/scrutiny/reviews/canonical-watchlist-domain-migration.json",
-  "summary": "Reviewed the prior failing feature review, mission/architecture guidance, worker handoff `01b9d331-f9c0-40c3-a750-e7749d54d6f0`, transcript skeleton, and both commits `c42f32a2` and `a492527e`. The fix keeps empty first-touch canonical docs from finalizing migration, still finalizes migration after a real merge, preserves the no-resurface behavior after canonical delete, and is backed by focused regression coverage plus passing focused/repo-wide pytest evidence in the handoff."
+  "summary": "Reviewed the prior failing migration commit `c42f32a2`, the fix commit `a492527e`, the fix worker transcript skeleton, handoffs, and shared-state docs. The original blocking issue was that an empty first canonical touch could finalize migration and permanently hide later-visible legacy favorites. The fix now keeps that path retry-safe until legacy data is truly observed and merged, while preserving the original requirement that already-consumed legacy rows do not reappear after canonical delete/read flows. Focused and repo-wide pytest evidence in the handoff supports the behavior, and the updated tests cover both delayed visibility and post-merge delete scenarios."
 }

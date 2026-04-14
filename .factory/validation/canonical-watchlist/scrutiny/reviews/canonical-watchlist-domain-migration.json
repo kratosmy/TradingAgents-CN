@@ -1,34 +1,21 @@
 {
   "featureId": "canonical-watchlist-domain-migration",
-  "reviewedAt": "2026-04-14T13:59:49.026183+00:00",
-  "commitId": "c42f32a2",
+  "reviewedAt": "2026-04-14T14:15:29.046014+00:00",
+  "commitId": "e9a8a403",
   "transcriptSkeletonReviewed": true,
   "diffReviewed": true,
-  "status": "fail",
+  "status": "pass",
   "codeReview": {
-    "summary": "The migration refactor correctly centralizes favorites into the canonical user_favorites document and adds strong regression coverage for one-time legacy merges, but it still drops legacy identifier metadata and silently freezes migration for users whose legacy data is temporarily unreadable after the first canonical touch.",
-    "issues": [
-      {
-        "file": "app/services/favorites_service.py",
-        "line": 252,
-        "severity": "blocking",
-        "description": "Once a canonical document is finalized, `_ensure_canonical_favorites` returns immediately whenever legacy rows are currently absent, so a user who completes migration while `users.favorite_stocks` is temporarily empty/noisy can never recover late-visible legacy favorites. That violates the requirement to preserve pre-existing user data during migration under transient visibility issues."
-      },
-      {
-        "file": "app/services/favorites_service.py",
-        "line": 88,
-        "severity": "blocking",
-        "description": "`_normalize_favorite` rewrites every record to a fixed canonical subset (`stock_code`, `stock_name`, `market`, timestamps, tags, notes, alert prices) and discards any other existing metadata fields from legacy or canonical entries. The feature contract explicitly requires metadata semantics to stay stable, so fields outside this allowlist are lost during migration and subsequent CRUD updates."
-      }
-    ]
+    "summary": "Reviewed the original migration commit `c42f32a2` and the fix commit `e9a8a403`. The fix closes the two prior blocking issues: canonical migration now preserves arbitrary favorite metadata during normalization/merge, and empty prematurely-finalized canonical documents can still merge late-visible legacy favorites until a migration with real favorites has completed.",
+    "issues": []
   },
   "sharedStateObservations": [
     {
       "area": "knowledge",
-      "observation": "The canonical watchlist contract now depends on a one-time migration marker protocol (`canonical_version`, `legacy_migrated_at`, `legacy_migration_checked_at`) to control retries and dedupe behavior, but neither AGENTS.md nor .factory/library/architecture.md documents those persisted fields or the expected retry semantics.",
-      "evidence": "app/services/favorites_service.py:164-287 introduces these markers as migration invariants; mission guidance only says to preserve legacy data exactly once."
+      "observation": "The canonical watchlist migration now relies on persisted control fields `legacy_migration_checked_at`, `legacy_migrated_at`, and `legacy_migration_completed_with_favorites` to decide when late-visible legacy data should still merge versus stay suppressed after a real merge/delete cycle, but the mission shared-state docs do not record these invariants.",
+      "evidence": "app/services/favorites_service.py:243-299 implements the retry/finalization protocol; .factory/library/architecture.md documents canonical watchlist invariants but not these migration-state fields or their semantics."
     }
   ],
-  "addressesFailureFrom": null,
-  "summary": "Reviewed handoff, transcript skeleton, skill guidance, and commit `c42f32a2`. The feature substantially improves canonical favorites migration and coverage, but it still has two blocking contract misses: finalized migrations cannot recover legacy data if it becomes visible only after a later outage/empty read, and the normalization path strips arbitrary legacy metadata fields instead of preserving them."
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/canonical-watchlist/scrutiny/reviews/canonical-watchlist-domain-migration.json",
+  "summary": "Pass. I reviewed the prior failed report, the fix feature transcript skeleton, both commit diffs (`c42f32a2` and `e9a8a403`), the backend-worker skill, and the shared-state docs. The fix adequately addresses the original failures by preserving arbitrary metadata fields through canonical normalization/merge and by allowing late-visible legacy favorites to merge after an empty canonical document was prematurely finalized, with focused regression tests covering both scenarios."
 }

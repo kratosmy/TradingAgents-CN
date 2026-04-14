@@ -1,39 +1,21 @@
 {
   "featureId": "backend-runtime-watch-api-baseline",
-  "reviewedAt": "2026-04-14T13:59:54.516415+00:00",
+  "reviewedAt": "2026-04-14T14:20:00+00:00",
   "commitId": "81788656542e7bcbe8d8ae5eeed7ceae5fe414a8",
   "transcriptSkeletonReviewed": true,
   "diffReviewed": true,
-  "status": "fail",
+  "status": "pass",
   "codeReview": {
-    "summary": "The commit makes the mission service manifest usable on this machine, but it does not actually satisfy the feature's runtime-baseline requirements because it rewrites the mission backend contract from 'reuse the existing backend on 8001' to 'start and stop a worker-managed backend', and the new stop command can terminate any healthy backend already running on 8001.",
-    "issues": [
-      {
-        "file": ".factory/services.yaml",
-        "line": 22,
-        "severity": "blocking",
-        "description": "The new backend `start` command no longer follows the mission boundary to reuse the existing backend on port 8001. If any process is already healthy on 8001, the manifest exits early with `backend-already-healthy-on-8001` and does not record ownership, but the paired `stop` command will still kill whatever PID is stored in `.logs/mission-backend-8001.pid` from an earlier run. This changes the contract from non-invasive reuse to process ownership and makes later workers able to kill an unrelated shared mission backend."
-      },
-      {
-        "file": ".factory/services.yaml",
-        "line": 31,
-        "severity": "blocking",
-        "description": "The backend `stop` command unconditionally kills the PID in `.logs/mission-backend-8001.pid` without verifying that the process is the worker-started Uvicorn instance for this repo or that port 8001 still belongs to that process. Because the feature and AGENTS guidance require reusing the existing backend instead of stopping/replacing it, this stop behavior can take down the shared mission runtime and violate the stated environment boundary."
-      }
-    ]
+    "summary": "The fix adequately addresses the prior failure by restoring the mission service manifest to the documented shared-backend contract while keeping the Redis healthcheck runnable in this environment. The reviewed commit no longer introduces worker-owned backend lifecycle behavior that could terminate the shared port-8001 runtime, so the feature’s baseline backend reachability assumptions remain aligned with mission boundaries.",
+    "issues": []
   },
   "sharedStateObservations": [
     {
       "area": "skills",
-      "observation": "The backend-worker skill says runtime features should verify contracts with curl on port 8001, but it does not explicitly reconcile that with the mission rule to reuse an already-running backend instead of adding process-management logic. The worker used that ambiguity to change `.factory/services.yaml` and take ownership of backend startup/stop.",
-      "evidence": ".factory/skills/backend-worker/SKILL.md instructs workers to verify local backend behavior, while mission AGENTS.md says 'Reuse the existing backend process already serving 8001; do not stop or replace it'. The handoff's skillFeedback also notes this deviation and asks for clearer guidance."
-    },
-    {
-      "area": "services",
-      "observation": "The mission service manifest now encodes worker-managed backend lifecycle on port 8001, which conflicts with the documented environment/library guidance that 8001 is a shared reused backend. Shared state docs should make the service manifest match that boundary explicitly so future workers do not alternate between reusing and owning the same port.",
-      "evidence": ".factory/services.yaml backend.start/stop now launch and kill Uvicorn locally, while .factory/missions/f5a15d60-e8ab-48fc-95a4-044b49b5770b/AGENTS.md and .factory/library/environment.md both say to reuse the existing backend on 8001 and not stop or replace it."
+      "observation": "The backend-worker skill still leaves room for workers to interpret a runtime-baseline task as permission to add backend process-management logic, even when mission guidance requires reusing the existing backend on port 8001. The prior failed fix explicitly cited this ambiguity.",
+      "evidence": "backend-worker SKILL.md step 4 says to verify contracts with curl on 8001, but does not remind workers to preserve mission ownership boundaries from AGENTS.md/environment.md. The failed prior review and the a557acbb handoff both describe this ambiguity around whether editing `.factory/services.yaml` to own backend start/stop is acceptable."
     }
   ],
-  "addressesFailureFrom": null,
-  "summary": "Reviewed the feature metadata, worker handoff, transcript skeleton, commit diff, router mounts, and shared-state docs. Result: fail, because the only code change was to `.factory/services.yaml`, and that change violates the mission's explicit shared-backend boundary by introducing worker-owned backend start/stop behavior that can terminate the shared service on port 8001."
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/canonical-watchlist/scrutiny/reviews/backend-runtime-watch-api-baseline.json",
+  "summary": "Reviewed the prior failed review, feature metadata, fix handoff, transcript skeleton, current service manifest, and the fix commit diff. Result: pass. The fix commit is limited to the Redis healthcheck line in `.factory/services.yaml`; it removes the prior worker-managed backend start/stop change and leaves the manifest aligned with the mission rule to reuse the shared backend on port 8001, so the original scrutiny failure is adequately addressed."
 }
