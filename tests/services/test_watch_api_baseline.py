@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.routers import favorites, watch_digest
+from app.services.watch_digest_service import WatchlistMembershipRequiredError
 
 
 @pytest.fixture
@@ -194,6 +195,26 @@ def test_watch_rule_upsert_maps_service_validation_errors_to_400(api_client, mon
     assert response.json()["detail"] == "cron_expr格式无效"
 
 
+def test_watch_rule_upsert_maps_watchlist_membership_errors_to_404(api_client, monkeypatch):
+    async def _upsert_rule(**kwargs):
+        raise WatchlistMembershipRequiredError("目标股票不在当前用户的自选股中")
+
+    monkeypatch.setattr(watch_digest.watch_digest_service, "upsert_rule", _upsert_rule)
+
+    response = api_client.put(
+        "/api/watch/rules/600519",
+        json={
+            "stock_name": "贵州茅台",
+            "market": "A股",
+            "schedule_type": "daily_post_market",
+            "status": "active",
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "目标股票不在当前用户的自选股中"
+
+
 def test_watch_rule_upsert_rejects_unknown_schedule_type_with_400(api_client):
     response = api_client.put(
         "/api/watch/rules/600519",
@@ -207,3 +228,67 @@ def test_watch_rule_upsert_rejects_unknown_schedule_type_with_400(api_client):
 
     assert response.status_code == 422
     assert "不支持的 schedule_type: unexpected" in response.text
+
+
+def test_watch_digest_refresh_maps_watchlist_membership_errors_to_404(api_client, monkeypatch):
+    async def _trigger_digest_refresh(**kwargs):
+        raise WatchlistMembershipRequiredError("目标股票不在当前用户的自选股中")
+
+    monkeypatch.setattr(watch_digest.watch_digest_service, "trigger_digest_refresh", _trigger_digest_refresh)
+
+    response = api_client.post(
+        "/api/watch/digests/600519/refresh",
+        json={"stock_name": "贵州茅台", "market": "A股"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "目标股票不在当前用户的自选股中"
+
+
+def test_watch_digest_refresh_uses_canonical_identity_from_service_response(api_client, monkeypatch):
+    calls = {}
+
+    async def _trigger_digest_refresh(**kwargs):
+        calls["trigger"] = kwargs
+        return {
+            "task_id": "task-1",
+            "status": "queued",
+            "stock_code": "600519",
+            "stock_name": "贵州茅台",
+            "market": "A股",
+        }
+
+    async def _run_digest_refresh(task_id, user_id, stock_code, stock_name, market):
+        calls["background"] = {
+            "task_id": task_id,
+            "user_id": user_id,
+            "stock_code": stock_code,
+            "stock_name": stock_name,
+            "market": market,
+        }
+
+    monkeypatch.setattr(watch_digest.watch_digest_service, "trigger_digest_refresh", _trigger_digest_refresh)
+    monkeypatch.setattr(watch_digest.watch_digest_service, "run_digest_refresh", _run_digest_refresh)
+
+    response = api_client.post(
+        "/api/watch/digests/600519/refresh",
+        json={"stock_name": "错误别名", "market": "美股"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"] == {
+        "task_id": "task-1",
+        "status": "queued",
+        "stock_code": "600519",
+        "stock_name": "贵州茅台",
+        "market": "A股",
+    }
+    assert calls["trigger"]["stock_name"] == "错误别名"
+    assert calls["trigger"]["market"] == "美股"
+    assert calls["background"] == {
+        "task_id": "task-1",
+        "user_id": "user-1",
+        "stock_code": "600519",
+        "stock_name": "贵州茅台",
+        "market": "A股",
+    }

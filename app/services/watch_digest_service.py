@@ -25,6 +25,10 @@ SCHEDULE_LABELS = {
 logger = logging.getLogger(__name__)
 
 
+class WatchlistMembershipRequiredError(LookupError):
+    """Raised when a watch-only action targets a stock outside the canonical watchlist."""
+
+
 class WatchDigestService:
     def __init__(self) -> None:
         self.db = None
@@ -51,6 +55,7 @@ class WatchDigestService:
     ) -> Dict[str, Any]:
         db = await self._get_db()
         stock_code = self._normalize_stock_code(stock_code)
+        favorite = await self._require_watchlist_membership(user_id, stock_code)
         status = self._normalize_status(status)
         validated_schedule_type, validated_cron_expr = self._validate_schedule(
             schedule_type=schedule_type,
@@ -60,8 +65,8 @@ class WatchDigestService:
         payload = WatchRule(
             user_id=user_id,
             stock_code=stock_code,
-            stock_name=stock_name,
-            market=market,
+            stock_name=favorite.get("stock_name") or stock_name or stock_code,
+            market=favorite.get("market") or market,
             schedule_type=validated_schedule_type,
             cron_expr=validated_cron_expr,
             status=status,
@@ -133,12 +138,23 @@ class WatchDigestService:
     ) -> Dict[str, Any]:
         from app.services.simple_analysis_service import get_simple_analysis_service
 
+        stock_code = self._normalize_stock_code(stock_code)
+        favorite = await self._require_watchlist_membership(user_id, stock_code)
         service = get_simple_analysis_service()
         request = SingleAnalysisRequest(
             symbol=stock_code,
-            parameters=AnalysisParameters(market_type=market, research_depth="标准"),
+            parameters=AnalysisParameters(
+                market_type=favorite.get("market") or market,
+                research_depth="标准",
+            ),
         )
-        return await service.create_analysis_task(user_id, request)
+        created = await service.create_analysis_task(user_id, request)
+        return {
+            **created,
+            "stock_code": stock_code,
+            "stock_name": favorite.get("stock_name") or stock_name or stock_code,
+            "market": favorite.get("market") or market,
+        }
 
     async def run_digest_refresh(
         self,
@@ -297,6 +313,12 @@ class WatchDigestService:
         if favorite.get("alert_price_high") or favorite.get("alert_price_low"):
             return "关注"
         return "未解读"
+
+    async def _require_watchlist_membership(self, user_id: str, stock_code: str) -> Dict[str, Any]:
+        favorite = await favorites_service.get_favorite(user_id, stock_code)
+        if favorite is None:
+            raise WatchlistMembershipRequiredError("目标股票不在当前用户的自选股中")
+        return favorite
 
     async def _sync_scheduler_job(self, rule: Optional[Dict[str, Any]]) -> None:
         if not rule:

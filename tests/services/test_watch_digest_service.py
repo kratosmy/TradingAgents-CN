@@ -1,0 +1,279 @@
+from copy import deepcopy
+from dataclasses import dataclass
+from datetime import datetime, timezone
+
+import pytest
+
+import app.services.watch_digest_service as watch_digest_module
+from app.services.watch_digest_service import WatchDigestService, WatchlistMembershipRequiredError
+
+
+def _clone(value):
+    return deepcopy(value)
+
+
+def _matches(document, query):
+    for key, expected in query.items():
+        if document.get(key) != expected:
+            return False
+    return True
+
+
+@dataclass
+class _UpdateResult:
+    matched_count: int
+    modified_count: int
+    upserted_id: str | None = None
+
+
+@dataclass
+class _DeleteResult:
+    deleted_count: int
+
+
+class _FakeCursor:
+    def __init__(self, docs):
+        self._docs = _clone(docs)
+
+    def sort(self, field, direction):
+        reverse = direction == -1
+        self._docs.sort(key=lambda item: item.get(field), reverse=reverse)
+        return self
+
+    async def to_list(self, length=None):
+        return _clone(self._docs if length is None else self._docs[:length])
+
+
+class _FakeCollection:
+    def __init__(self, docs=None):
+        self.docs = _clone(docs or [])
+
+    def find(self, query):
+        return _FakeCursor([document for document in self.docs if _matches(document, query)])
+
+    async def find_one(self, query, projection=None, sort=None):
+        matches = [document for document in self.docs if _matches(document, query)]
+        if sort:
+            for field, direction in reversed(sort):
+                matches.sort(key=lambda item: item.get(field), reverse=direction == -1)
+        return _clone(matches[0]) if matches else None
+
+    async def update_one(self, query, update, upsert=False):
+        document = next((item for item in self.docs if _matches(item, query)), None)
+        created = False
+
+        if document is None and upsert:
+            document = _clone(query)
+            self.docs.append(document)
+            created = True
+
+        if document is None:
+            return _UpdateResult(matched_count=0, modified_count=0)
+
+        modified = False
+
+        if created:
+            for field, value in update.get("$setOnInsert", {}).items():
+                document[field] = _clone(value)
+                modified = True
+
+        for field, value in update.get("$set", {}).items():
+            if document.get(field) != value:
+                document[field] = _clone(value)
+                modified = True
+
+        return _UpdateResult(
+            matched_count=1,
+            modified_count=1 if modified else 0,
+            upserted_id="upserted" if created else None,
+        )
+
+    async def delete_one(self, query):
+        before = len(self.docs)
+        self.docs = [document for document in self.docs if not _matches(document, query)]
+        return _DeleteResult(deleted_count=before - len(self.docs))
+
+
+class _FakeDb:
+    def __init__(self, *, watch_rules_docs=None):
+        self.watch_rules = _FakeCollection(watch_rules_docs)
+        self.watch_digests = _FakeCollection()
+        self.analysis_reports = _FakeCollection()
+        self.analysis_tasks = _FakeCollection()
+
+
+@pytest.mark.asyncio
+async def test_watch_rule_upsert_is_user_scoped_and_reuses_same_stock_rule(monkeypatch):
+    service = WatchDigestService()
+    service.db = _FakeDb()
+
+    timestamps = iter(
+        [
+            datetime(2026, 4, 15, 9, 0, tzinfo=timezone.utc),
+            datetime(2026, 4, 15, 10, 0, tzinfo=timezone.utc),
+            datetime(2026, 4, 15, 11, 0, tzinfo=timezone.utc),
+        ]
+    )
+
+    async def _get_favorite(user_id, stock_code):
+        return {"stock_code": stock_code, "stock_name": f"{stock_code}-name", "market": "A股"}
+
+    def _raise_runtime_error():
+        raise RuntimeError("scheduler unavailable in unit test")
+
+    monkeypatch.setattr(watch_digest_module.favorites_service, "get_favorite", _get_favorite)
+    monkeypatch.setattr("app.services.watch_digest_service.now_tz", lambda: next(timestamps))
+    monkeypatch.setattr("app.services.watch_digest_service.get_scheduler_service", _raise_runtime_error)
+
+    first = await service.upsert_rule(
+        user_id="user-1",
+        stock_code="600519",
+        stock_name="ignored first name",
+        market="美股",
+        schedule_type="daily_post_market",
+        cron_expr=None,
+        status="active",
+    )
+    second = await service.upsert_rule(
+        user_id="user-1",
+        stock_code="600519",
+        stock_name="ignored second name",
+        market="港股",
+        schedule_type="weekly_review",
+        cron_expr=None,
+        status="paused",
+    )
+    other_user = await service.upsert_rule(
+        user_id="user-2",
+        stock_code="600519",
+        stock_name="other user",
+        market="A股",
+        schedule_type="daily_pre_market",
+        cron_expr=None,
+        status="active",
+    )
+
+    assert len(service.db.watch_rules.docs) == 2
+
+    user_1_rules = await service.get_user_rules("user-1")
+    user_2_rules = await service.get_user_rules("user-2")
+
+    assert first["stock_name"] == "600519-name"
+    assert first["market"] == "A股"
+    assert first["schedule_summary"] == "每天盘后"
+    assert second["stock_name"] == "600519-name"
+    assert second["market"] == "A股"
+    assert second["schedule_type"] == "weekly_review"
+    assert second["schedule_summary"] == "每周复盘"
+    assert second["status"] == "paused"
+    assert second["created_at"] == "2026-04-15T09:00:00+00:00"
+    assert second["updated_at"] == "2026-04-15T10:00:00+00:00"
+    assert user_1_rules == [second]
+    assert other_user["created_at"] == "2026-04-15T11:00:00+00:00"
+    assert user_2_rules == [other_user]
+
+
+@pytest.mark.asyncio
+async def test_watch_rule_upsert_requires_watchlist_membership_and_valid_schedule(monkeypatch):
+    service = WatchDigestService()
+    service.db = _FakeDb()
+
+    async def _missing_favorite(user_id, stock_code):
+        return None
+
+    monkeypatch.setattr(watch_digest_module.favorites_service, "get_favorite", _missing_favorite)
+
+    with pytest.raises(WatchlistMembershipRequiredError, match="目标股票不在当前用户的自选股中"):
+        await service.upsert_rule(
+            user_id="user-1",
+            stock_code="600519",
+            stock_name="贵州茅台",
+            market="A股",
+            schedule_type="daily_post_market",
+            cron_expr=None,
+            status="active",
+        )
+
+    async def _get_favorite(user_id, stock_code):
+        return {"stock_code": stock_code, "stock_name": "贵州茅台", "market": "A股"}
+
+    monkeypatch.setattr(watch_digest_module.favorites_service, "get_favorite", _get_favorite)
+
+    with pytest.raises(ValueError, match="不支持的 schedule_type: bogus"):
+        await service.upsert_rule(
+            user_id="user-1",
+            stock_code="600519",
+            stock_name="贵州茅台",
+            market="A股",
+            schedule_type="bogus",
+            cron_expr=None,
+            status="active",
+        )
+
+    with pytest.raises(ValueError, match="cron_expr格式无效"):
+        await service.upsert_rule(
+            user_id="user-1",
+            stock_code="600519",
+            stock_name="贵州茅台",
+            market="A股",
+            schedule_type="custom",
+            cron_expr="bad cron",
+            status="active",
+        )
+
+
+@pytest.mark.asyncio
+async def test_trigger_digest_refresh_requires_watchlist_membership_and_uses_canonical_metadata(monkeypatch):
+    service = WatchDigestService()
+    service.db = _FakeDb()
+
+    async def _get_favorite(user_id, stock_code):
+        return {"stock_code": stock_code, "stock_name": "贵州茅台", "market": "A股"}
+
+    captured = {}
+
+    class _SimpleAnalysisService:
+        async def create_analysis_task(self, user_id, request):
+            captured["user_id"] = user_id
+            captured["symbol"] = request.symbol
+            captured["market_type"] = request.parameters.market_type
+            return {"task_id": "task-1", "status": "queued"}
+
+    monkeypatch.setattr(watch_digest_module.favorites_service, "get_favorite", _get_favorite)
+    monkeypatch.setattr(
+        "app.services.simple_analysis_service.get_simple_analysis_service",
+        lambda: _SimpleAnalysisService(),
+    )
+
+    result = await service.trigger_digest_refresh(
+        user_id="user-1",
+        stock_code="600519",
+        stock_name="错误别名",
+        market="美股",
+    )
+
+    assert result == {
+        "task_id": "task-1",
+        "status": "queued",
+        "stock_code": "600519",
+        "stock_name": "贵州茅台",
+        "market": "A股",
+    }
+    assert captured == {
+        "user_id": "user-1",
+        "symbol": "600519",
+        "market_type": "A股",
+    }
+
+    async def _missing_favorite(user_id, stock_code):
+        return None
+
+    monkeypatch.setattr(watch_digest_module.favorites_service, "get_favorite", _missing_favorite)
+
+    with pytest.raises(WatchlistMembershipRequiredError, match="目标股票不在当前用户的自选股中"):
+        await service.trigger_digest_refresh(
+            user_id="user-1",
+            stock_code="000001",
+            stock_name="平安银行",
+            market="A股",
+        )

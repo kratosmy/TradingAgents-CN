@@ -458,6 +458,33 @@ class FavoritesService:
 
         return items
 
+    async def get_favorite(self, user_id: str, stock_code: str) -> Optional[Dict[str, Any]]:
+        """获取单个规范化自选股条目（不做行情富集）。"""
+        db = await self._get_db()
+        canonical_favorites = await self._ensure_canonical_favorites(user_id)
+        normalized_stock_code = self._extract_stock_code({"stock_code": stock_code})
+        if not normalized_stock_code:
+            return None
+
+        canonical_doc = await db.user_favorites.find_one({"user_id": user_id})
+        source_favorites = (
+            (canonical_doc or {}).get("favorites", [])
+            if canonical_doc is not None
+            else canonical_favorites
+        )
+
+        for favorite in source_favorites:
+            normalized = self._normalize_favorite(favorite)
+            if normalized and normalized["stock_code"] == normalized_stock_code:
+                return normalized
+
+        for favorite in canonical_favorites:
+            normalized = self._normalize_favorite(favorite)
+            if normalized and normalized["stock_code"] == normalized_stock_code:
+                return normalized
+
+        return None
+
     async def add_favorite(
         self,
         user_id: str,

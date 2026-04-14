@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.core.response import ok
 from app.routers.auth_db import get_current_user
-from app.services.watch_digest_service import watch_digest_service
+from app.services.watch_digest_service import WatchlistMembershipRequiredError, watch_digest_service
 
 
 router = APIRouter(prefix="/api/watch", tags=["watch-digest"])
@@ -34,7 +34,7 @@ class UpsertWatchRuleRequest(BaseModel):
 
 
 class RefreshDigestRequest(BaseModel):
-    stock_name: str
+    stock_name: Optional[str] = None
     market: str = "A股"
 
 
@@ -66,6 +66,8 @@ async def upsert_watch_rule(
             cron_expr=request.cron_expr,
             status=request.status,
         )
+    except WatchlistMembershipRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return ok(rule, "监控策略已保存")
@@ -86,19 +88,22 @@ async def refresh_watch_digest(
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
 ):
-    created = await watch_digest_service.trigger_digest_refresh(
-        user_id=current_user["id"],
-        stock_code=stock_code,
-        stock_name=request.stock_name,
-        market=request.market,
-    )
+    try:
+        created = await watch_digest_service.trigger_digest_refresh(
+            user_id=current_user["id"],
+            stock_code=stock_code,
+            stock_name=request.stock_name or stock_code,
+            market=request.market,
+        )
+    except WatchlistMembershipRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     background_tasks.add_task(
         watch_digest_service.run_digest_refresh,
         created["task_id"],
         current_user["id"],
-        stock_code,
-        request.stock_name,
-        request.market,
+        created.get("stock_code") or stock_code,
+        created.get("stock_name") or request.stock_name or stock_code,
+        created.get("market") or request.market,
     )
     return ok(created, "解读任务已创建")
 
