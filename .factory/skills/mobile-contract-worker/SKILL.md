@@ -13,7 +13,7 @@ Use for Mini Program skeleton work, shared mobile-facing contract adapters, and 
 
 ## Required Skills
 
-- `check-cross-layer` — invoke before handoff when changing shared identifiers, API contract mapping, or ownership semantics relied on by web and mobile clients.
+None.
 
 ## Work Procedure
 
@@ -22,7 +22,7 @@ Use for Mini Program skeleton work, shared mobile-facing contract adapters, and 
 3. Add or update any build/static validation first for the client surface you are creating.
 4. Implement a thin client boundary that consumes canonical watchlist contracts without introducing Mini-only backend semantics.
 5. Run the named validation/build command for the Mini/client surface and any affected shared frontend commands.
-6. Invoke `check-cross-layer` when modifying shared API shapes or identifier mappings.
+6. When modifying shared API shapes, identifier mappings, or ownership semantics, do an explicit self-review before handoff to confirm the shared mobile contract still matches `mission.md`, `AGENTS.md`, and `.factory/library/contracts.md`.
 7. In the handoff, explicitly separate source/build evidence from runtime evidence.
 
 ## Example Handoff

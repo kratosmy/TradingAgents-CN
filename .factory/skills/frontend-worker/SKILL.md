@@ -14,7 +14,6 @@ Use for web watchlist/favorites/dashboard/screening/detail UI work, API-client r
 ## Required Skills
 
 - `agent-browser` — invoke for browser-visible verification of every fulfilled web assertion.
-- `check-cross-layer` — invoke before handoff when frontend work changes shared contract assumptions or identifier usage.
 
 ## Work Procedure
 
@@ -23,7 +22,7 @@ Use for web watchlist/favorites/dashboard/screening/detail UI work, API-client r
 3. Implement the UI/API-client changes while preserving the current navigation model and user feedback patterns unless the feature says otherwise.
 4. Run frontend validators from `.factory/services.yaml` (`lint`, `typecheck`, and `build`) before handoff.
 5. Launch the app and use `agent-browser` to exercise each fulfilled browser assertion end-to-end.
-6. Invoke `check-cross-layer` when changing shared identifiers, contract mapping, or cross-page watchlist behavior.
+6. When changing shared identifiers, contract mapping, or cross-page watchlist behavior, do an explicit self-review before handoff to confirm the UI/API-client mapping still matches `mission.md`, `AGENTS.md`, and `.factory/library/contracts.md`.
 7. Record every browser flow in `interactiveChecks` with the exact action sequence and what was observed.
 8. Do not hand off with vague statements like “UI works”; include concrete routes, actions, and results.
 

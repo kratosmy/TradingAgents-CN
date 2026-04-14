@@ -15,6 +15,8 @@ Shared contract notes for workers touching watchlist-related APIs.
 
 - Workers must converge on one documented primary stock identifier shape across create/read/update/delete, rule, digest, and client contracts.
 - If compatibility aliases are temporarily supported during migration, they must be explicit and test-covered.
+- Canonical watchlist APIs expose `stock_code` as the only client-facing stock identifier field.
+- During watchlist migration the backend may read legacy stored aliases such as `symbol`, but it must normalize them into `stock_code` before returning payloads or persisting canonical watchlist state.
 
 ## Payload discipline
 

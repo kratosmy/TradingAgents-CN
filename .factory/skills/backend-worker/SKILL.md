@@ -13,7 +13,7 @@ Use for backend/domain/API features involving the canonical watchlist model, dig
 
 ## Required Skills
 
-- `check-cross-layer` — invoke before handoff whenever the feature changes shared identifiers, auth ownership, API contracts, or data flow across router/service/model boundaries.
+None.
 
 ## Work Procedure
 
@@ -22,7 +22,7 @@ Use for backend/domain/API features involving the canonical watchlist model, dig
 3. Implement the smallest backend change set that makes those tests pass while preserving existing user data.
 4. If the feature changes API contracts, verify request/response shapes with `curl` against the local backend on `8001`.
 5. For migration-sensitive work, verify both fresh data and legacy/pre-existing shapes when applicable.
-6. Invoke `check-cross-layer` when the feature changes shared identifiers, auth ownership, or router/service/model interactions.
+6. When the feature changes shared identifiers, auth ownership, or router/service/model interactions, do an explicit self-review before handoff: verify the contract fields, ownership boundaries, and route/service/model consistency all still match `mission.md`, `AGENTS.md`, and `.factory/library/contracts.md`.
 7. Run relevant validators from `.factory/services.yaml` and any focused tests added for the feature.
 8. Do not hand off until you have concrete evidence for each fulfilled assertion or an explicit blocker.
 
