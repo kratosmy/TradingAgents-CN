@@ -352,9 +352,85 @@ def test_remove_favorite_uses_migrated_canonical_state_without_resurfacing_legac
     )
 
     assert asyncio.run(service.is_favorite(user_id, "600519")) is True
+
+    migrated = service.db.user_favorites.get_doc(user_id)
+    assert migrated["canonical_version"] == FavoritesService.CANONICAL_VERSION
+
     assert asyncio.run(service.remove_favorite(user_id, "600519")) is True
+    removed_doc = service.db.user_favorites.get_doc(user_id)
+    assert removed_doc["favorites"] == []
+    assert removed_doc["legacy_migration_checked_at"] is not None
+    assert removed_doc["legacy_migrated_at"] is not None
     assert asyncio.run(service.is_favorite(user_id, "600519")) is False
     assert asyncio.run(service.get_user_favorites(user_id)) == []
+
+
+def test_get_user_favorites_retries_legacy_merge_after_initial_empty_touch(monkeypatch):
+    user_id = "507f1f77bcf86cd799439099"
+    service = FavoritesService()
+    fake_db = _FakeDb(
+        user_docs=[
+            {
+                "_id": ObjectId(user_id),
+                "favorite_stocks": [],
+            }
+        ]
+    )
+    service.db = fake_db
+
+    class _QuotesService:
+        async def get_quotes(self, codes):
+            return {}
+
+    monkeypatch.setattr(
+        "app.services.favorites_service.get_quotes_service",
+        lambda: _QuotesService(),
+    )
+
+    first_items = asyncio.run(service.get_user_favorites(user_id))
+    assert first_items == []
+
+    stored_after_first_touch = service.db.user_favorites.get_doc(user_id)
+    assert stored_after_first_touch["favorites"] == []
+    assert "canonical_version" not in stored_after_first_touch
+    assert "legacy_migrated_at" not in stored_after_first_touch
+
+    fake_db.users.docs[0]["favorite_stocks"] = [
+        {
+            "symbol": "600519",
+            "stock_name": "贵州茅台",
+            "market": "A股",
+            "added_at": datetime(2026, 4, 10, 9, 30, 0),
+            "tags": ["legacy", "core"],
+            "notes": "delayed legacy",
+            "alert_price_high": 1900.0,
+            "alert_price_low": 1400.0,
+        }
+    ]
+
+    second_items = asyncio.run(service.get_user_favorites(user_id))
+
+    assert [item["stock_code"] for item in second_items] == ["600519"]
+    assert second_items[0]["tags"] == ["legacy", "core"]
+    assert second_items[0]["notes"] == "delayed legacy"
+    assert second_items[0]["alert_price_high"] == 1900.0
+    assert second_items[0]["alert_price_low"] == 1400.0
+
+    stored_after_retry = service.db.user_favorites.get_doc(user_id)
+    assert stored_after_retry["canonical_version"] == FavoritesService.CANONICAL_VERSION
+    assert stored_after_retry["legacy_migrated_at"] is not None
+    assert stored_after_retry["favorites"] == [
+        {
+            "stock_code": "600519",
+            "stock_name": "贵州茅台",
+            "market": "A股",
+            "added_at": datetime(2026, 4, 10, 9, 30, 0),
+            "tags": ["legacy", "core"],
+            "notes": "delayed legacy",
+            "alert_price_high": 1900.0,
+            "alert_price_low": 1400.0,
+        }
+    ]
 
 
 def test_favorites_routes_cover_duplicate_partial_update_tags_and_sync_contracts(api_client, monkeypatch):

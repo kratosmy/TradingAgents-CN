@@ -139,6 +139,52 @@ class FavoritesService:
             ),
         }
 
+    def _canonical_contains_legacy_snapshot(
+        self,
+        canonical_favorites: List[Dict[str, Any]],
+        legacy_favorites: List[Dict[str, Any]],
+    ) -> bool:
+        canonical_by_code: Dict[str, Dict[str, Any]] = {}
+        for source in canonical_favorites:
+            normalized = self._normalize_favorite(source)
+            if normalized:
+                canonical_by_code[normalized["stock_code"]] = normalized
+
+        legacy_by_code: Dict[str, Dict[str, Any]] = {}
+        for source in legacy_favorites:
+            normalized = self._normalize_favorite(source)
+            if normalized:
+                legacy_by_code[normalized["stock_code"]] = normalized
+
+        if not legacy_by_code:
+            return False
+
+        for stock_code, legacy_item in legacy_by_code.items():
+            canonical_item = canonical_by_code.get(stock_code)
+            if canonical_item is None:
+                return False
+
+            expected = self._merge_favorite_records(canonical_item, legacy_item)
+            if canonical_item != expected:
+                return False
+
+        return True
+
+    def _canonical_doc_finalized_after_legacy_merge(self, canonical_doc: Optional[Dict[str, Any]]) -> bool:
+        if canonical_doc is None:
+            return False
+
+        if canonical_doc.get("canonical_version") != self.CANONICAL_VERSION:
+            return False
+
+        return canonical_doc.get("legacy_migrated_at") is not None
+
+    def _canonical_doc_migration_checked(self, canonical_doc: Optional[Dict[str, Any]]) -> bool:
+        if canonical_doc is None:
+            return False
+
+        return canonical_doc.get("legacy_migration_checked_at") is not None
+
     async def _get_legacy_favorites(self, db, user_id: str) -> List[Dict[str, Any]]:
         for candidate in self._build_user_lookup_candidates(user_id):
             user = await db.users.find_one({"_id": candidate})
@@ -152,12 +198,13 @@ class FavoritesService:
         user_id: str,
         favorites: List[Dict[str, Any]],
         existing_doc: Optional[Dict[str, Any]] = None,
+        migration_complete: Optional[bool] = None,
+        migration_checked_at: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         existing_doc = existing_doc or {}
         now = now_tz()
         payload = {
             "favorites": favorites,
-            "canonical_version": self.CANONICAL_VERSION,
             "updated_at": now,
         }
 
@@ -166,10 +213,25 @@ class FavoritesService:
         else:
             payload["created_at"] = now
 
-        if existing_doc.get("legacy_migrated_at"):
-            payload["legacy_migrated_at"] = existing_doc["legacy_migrated_at"]
-        else:
-            payload["legacy_migrated_at"] = now
+        if migration_checked_at is None:
+            migration_checked_at = existing_doc.get("legacy_migration_checked_at")
+        if migration_checked_at is not None:
+            payload["legacy_migration_checked_at"] = migration_checked_at
+
+        if migration_complete is None:
+            migration_complete = bool(
+                existing_doc.get("canonical_version") == self.CANONICAL_VERSION
+                or existing_doc.get("legacy_migrated_at")
+            )
+
+        if migration_complete:
+            payload["canonical_version"] = self.CANONICAL_VERSION
+            if existing_doc.get("legacy_migrated_at"):
+                payload["legacy_migrated_at"] = existing_doc["legacy_migrated_at"]
+            else:
+                payload["legacy_migrated_at"] = now
+            if migration_checked_at is None:
+                payload["legacy_migration_checked_at"] = now
 
         return {"user_id": user_id, **payload}
 
@@ -177,9 +239,23 @@ class FavoritesService:
         db = await self._get_db()
         canonical_doc = await db.user_favorites.find_one({"user_id": user_id})
         canonical_favorites = (canonical_doc or {}).get("favorites", [])
-        needs_migration = canonical_doc is None or canonical_doc.get("canonical_version") != self.CANONICAL_VERSION
+        legacy_favorites = await self._get_legacy_favorites(db, user_id)
+        legacy_has_visible_entries = any(
+            self._normalize_favorite(source) is not None for source in legacy_favorites
+        )
+        migration_finalized = self._canonical_doc_finalized_after_legacy_merge(canonical_doc)
+        retry_window_open = not self._canonical_doc_migration_checked(canonical_doc)
 
-        if not needs_migration:
+        if migration_finalized and not legacy_has_visible_entries:
+            return canonical_favorites
+
+        if migration_finalized and legacy_has_visible_entries:
+            if not canonical_favorites:
+                return canonical_favorites
+            if self._canonical_contains_legacy_snapshot(canonical_favorites, legacy_favorites):
+                return canonical_favorites
+
+        if canonical_doc is not None and not legacy_has_visible_entries and not retry_window_open:
             return canonical_favorites
 
         merged: Dict[str, Dict[str, Any]] = {}
@@ -189,7 +265,6 @@ class FavoritesService:
                 continue
             merged[normalized["stock_code"]] = normalized
 
-        legacy_favorites = await self._get_legacy_favorites(db, user_id)
         for source in legacy_favorites:
             normalized = self._normalize_favorite(source)
             if not normalized:
@@ -205,16 +280,18 @@ class FavoritesService:
             key=lambda item: self._parse_datetime(item.get("added_at")) or now_tz().replace(tzinfo=None),
         )
         now = now_tz()
+        merged_doc = self._build_canonical_document(
+            user_id=user_id,
+            favorites=merged_favorites,
+            existing_doc=canonical_doc,
+            migration_complete=legacy_has_visible_entries,
+            migration_checked_at=now,
+        )
         await db.user_favorites.update_one(
             {"user_id": user_id},
             {
                 "$setOnInsert": {"user_id": user_id, "created_at": now},
-                "$set": {
-                    "favorites": merged_favorites,
-                    "canonical_version": self.CANONICAL_VERSION,
-                    "legacy_migrated_at": now,
-                    "updated_at": now,
-                },
+                "$set": merged_doc,
             },
             upsert=True,
         )
@@ -406,6 +483,7 @@ class FavoritesService:
             user_id=user_id,
             favorites=remaining_favorites,
             existing_doc=canonical_doc,
+            migration_complete=True,
         )
         await db.user_favorites.update_one(
             {"user_id": user_id},
