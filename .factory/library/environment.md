@@ -10,14 +10,14 @@ Environment variables, external dependencies, and setup notes.
 ## Mission-local runtime assumptions
 
 - Backend workers use `.venv-mission` created by `.factory/init.sh`.
-- Backend runtime for this mission must use the existing process on port `8001`, not `8000`.
+- Backend runtime for this mission must use port `8001`, not `8000`; the mission may now restart that backend when needed to load code changes.
 - Existing MongoDB on `localhost:27017` and Redis on `localhost:6379` are reused.
 - Redis password is expected to match current project defaults (`tradingagents123`) unless a worker proves otherwise.
 
 ## Known environment constraints
 
 - Port `8000` is occupied and off-limits for this mission.
-- Port `8001` is already served by an existing process that the mission reuses; workers should not try to stop or replace it.
+- Port `8001` is reserved for the mission backend; restarts must remain scoped to the mission process only.
 - Current checked-in `venv` is not reliable for mission work; workers should use `.venv-mission`.
 - True WeChat Mini Program runtime tooling is not available in this environment, so Mini validation is limited to source/build-level evidence unless that tooling is added later.
 - Backend startup may log permission-denied warnings when trying to write `config/settings.json` or `config/pricing.json`; current evidence shows the server can still start and serve requests despite those warnings.

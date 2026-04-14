@@ -1,0 +1,63 @@
+{
+  "flowId": "web-watchlist",
+  "milestone": "canonical-watchlist",
+  "surface": "web",
+  "status": "blocked",
+  "summary": "Frontend watchlist routes are configured as auth-gated and backed by reachable authenticated APIs, but honest browser validation of the live UI is blocked in this environment because agent-browser cannot launch due to missing libasound.so.2 runtime dependency.",
+  "assertions": [
+    {
+      "id": "web-auth-gating-favorites-route",
+      "status": "pass",
+      "evidence": [
+        "frontend/src/router/index.ts routes /favorites with meta.requiresAuth=true",
+        "frontend/src/router/index.ts beforeEach redirects unauthenticated requiresAuth routes to /login",
+        "GET /api/favorites/ returned 401 unauthenticated and 200 authenticated on backend http://localhost:8001"
+      ]
+    },
+    {
+      "id": "web-auth-gating-watch-route",
+      "status": "pass",
+      "evidence": [
+        "frontend/src/router/index.ts routes /watch with meta.requiresAuth=true",
+        "frontend/src/router/index.ts beforeEach redirects unauthenticated requiresAuth routes to /login",
+        "GET /api/watch/digests and /api/watch/rules returned 401 unauthenticated and 200 authenticated on backend http://localhost:8001"
+      ]
+    },
+    {
+      "id": "web-watch-route-reachability-for-later-milestones",
+      "status": "pass",
+      "evidence": [
+        "frontend/src/views/Watchlist/index.vue loads cards from watchDigestApi.list()",
+        "frontend/src/api/watchDigest.ts targets /api/watch/digests and /api/watch/rules endpoints",
+        "Authenticated API checks returned success=true for /api/watch/digests and /api/watch/rules"
+      ]
+    },
+    {
+      "id": "live-browser-visible-watchlist-milestone-assertions",
+      "status": "blocked",
+      "evidence": [
+        "agent-browser install completed but launch failed with missing shared library libasound.so.2",
+        "browser validation could not capture screenshots or verify actual rendered redirects/components on localhost:3000"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "type": "environment",
+      "detail": "agent-browser launch failed: chrome-headless-shell could not load libasound.so.2; agent-browser install --with-deps could not install system packages because sudo requires an interactive password."
+    }
+  ],
+  "frictions": [
+    "Frontend routes /favorites and /watch return the generic SPA shell over raw HTTP, so route gating is only provable through router code and API responses without a functioning browser runtime.",
+    "Current authenticated datasets for favorites, watch digests, and watch rules are empty, so no future-milestone card behavior can be honestly claimed from user-visible evidence."
+  ],
+  "toolsUsed": [
+    "Read",
+    "Grep",
+    "Execute",
+    "agent-browser"
+  ],
+  "evidence": [
+    "/home/kratos/.factory/missions/f5a15d60-e8ab-48fc-95a4-044b49b5770b/evidence/canonical-watchlist/web-watchlist/api-summary.json"
+  ]
+}

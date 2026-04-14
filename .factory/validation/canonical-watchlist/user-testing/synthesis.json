@@ -1,0 +1,55 @@
+{
+  "milestone": "canonical-watchlist",
+  "round": 1,
+  "status": "fail",
+  "assertionsSummary": {
+    "total": 14,
+    "passed": 10,
+    "failed": 0,
+    "blocked": 4
+  },
+  "passedAssertions": [
+    "VAL-CROSS-002",
+    "VAL-WATCH-001",
+    "VAL-WATCH-002",
+    "VAL-WATCH-003",
+    "VAL-WATCH-004",
+    "VAL-WATCH-005",
+    "VAL-WATCH-009",
+    "VAL-WATCH-010",
+    "VAL-WATCH-011",
+    "VAL-WATCH-022"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [
+    {
+      "id": "VAL-WATCH-006",
+      "blockedBy": "Watch rule creation is currently failing on the live backend with HTTP 500, so create/update rule behavior cannot be validated successfully."
+    },
+    {
+      "id": "VAL-WATCH-007",
+      "blockedBy": "Custom watch rule updates also fail with HTTP 500, leaving the rules list empty."
+    },
+    {
+      "id": "VAL-WATCH-008",
+      "blockedBy": "Invalid custom-rule input is not surfaced as a contract-level 400; the backend returns HTTP 500 instead."
+    },
+    {
+      "id": "VAL-WATCH-021",
+      "blockedBy": "Rule deletion cannot be validated because rule creation never succeeded; delete attempts return 404 not found."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "user-testing.md",
+      "description": "Added flow validator guidance sections for API and integrated web+API validators, including shared service and isolation boundaries.",
+      "source": "setup"
+    },
+    {
+      "target": "user-testing.md",
+      "description": "Documented effective web-validation limitation: agent-browser cannot launch in this environment because Chromium is missing libasound.so.2 and dependency install requires interactive sudo.",
+      "source": "flow-report"
+    }
+  ],
+  "previousRound": null
+}

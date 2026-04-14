@@ -43,7 +43,7 @@ Testing surfaces, required tools, and validation concurrency guidance.
 
 ## Setup Notes
 
-- Reuse the existing backend already serving `8001`; do not stop or replace it unless the orchestrator changes the mission boundary.
+- Backend on `8001` may now be restarted under mission control when needed to load code changes before validation.
 - Start frontend on `3000`.
 - Reuse existing MongoDB (`27017`) and Redis (`6379`).
 - If `/api/watch/*` is unreachable, treat that as a contract failure for web watch validation rather than silently skipping `/watch` flows.
@@ -51,5 +51,23 @@ Testing surfaces, required tools, and validation concurrency guidance.
 
 ## Accepted Limitations
 
+- Current browser automation blocker: `agent-browser` Chromium launch fails because `libasound.so.2` is unavailable, and `agent-browser install --with-deps` cannot complete here because `sudo` requires an interactive password. Treat live browser-only assertions as blocked until that runtime dependency is installed.
+
 - Mini Program runtime/device validation is out of scope until real WeChat tooling exists in this environment.
 - Web validation is a consumer regression surface; it does not prove Mini runtime parity.
+
+
+## Flow Validator Guidance: API validators
+- Stay within the assigned assertions, credentials, and URLs only.
+- Use the mission backend on `http://localhost:8001`; if validation depends on newer code, the orchestrator may restart that backend before reruns.
+- For API validation, use only the assigned user accounts/tokens and stock symbols; avoid mutating unrelated shared data.
+- For web validation, reuse the shared frontend on `http://localhost:3000` and the assigned browser session only.
+- If an assertion depends on missing routes or future-milestone functionality, report it as blocked with concrete evidence instead of guessing.
+
+
+## Flow Validator Guidance: Integrated web + API validators
+- Stay within the assigned assertions, credentials, and URLs only.
+- Use the mission backend on `http://localhost:8001`; if validation depends on newer code, the orchestrator may restart that backend before reruns.
+- For API validation, use only the assigned user accounts/tokens and stock symbols; avoid mutating unrelated shared data.
+- For web validation, reuse the shared frontend on `http://localhost:3000` and the assigned browser session only.
+- If an assertion depends on missing routes or future-milestone functionality, report it as blocked with concrete evidence instead of guessing.

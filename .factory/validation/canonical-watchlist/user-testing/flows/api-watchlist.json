@@ -1,0 +1,566 @@
+{
+  "flowId": "api-watchlist",
+  "validatedAt": "2026-04-14T14:31:00Z",
+  "baseUrl": "http://localhost:8001",
+  "assignedAssertions": [
+    "VAL-WATCH-001",
+    "VAL-WATCH-002",
+    "VAL-WATCH-003",
+    "VAL-WATCH-004",
+    "VAL-WATCH-005",
+    "VAL-WATCH-006",
+    "VAL-WATCH-007",
+    "VAL-WATCH-008",
+    "VAL-WATCH-009",
+    "VAL-WATCH-010",
+    "VAL-WATCH-011",
+    "VAL-WATCH-021",
+    "VAL-WATCH-022",
+    "VAL-CROSS-002"
+  ],
+  "users": {
+    "admin": {
+      "id": "69dda80330a15ce8e8b4ed97"
+    },
+    "watchuser1": {
+      "id": "69de4f02954ae7e49b28a8cc"
+    },
+    "watchuser2": {
+      "id": "69de4f02954ae7e49b28a8ce"
+    }
+  },
+  "toolsUsed": [
+    "Read",
+    "Execute",
+    "curl-equivalent via Python requests"
+  ],
+  "frictions": [
+    "The live backend returns generic HTTP 500 for all PUT /api/watch/rules/{stock_code} attempts, including invalid custom schedule payloads.",
+    "Because watch-rule creation fails, rule update/delete coverage is partially blocked on live behavior rather than request construction.",
+    "Digest refresh endpoints succeed without an existing watch rule, so schedule-related assertions had to be separated from digest-task assertions."
+  ],
+  "blockers": [
+    "Live backend defect on /api/watch/rules/{stock_code} prevents successful rule create/update validation."
+  ],
+  "results": [
+    {
+      "assertionId": "VAL-WATCH-001",
+      "status": "pass",
+      "reason": "Authenticated user can add a favorite and the API returns success for the requested stock code.",
+      "evidence": [
+        {
+          "step": "add favorite 600519",
+          "method": "POST",
+          "path": "/api/favorites/",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "stock_code": "600519"
+            },
+            "message": "添加成功",
+            "timestamp": "2026-04-14T22:30:06.294830+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-002",
+      "status": "pass",
+      "reason": "Duplicate favorite add is rejected with HTTP 400 and an explicit duplicate message.",
+      "evidence": [
+        {
+          "step": "duplicate favorite 600519",
+          "method": "POST",
+          "path": "/api/favorites/",
+          "status": 400,
+          "responseExcerpt": {
+            "detail": "该股票已在自选股中"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-003",
+      "status": "pass",
+      "reason": "Listing favorites after creation returns the saved stock metadata, notes, alerts, and market enrichment.",
+      "evidence": [
+        {
+          "step": "get favorites after add",
+          "method": "GET",
+          "path": "/api/favorites/",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": [
+              {
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "added_at": "2026-04-14T14:30:06.290000",
+                "tags": [
+                  "core",
+                  "swing"
+                ],
+                "notes": "first note",
+                "alert_price_high": 1999.5,
+                "alert_price_low": 1500.0,
+                "current_price": null,
+                "change_percent": null,
+                "volume": null,
+                "board": "主板",
+                "exchange": "上海证券交易所"
+              }
+            ],
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:06.336939+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-004",
+      "status": "pass",
+      "reason": "Favorite membership check flips from false to true when the stock is present and back to false after deletion.",
+      "evidence": [
+        {
+          "step": "check missing favorite",
+          "method": "GET",
+          "path": "/api/favorites/check/600519",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "stock_code": "600519",
+              "is_favorite": false
+            },
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:06.272309+08:00"
+          }
+        },
+        {
+          "step": "check existing favorite",
+          "method": "GET",
+          "path": "/api/favorites/check/600519",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "stock_code": "600519",
+              "is_favorite": true
+            },
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:06.351553+08:00"
+          }
+        },
+        {
+          "step": "check removed favorite",
+          "method": "GET",
+          "path": "/api/favorites/check/600519",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "stock_code": "600519",
+              "is_favorite": false
+            },
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:07.027153+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-005",
+      "status": "pass",
+      "reason": "Updating a favorite persists revised notes and alerts, while the tags endpoint deduplicates returned tags.",
+      "evidence": [
+        {
+          "step": "update favorite 600519",
+          "method": "PUT",
+          "path": "/api/favorites/600519",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "stock_code": "600519"
+            },
+            "message": "更新成功",
+            "timestamp": "2026-04-14T22:30:06.365973+08:00"
+          }
+        },
+        {
+          "step": "get favorites after update",
+          "method": "GET",
+          "path": "/api/favorites/",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": [
+              {
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "added_at": "2026-04-14T14:30:06.290000",
+                "tags": [
+                  "priority",
+                  "longterm",
+                  "priority"
+                ],
+                "notes": "updated note",
+                "alert_price_high": 2100.0,
+                "alert_price_low": 1400.0,
+                "current_price": null,
+                "change_percent": null,
+                "volume": null,
+                "board": "主板",
+                "exchange": "上海证券交易所"
+              }
+            ],
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:06.386636+08:00"
+          }
+        },
+        {
+          "step": "get tags",
+          "method": "GET",
+          "path": "/api/favorites/tags",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": [
+              "longterm",
+              "priority"
+            ],
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:06.400262+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-006",
+      "status": "blocked",
+      "reason": "Watch rule creation is currently failing on the live backend with HTTP 500, so create/update rule behavior cannot be validated successfully.",
+      "evidence": [
+        {
+          "step": "upsert default rule 600519",
+          "method": "PUT",
+          "path": "/api/watch/rules/600519",
+          "status": 500,
+          "responseExcerpt": {
+            "error": {
+              "code": "INTERNAL_SERVER_ERROR",
+              "message": "Internal server error occurred",
+              "request_id": "777aa476-1280-4605-995b-2af0ef588bb3"
+            }
+          }
+        },
+        {
+          "step": "list rules after create",
+          "method": "GET",
+          "path": "/api/watch/rules",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": [],
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:06.483358+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-007",
+      "status": "blocked",
+      "reason": "Custom watch rule updates also fail with HTTP 500, leaving the rules list empty.",
+      "evidence": [
+        {
+          "step": "upsert custom rule 600519",
+          "method": "PUT",
+          "path": "/api/watch/rules/600519",
+          "status": 500,
+          "responseExcerpt": {
+            "error": {
+              "code": "INTERNAL_SERVER_ERROR",
+              "message": "Internal server error occurred",
+              "request_id": "1ec54a11-5e1d-4132-941e-884b7d3c0ee0"
+            }
+          }
+        },
+        {
+          "step": "list rules after update",
+          "method": "GET",
+          "path": "/api/watch/rules",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": [],
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:06.522012+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-008",
+      "status": "blocked",
+      "reason": "Invalid custom-rule input is not surfaced as a contract-level 400; the backend returns HTTP 500 instead.",
+      "evidence": [
+        {
+          "step": "invalid rule missing cron",
+          "method": "PUT",
+          "path": "/api/watch/rules/600519",
+          "status": 500,
+          "responseExcerpt": {
+            "error": {
+              "code": "INTERNAL_SERVER_ERROR",
+              "message": "Internal server error occurred",
+              "request_id": "30cf38d1-0f9a-41c1-ac70-794526e8bd2a"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-009",
+      "status": "pass",
+      "reason": "Single-stock digest refresh accepts a favorite and creates an async task successfully.",
+      "evidence": [
+        {
+          "step": "refresh digest single existing",
+          "method": "POST",
+          "path": "/api/watch/digests/600519/refresh",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "task_id": "0cc811d4-20d0-4052-8254-88604fefc0fb",
+              "status": "pending",
+              "message": "任务已创建，等待执行"
+            },
+            "message": "解读任务已创建",
+            "timestamp": "2026-04-14T22:30:06.663027+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-010",
+      "status": "pass",
+      "reason": "Digest listing exposes the watched stock card with stock metadata and inactive/no-summary defaults immediately after refresh creation.",
+      "evidence": [
+        {
+          "step": "list digests after single refresh",
+          "method": "GET",
+          "path": "/api/watch/digests",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": [
+              {
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "board": "主板",
+                "exchange": "上海证券交易所",
+                "current_price": null,
+                "change_percent": null,
+                "summary": "暂无摘要，请先执行一次解读。",
+                "recommendation": null,
+                "risk_level": "关注",
+                "confidence_score": null,
+                "schedule_type": null,
+                "rule_status": "inactive",
+                "updated_at": null,
+                "report_id": null,
+                "task_id": null,
+                "schedule_label": "未配置"
+              }
+            ],
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:06.729847+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-011",
+      "status": "pass",
+      "reason": "Bulk digest refresh succeeds and targets the current favorites set even when no watch rule exists.",
+      "evidence": [
+        {
+          "step": "refresh all digests existing",
+          "method": "POST",
+          "path": "/api/watch/digests/refresh-all",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "count": 1,
+              "stocks": [
+                "600519"
+              ]
+            },
+            "message": "已批量创建解读任务",
+            "timestamp": "2026-04-14T22:30:06.759958+08:00"
+          }
+        },
+        {
+          "step": "watchuser2 refresh all no rules",
+          "method": "POST",
+          "path": "/api/watch/digests/refresh-all",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "count": 1,
+              "stocks": [
+                "000001"
+              ]
+            },
+            "message": "已批量创建解读任务",
+            "timestamp": "2026-04-14T22:30:07.185507+08:00"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-021",
+      "status": "blocked",
+      "reason": "Rule deletion cannot be validated because rule creation never succeeded; delete attempts return 404 not found.",
+      "evidence": [
+        {
+          "step": "delete rule 600519",
+          "method": "DELETE",
+          "path": "/api/watch/rules/600519",
+          "status": 404,
+          "responseExcerpt": {
+            "detail": "监控策略不存在"
+          }
+        },
+        {
+          "step": "delete rule 600519 again",
+          "method": "DELETE",
+          "path": "/api/watch/rules/600519",
+          "status": 404,
+          "responseExcerpt": {
+            "detail": "监控策略不存在"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-WATCH-022",
+      "status": "pass",
+      "reason": "Favorite deletion succeeds once and subsequent deletion correctly reports not found.",
+      "evidence": [
+        {
+          "step": "delete favorite 600519",
+          "method": "DELETE",
+          "path": "/api/favorites/600519",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "stock_code": "600519"
+            },
+            "message": "移除成功",
+            "timestamp": "2026-04-14T22:30:06.991964+08:00"
+          }
+        },
+        {
+          "step": "delete favorite 600519 again",
+          "method": "DELETE",
+          "path": "/api/favorites/600519",
+          "status": 404,
+          "responseExcerpt": {
+            "detail": "自选股不存在"
+          }
+        }
+      ]
+    },
+    {
+      "assertionId": "VAL-CROSS-002",
+      "status": "pass",
+      "reason": "Watchlist data remains isolated per account: watchuser2 sees only 000001, while watchuser1 and admin do not see each other’s favorites.",
+      "evidence": [
+        {
+          "step": "watchuser2 get favorites",
+          "method": "GET",
+          "path": "/api/favorites/",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": [
+              {
+                "stock_code": "000001",
+                "stock_name": "平安银行",
+                "market": "A股",
+                "added_at": "2026-04-14T14:30:07.118000",
+                "tags": [
+                  "bank"
+                ],
+                "notes": "user2 note",
+                "alert_price_high": null,
+                "alert_price_low": null,
+                "current_price": null,
+                "change_percent": null,
+                "volume": null,
+                "board": "主板",
+                "exchange": "深圳证券交易所"
+              }
+            ],
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:07.142009+08:00"
+          }
+        },
+        {
+          "step": "watchuser1 check watchuser2 symbol isolation",
+          "method": "GET",
+          "path": "/api/favorites/check/000001",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "stock_code": "000001",
+              "is_favorite": false
+            },
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:07.278015+08:00"
+          }
+        },
+        {
+          "step": "admin favorites baseline",
+          "method": "GET",
+          "path": "/api/favorites/",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": [],
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:07.296268+08:00"
+          }
+        },
+        {
+          "step": "admin check user symbols absent",
+          "method": "GET",
+          "path": "/api/favorites/check/600519",
+          "status": 200,
+          "responseExcerpt": {
+            "success": true,
+            "data": {
+              "stock_code": "600519",
+              "is_favorite": false
+            },
+            "message": "ok",
+            "timestamp": "2026-04-14T22:30:07.321497+08:00"
+          }
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    "/home/kratos/.factory/missions/f5a15d60-e8ab-48fc-95a4-044b49b5770b/evidence/canonical-watchlist/api-watchlist/api-watchlist-evidence.json"
+  ]
+}
