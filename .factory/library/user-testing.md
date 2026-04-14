@@ -43,7 +43,7 @@ Testing surfaces, required tools, and validation concurrency guidance.
 
 ## Setup Notes
 
-- Start backend on `8001`, never `8000`.
+- Reuse the existing backend already serving `8001`; do not stop or replace it unless the orchestrator changes the mission boundary.
 - Start frontend on `3000`.
 - Reuse existing MongoDB (`27017`) and Redis (`6379`).
 - If `/api/watch/*` is unreachable, treat that as a contract failure for web watch validation rather than silently skipping `/watch` flows.
