@@ -2,17 +2,23 @@
 自选股服务
 """
 
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+import logging
+from typing import List, Optional, Dict, Any, Iterable
+from datetime import datetime, timezone
 from bson import ObjectId
 
 from app.core.database import get_mongo_db
-from app.models.user import FavoriteStock
 from app.services.quotes_service import get_quotes_service
+from app.utils.timezone import now_tz
 
 
 class FavoritesService:
     """自选股服务类"""
+
+    CANONICAL_VERSION = 1
+    DEFAULT_MARKET = "A股"
+
+    logger = logging.getLogger("webapi")
     
     def __init__(self):
         self.db = None
@@ -32,17 +38,200 @@ class FavoritesService:
         # 强制返回 False，统一使用 user_favorites 集合
         return False
 
+    def _build_user_lookup_candidates(self, user_id: str) -> List[Any]:
+        candidates: List[Any] = [user_id]
+        if ObjectId.is_valid(user_id):
+            candidates.append(ObjectId(user_id))
+        return candidates
+
+    def _extract_stock_code(self, favorite: Optional[Dict[str, Any]]) -> Optional[str]:
+        if not favorite:
+            return None
+
+        stock_code = favorite.get("stock_code") or favorite.get("symbol")
+        if stock_code is None:
+            return None
+
+        normalized = str(stock_code).strip()
+        return normalized or None
+
+    def _parse_datetime(self, value: Any) -> Optional[datetime]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            if value.tzinfo is not None:
+                return value.astimezone(timezone.utc).replace(tzinfo=None)
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                if parsed.tzinfo is not None:
+                    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+                return parsed
+            except ValueError:
+                return None
+        return None
+
+    def _merge_tags(self, *tag_lists: Iterable[Any]) -> List[str]:
+        merged: List[str] = []
+        seen = set()
+        for tag_list in tag_lists:
+            for tag in tag_list or []:
+                normalized = str(tag).strip()
+                if not normalized or normalized in seen:
+                    continue
+                merged.append(normalized)
+                seen.add(normalized)
+        return merged
+
+    def _normalize_market(self, favorite: Optional[Dict[str, Any]]) -> str:
+        if not favorite:
+            return self.DEFAULT_MARKET
+
+        market = favorite.get("market")
+        if market is None:
+            market = favorite.get("exchange")
+
+        normalized = str(market).strip() if market is not None else ""
+        return normalized or self.DEFAULT_MARKET
+
+    def _normalize_favorite(self, favorite: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        stock_code = self._extract_stock_code(favorite)
+        if not stock_code:
+            return None
+
+        return {
+            "stock_code": stock_code,
+            "stock_name": favorite.get("stock_name") or stock_code,
+            "market": self._normalize_market(favorite),
+            "added_at": favorite.get("added_at") or now_tz(),
+            "tags": self._merge_tags(favorite.get("tags", [])),
+            "notes": favorite.get("notes") or "",
+            "alert_price_high": favorite.get("alert_price_high"),
+            "alert_price_low": favorite.get("alert_price_low"),
+        }
+
+    def _merge_favorite_records(self, primary: Dict[str, Any], secondary: Dict[str, Any]) -> Dict[str, Any]:
+        primary_added_at = self._parse_datetime(primary.get("added_at"))
+        secondary_added_at = self._parse_datetime(secondary.get("added_at"))
+
+        if primary_added_at and secondary_added_at:
+            added_at = min(primary_added_at, secondary_added_at)
+        else:
+            added_at = primary.get("added_at") or secondary.get("added_at") or now_tz()
+
+        return {
+            "stock_code": primary.get("stock_code") or secondary.get("stock_code"),
+            "stock_name": primary.get("stock_name") or secondary.get("stock_name"),
+            "market": primary.get("market") or secondary.get("market") or self.DEFAULT_MARKET,
+            "added_at": added_at,
+            "tags": self._merge_tags(primary.get("tags", []), secondary.get("tags", [])),
+            "notes": primary.get("notes") or secondary.get("notes") or "",
+            "alert_price_high": (
+                primary.get("alert_price_high")
+                if primary.get("alert_price_high") is not None
+                else secondary.get("alert_price_high")
+            ),
+            "alert_price_low": (
+                primary.get("alert_price_low")
+                if primary.get("alert_price_low") is not None
+                else secondary.get("alert_price_low")
+            ),
+        }
+
+    async def _get_legacy_favorites(self, db, user_id: str) -> List[Dict[str, Any]]:
+        for candidate in self._build_user_lookup_candidates(user_id):
+            user = await db.users.find_one({"_id": candidate})
+            if user:
+                return (user or {}).get("favorite_stocks", [])
+        return []
+
+    def _build_canonical_document(
+        self,
+        *,
+        user_id: str,
+        favorites: List[Dict[str, Any]],
+        existing_doc: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        existing_doc = existing_doc or {}
+        now = now_tz()
+        payload = {
+            "favorites": favorites,
+            "canonical_version": self.CANONICAL_VERSION,
+            "updated_at": now,
+        }
+
+        if existing_doc.get("created_at"):
+            payload["created_at"] = existing_doc["created_at"]
+        else:
+            payload["created_at"] = now
+
+        if existing_doc.get("legacy_migrated_at"):
+            payload["legacy_migrated_at"] = existing_doc["legacy_migrated_at"]
+        else:
+            payload["legacy_migrated_at"] = now
+
+        return {"user_id": user_id, **payload}
+
+    async def _ensure_canonical_favorites(self, user_id: str) -> List[Dict[str, Any]]:
+        db = await self._get_db()
+        canonical_doc = await db.user_favorites.find_one({"user_id": user_id})
+        canonical_favorites = (canonical_doc or {}).get("favorites", [])
+        needs_migration = canonical_doc is None or canonical_doc.get("canonical_version") != self.CANONICAL_VERSION
+
+        if not needs_migration:
+            return canonical_favorites
+
+        merged: Dict[str, Dict[str, Any]] = {}
+        for source in canonical_favorites:
+            normalized = self._normalize_favorite(source)
+            if not normalized:
+                continue
+            merged[normalized["stock_code"]] = normalized
+
+        legacy_favorites = await self._get_legacy_favorites(db, user_id)
+        for source in legacy_favorites:
+            normalized = self._normalize_favorite(source)
+            if not normalized:
+                continue
+            existing = merged.get(normalized["stock_code"])
+            if existing:
+                merged[normalized["stock_code"]] = self._merge_favorite_records(existing, normalized)
+            else:
+                merged[normalized["stock_code"]] = normalized
+
+        merged_favorites = sorted(
+            merged.values(),
+            key=lambda item: self._parse_datetime(item.get("added_at")) or now_tz().replace(tzinfo=None),
+        )
+        now = now_tz()
+        await db.user_favorites.update_one(
+            {"user_id": user_id},
+            {
+                "$setOnInsert": {"user_id": user_id, "created_at": now},
+                "$set": {
+                    "favorites": merged_favorites,
+                    "canonical_version": self.CANONICAL_VERSION,
+                    "legacy_migrated_at": now,
+                    "updated_at": now,
+                },
+            },
+            upsert=True,
+        )
+        return merged_favorites
+
     def _format_favorite(self, favorite: Dict[str, Any]) -> Dict[str, Any]:
         """格式化收藏条目（仅基础信息，不包含实时行情）。
         行情将在 get_user_favorites 中批量富集。
         """
+        stock_code = self._extract_stock_code(favorite)
         added_at = favorite.get("added_at")
         if isinstance(added_at, datetime):
             added_at = added_at.isoformat()
         return {
-            "stock_code": favorite.get("stock_code"),
-            "stock_name": favorite.get("stock_name"),
-            "market": favorite.get("market", "A股"),
+            "stock_code": stock_code,
+            "stock_name": favorite.get("stock_name") or stock_code,
+            "market": self._normalize_market(favorite),
             "added_at": added_at,
             "tags": favorite.get("tags", []),
             "notes": favorite.get("notes", ""),
@@ -58,17 +247,7 @@ class FavoritesService:
         """获取用户自选股列表，并批量拉取实时行情进行富集（兼容字符串ID与ObjectId）。"""
         db = await self._get_db()
 
-        favorites: List[Dict[str, Any]] = []
-        if self._is_valid_object_id(user_id):
-            # 先尝试使用 ObjectId 查询
-            user = await db.users.find_one({"_id": ObjectId(user_id)})
-            # 如果 ObjectId 查询失败，尝试使用字符串查询
-            if user is None:
-                user = await db.users.find_one({"_id": user_id})
-            favorites = (user or {}).get("favorite_stocks", [])
-        else:
-            doc = await db.user_favorites.find_one({"user_id": user_id})
-            favorites = (doc or {}).get("favorites", [])
+        favorites = await self._ensure_canonical_favorites(user_id)
 
         # 先格式化基础字段
         items = [self._format_favorite(fav) for fav in favorites]
@@ -163,102 +342,77 @@ class FavoritesService:
         alert_price_low: Optional[float] = None
     ) -> bool:
         """添加股票到自选股（兼容字符串ID与ObjectId）"""
-        import logging
-        logger = logging.getLogger("webapi")
-
         try:
-            logger.info(f"🔧 [add_favorite] 开始添加自选股: user_id={user_id}, stock_code={stock_code}")
+            self.logger.info("🔧 [add_favorite] 开始添加自选股: user_id=%s, stock_code=%s", user_id, stock_code)
 
             db = await self._get_db()
-            logger.info(f"🔧 [add_favorite] 数据库连接获取成功")
+            canonical_favorites = await self._ensure_canonical_favorites(user_id)
+            canonical_doc = await db.user_favorites.find_one({"user_id": user_id})
+            normalized_stock_code = self._extract_stock_code({"stock_code": stock_code})
 
-            favorite_stock = {
-                "stock_code": stock_code,
-                "stock_name": stock_name,
-                "market": market,
-                "added_at": datetime.utcnow(),
-                "tags": tags or [],
-                "notes": notes,
-                "alert_price_high": alert_price_high,
-                "alert_price_low": alert_price_low
-            }
+            favorite_stock = self._normalize_favorite(
+                {
+                    "stock_code": normalized_stock_code,
+                    "stock_name": stock_name,
+                    "market": market,
+                    "added_at": now_tz(),
+                    "tags": tags or [],
+                    "notes": notes,
+                    "alert_price_high": alert_price_high,
+                    "alert_price_low": alert_price_low,
+                }
+            )
 
-            logger.info(f"🔧 [add_favorite] 自选股数据构建完成: {favorite_stock}")
+            stored_favorites = [self._normalize_favorite(item) for item in canonical_favorites]
+            stored_favorites = [item for item in stored_favorites if item]
+            stored_favorites.append(favorite_stock)
 
-            is_oid = self._is_valid_object_id(user_id)
-            logger.info(f"🔧 [add_favorite] 用户ID类型检查: is_valid_object_id={is_oid}")
+            canonical_doc = self._build_canonical_document(
+                user_id=user_id,
+                favorites=stored_favorites,
+                existing_doc=canonical_doc,
+            )
 
-            if is_oid:
-                logger.info(f"🔧 [add_favorite] 使用 ObjectId 方式添加到 users 集合")
-
-                # 先尝试使用 ObjectId 查询
-                result = await db.users.update_one(
-                    {"_id": ObjectId(user_id)},
-                    {
-                        "$push": {"favorite_stocks": favorite_stock},
-                        "$setOnInsert": {"favorite_stocks": []}
-                    }
-                )
-                logger.info(f"🔧 [add_favorite] ObjectId查询结果: matched_count={result.matched_count}, modified_count={result.modified_count}")
-
-                # 如果 ObjectId 查询失败，尝试使用字符串查询
-                if result.matched_count == 0:
-                    logger.info(f"🔧 [add_favorite] ObjectId查询失败，尝试使用字符串ID查询")
-                    result = await db.users.update_one(
-                        {"_id": user_id},
-                        {
-                            "$push": {"favorite_stocks": favorite_stock}
-                        }
-                    )
-                    logger.info(f"🔧 [add_favorite] 字符串ID查询结果: matched_count={result.matched_count}, modified_count={result.modified_count}")
-
-                success = result.matched_count > 0
-                logger.info(f"🔧 [add_favorite] 返回结果: {success}")
-                return success
-            else:
-                logger.info(f"🔧 [add_favorite] 使用字符串ID方式添加到 user_favorites 集合")
-                result = await db.user_favorites.update_one(
-                    {"user_id": user_id},
-                    {
-                        "$setOnInsert": {"user_id": user_id, "created_at": datetime.utcnow()},
-                        "$push": {"favorites": favorite_stock},
-                        "$set": {"updated_at": datetime.utcnow()}
-                    },
-                    upsert=True
-                )
-                logger.info(f"🔧 [add_favorite] 更新结果: matched_count={result.matched_count}, modified_count={result.modified_count}, upserted_id={result.upserted_id}")
-                logger.info(f"🔧 [add_favorite] 返回结果: True")
-                return True
-        except Exception as e:
-            logger.error(f"❌ [add_favorite] 添加自选股异常: {type(e).__name__}: {str(e)}", exc_info=True)
+            await db.user_favorites.update_one(
+                {"user_id": user_id},
+                {"$set": canonical_doc, "$setOnInsert": {"user_id": user_id}},
+                upsert=True,
+            )
+            return True
+        except Exception as exc:
+            self.logger.error("❌ [add_favorite] 添加自选股异常: %s: %s", type(exc).__name__, exc, exc_info=True)
             raise
 
     async def remove_favorite(self, user_id: str, stock_code: str) -> bool:
         """从自选股中移除股票（兼容字符串ID与ObjectId）"""
         db = await self._get_db()
+        await self._ensure_canonical_favorites(user_id)
+        normalized_stock_code = self._extract_stock_code({"stock_code": stock_code})
 
-        if self._is_valid_object_id(user_id):
-            # 先尝试使用 ObjectId 查询
-            result = await db.users.update_one(
-                {"_id": ObjectId(user_id)},
-                {"$pull": {"favorite_stocks": {"stock_code": stock_code}}}
-            )
-            # 如果 ObjectId 查询失败，尝试使用字符串查询
-            if result.matched_count == 0:
-                result = await db.users.update_one(
-                    {"_id": user_id},
-                    {"$pull": {"favorite_stocks": {"stock_code": stock_code}}}
-                )
-            return result.modified_count > 0
-        else:
-            result = await db.user_favorites.update_one(
-                {"user_id": user_id},
-                {
-                    "$pull": {"favorites": {"stock_code": stock_code}},
-                    "$set": {"updated_at": datetime.utcnow()}
-                }
-            )
-            return result.modified_count > 0
+        canonical_doc = await db.user_favorites.find_one({"user_id": user_id})
+        canonical_favorites = [
+            self._normalize_favorite(item)
+            for item in (canonical_doc or {}).get("favorites", [])
+        ]
+        canonical_favorites = [item for item in canonical_favorites if item]
+
+        remaining_favorites = [
+            item for item in canonical_favorites if item["stock_code"] != normalized_stock_code
+        ]
+        if len(remaining_favorites) == len(canonical_favorites):
+            return False
+
+        updated_doc = self._build_canonical_document(
+            user_id=user_id,
+            favorites=remaining_favorites,
+            existing_doc=canonical_doc,
+        )
+        await db.user_favorites.update_one(
+            {"user_id": user_id},
+            {"$set": updated_doc},
+            upsert=True,
+        )
+        return True
 
     async def update_favorite(
         self,
@@ -271,118 +425,88 @@ class FavoritesService:
     ) -> bool:
         """更新自选股信息（兼容字符串ID与ObjectId）"""
         db = await self._get_db()
+        await self._ensure_canonical_favorites(user_id)
+        normalized_stock_code = self._extract_stock_code({"stock_code": stock_code})
 
-        # 统一构建更新字段（根据不同集合的字段路径设置前缀）
-        is_oid = self._is_valid_object_id(user_id)
-        prefix = "favorite_stocks.$." if is_oid else "favorites.$."
-        update_fields: Dict[str, Any] = {}
-        if tags is not None:
-            update_fields[prefix + "tags"] = tags
-        if notes is not None:
-            update_fields[prefix + "notes"] = notes
-        if alert_price_high is not None:
-            update_fields[prefix + "alert_price_high"] = alert_price_high
-        if alert_price_low is not None:
-            update_fields[prefix + "alert_price_low"] = alert_price_low
-
-        if not update_fields:
+        if all(value is None for value in [tags, notes, alert_price_high, alert_price_low]):
             return True
 
-        if is_oid:
-            result = await db.users.update_one(
-                {
-                    "_id": ObjectId(user_id),
-                    "favorite_stocks.stock_code": stock_code
-                },
-                {"$set": update_fields}
-            )
-            return result.modified_count > 0
-        else:
-            result = await db.user_favorites.update_one(
-                {
-                    "user_id": user_id,
-                    "favorites.stock_code": stock_code
-                },
-                {
-                    "$set": {
-                        **update_fields,
-                        "updated_at": datetime.utcnow()
-                    }
-                }
-            )
-            return result.modified_count > 0
+        canonical_doc = await db.user_favorites.find_one({"user_id": user_id})
+        canonical_favorites = [
+            self._normalize_favorite(item)
+            for item in (canonical_doc or {}).get("favorites", [])
+        ]
+        canonical_favorites = [item for item in canonical_favorites if item]
+
+        updated = False
+        updated_favorites: List[Dict[str, Any]] = []
+        for favorite in canonical_favorites:
+            if favorite["stock_code"] != normalized_stock_code:
+                updated_favorites.append(favorite)
+                continue
+
+            patched = dict(favorite)
+            if tags is not None:
+                patched["tags"] = self._merge_tags(tags)
+            if notes is not None:
+                patched["notes"] = notes
+            if alert_price_high is not None:
+                patched["alert_price_high"] = alert_price_high
+            if alert_price_low is not None:
+                patched["alert_price_low"] = alert_price_low
+            updated_favorites.append(patched)
+            updated = True
+
+        if not updated:
+            return False
+
+        updated_doc = self._build_canonical_document(
+            user_id=user_id,
+            favorites=updated_favorites,
+            existing_doc=canonical_doc,
+        )
+        await db.user_favorites.update_one(
+            {"user_id": user_id},
+            {"$set": updated_doc},
+            upsert=True,
+        )
+        return True
 
     async def is_favorite(self, user_id: str, stock_code: str) -> bool:
         """检查股票是否在自选股中（兼容字符串ID与ObjectId）"""
-        import logging
-        logger = logging.getLogger("webapi")
-
         try:
-            logger.info(f"🔧 [is_favorite] 检查自选股: user_id={user_id}, stock_code={stock_code}")
+            self.logger.info("🔧 [is_favorite] 检查自选股: user_id=%s, stock_code=%s", user_id, stock_code)
 
             db = await self._get_db()
+            await self._ensure_canonical_favorites(user_id)
+            normalized_stock_code = self._extract_stock_code({"stock_code": stock_code})
 
-            is_oid = self._is_valid_object_id(user_id)
-            logger.info(f"🔧 [is_favorite] 用户ID类型: is_valid_object_id={is_oid}")
-
-            if is_oid:
-                # 先尝试使用 ObjectId 查询
-                user = await db.users.find_one(
-                    {
-                        "_id": ObjectId(user_id),
-                        "favorite_stocks.stock_code": stock_code
-                    }
-                )
-
-                # 如果 ObjectId 查询失败，尝试使用字符串查询
-                if user is None:
-                    logger.info(f"🔧 [is_favorite] ObjectId查询未找到，尝试使用字符串ID查询")
-                    user = await db.users.find_one(
-                        {
-                            "_id": user_id,
-                            "favorite_stocks.stock_code": stock_code
-                        }
-                    )
-
-                result = user is not None
-                logger.info(f"🔧 [is_favorite] 查询结果: {result}")
-                return result
-            else:
-                doc = await db.user_favorites.find_one(
-                    {
-                        "user_id": user_id,
-                        "favorites.stock_code": stock_code
-                    }
-                )
-                result = doc is not None
-                logger.info(f"🔧 [is_favorite] 字符串ID查询结果: {result}")
-                return result
-        except Exception as e:
-            logger.error(f"❌ [is_favorite] 检查自选股异常: {type(e).__name__}: {str(e)}", exc_info=True)
+            doc = await db.user_favorites.find_one(
+                {
+                    "user_id": user_id,
+                    "favorites.stock_code": normalized_stock_code
+                }
+            )
+            result = doc is not None
+            self.logger.info("🔧 [is_favorite] 查询结果: %s", result)
+            return result
+        except Exception as exc:
+            self.logger.error("❌ [is_favorite] 检查自选股异常: %s: %s", type(exc).__name__, exc, exc_info=True)
             raise
 
     async def get_user_tags(self, user_id: str) -> List[str]:
         """获取用户使用的所有标签（兼容字符串ID与ObjectId）"""
         db = await self._get_db()
+        await self._ensure_canonical_favorites(user_id)
 
-        if self._is_valid_object_id(user_id):
-            pipeline = [
-                {"$match": {"_id": ObjectId(user_id)}},
-                {"$unwind": "$favorite_stocks"},
-                {"$unwind": "$favorite_stocks.tags"},
-                {"$group": {"_id": "$favorite_stocks.tags"}},
-                {"$sort": {"_id": 1}}
-            ]
-            result = await db.users.aggregate(pipeline).to_list(None)
-        else:
-            pipeline = [
-                {"$match": {"user_id": user_id}},
-                {"$unwind": "$favorites"},
-                {"$unwind": "$favorites.tags"},
-                {"$group": {"_id": "$favorites.tags"}},
-                {"$sort": {"_id": 1}}
-            ]
-            result = await db.user_favorites.aggregate(pipeline).to_list(None)
+        pipeline = [
+            {"$match": {"user_id": user_id}},
+            {"$unwind": "$favorites"},
+            {"$unwind": "$favorites.tags"},
+            {"$group": {"_id": "$favorites.tags"}},
+            {"$sort": {"_id": 1}}
+        ]
+        result = await db.user_favorites.aggregate(pipeline).to_list(None)
 
         return [item["_id"] for item in result if item.get("_id")]
 
