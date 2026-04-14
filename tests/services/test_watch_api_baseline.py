@@ -192,3 +192,18 @@ def test_watch_rule_upsert_maps_service_validation_errors_to_400(api_client, mon
 
     assert response.status_code == 400
     assert response.json()["detail"] == "cron_expr格式无效"
+
+
+def test_watch_rule_upsert_rejects_unknown_schedule_type_with_400(api_client):
+    response = api_client.put(
+        "/api/watch/rules/600519",
+        json={
+            "stock_name": "贵州茅台",
+            "market": "A股",
+            "schedule_type": "unexpected",
+            "status": "active",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "不支持的 schedule_type: unexpected" in response.text

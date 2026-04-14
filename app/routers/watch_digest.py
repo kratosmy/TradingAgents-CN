@@ -22,10 +22,14 @@ class UpsertWatchRuleRequest(BaseModel):
         normalized_schedule_type = (self.schedule_type or "daily_post_market").strip()
         normalized_cron_expr = self.cron_expr.strip() if self.cron_expr is not None else None
 
+        supported_schedule_types = {"custom", "daily_pre_market", "daily_post_market", "intra_day", "weekly_review"}
+
         if normalized_schedule_type == "custom" and not normalized_cron_expr:
             raise ValueError("custom 调度必须提供 cron_expr")
         if normalized_schedule_type != "custom" and normalized_cron_expr:
             raise ValueError("仅 custom 调度允许提供 cron_expr")
+        if normalized_schedule_type not in supported_schedule_types:
+            raise ValueError(f"不支持的 schedule_type: {normalized_schedule_type}")
         return self
 
 

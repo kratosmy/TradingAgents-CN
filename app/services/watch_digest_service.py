@@ -12,7 +12,6 @@ from app.models.analysis import AnalysisParameters, SingleAnalysisRequest
 from app.models.watch_digest import WatchDigest, WatchDigestCard, WatchRule, WatchRuleResponse
 from app.services.favorites_service import favorites_service
 from app.services.scheduler_service import get_scheduler_service
-from app.services.simple_analysis_service import get_simple_analysis_service
 from app.utils.timezone import now_tz
 
 
@@ -69,9 +68,10 @@ class WatchDigestService:
             created_at=now,
             updated_at=now,
         ).model_dump()
+        created_at = payload.pop("created_at")
         await db.watch_rules.update_one(
             {"user_id": user_id, "stock_code": stock_code},
-            {"$set": {**payload, "updated_at": now}, "$setOnInsert": {"created_at": now}},
+            {"$set": {**payload, "updated_at": now}, "$setOnInsert": {"created_at": created_at}},
             upsert=True,
         )
         saved = await db.watch_rules.find_one({"user_id": user_id, "stock_code": stock_code})
@@ -131,6 +131,8 @@ class WatchDigestService:
         stock_name: str,
         market: str = "A股",
     ) -> Dict[str, Any]:
+        from app.services.simple_analysis_service import get_simple_analysis_service
+
         service = get_simple_analysis_service()
         request = SingleAnalysisRequest(
             symbol=stock_code,
@@ -146,6 +148,8 @@ class WatchDigestService:
         stock_name: str,
         market: str = "A股",
     ) -> None:
+        from app.services.simple_analysis_service import get_simple_analysis_service
+
         service = get_simple_analysis_service()
         request = SingleAnalysisRequest(
             symbol=stock_code,

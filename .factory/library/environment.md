@@ -18,6 +18,7 @@ Environment variables, external dependencies, and setup notes.
 
 - Port `8000` is occupied and off-limits for this mission.
 - Port `8001` is reserved for the mission backend; restarts must remain scoped to the mission process only.
+- The backend PID file under `.logs/mission-backend-8001.pid` can become stale if a previous `uvicorn` on `8001` outlives the recorded PID; if a restart appears healthy but new code is not loaded, verify the real `8001` owner before trusting the service state.
 - Current checked-in `venv` is not reliable for mission work; workers should use `.venv-mission`.
 - True WeChat Mini Program runtime tooling is not available in this environment, so Mini validation is limited to source/build-level evidence unless that tooling is added later.
 - Backend startup may log permission-denied warnings when trying to write `config/settings.json` or `config/pricing.json`; current evidence shows the server can still start and serve requests despite those warnings.
