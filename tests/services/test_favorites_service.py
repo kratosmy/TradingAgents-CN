@@ -1,4 +1,4 @@
-import pytest
+import asyncio
 
 from app.services.favorites_service import FavoritesService
 
@@ -35,8 +35,7 @@ class _FakeDb:
         return getattr(self, name)
 
 
-@pytest.mark.asyncio
-async def test_get_user_favorites_skips_online_quote_fallback_when_market_quotes_empty(monkeypatch):
+def test_get_user_favorites_skips_online_quote_fallback_when_market_quotes_empty(monkeypatch):
     service = FavoritesService()
     service.db = _FakeDb(
         favorites=[{"stock_code": "600519", "stock_name": "贵州茅台", "market": "A股"}]
@@ -55,7 +54,7 @@ async def test_get_user_favorites_skips_online_quote_fallback_when_market_quotes
         lambda: _QuotesService(),
     )
 
-    items = await service.get_user_favorites("u1")
+    items = asyncio.run(service.get_user_favorites("u1"))
 
     assert len(items) == 1
     assert items[0]["stock_code"] == "600519"

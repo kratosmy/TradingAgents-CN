@@ -1,6 +1,8 @@
 """
 测试实时PE/PB计算功能
 """
+from datetime import datetime
+
 import pytest
 from tradingagents.dataflows.realtime_metrics import (
     calculate_realtime_pe_pb,
@@ -32,35 +34,61 @@ def test_validate_pe_pb():
 
 def test_calculate_realtime_pe_pb_with_mock_data(monkeypatch):
     """测试实时PE/PB计算（使用mock数据）"""
-    # Mock MongoDB数据
     class MockCollection:
-        def find_one(self, query):
-            code = query.get("code")
-            if code == "000001":
-                if "market_quotes" in str(self):
-                    # 返回实时行情
-                    return {
-                        "code": "000001",
-                        "close": 10.5,
-                        "updated_at": "2025-10-14T10:30:00"
-                    }
-                else:
-                    # 返回基础信息
-                    return {
-                        "code": "000001",
-                        "total_share": 100000,  # 10万万股 = 10亿股
-                        "net_profit": 50000,    # 5万万元 = 5亿元
-                        "total_hldr_eqy_exc_min_int": 200000  # 20万万元 = 20亿元
-                    }
-            return None
-    
+        def __init__(self, doc=None):
+            self.doc = doc
+
+        def find_one(self, query, *args, **kwargs):
+            return self.doc
+
+        def find(self, query, projection=None):
+            class _Cursor:
+                def __init__(self, docs):
+                    self.docs = docs
+
+                def __iter__(self):
+                    return iter(self.docs)
+
+            return _Cursor([{"source": "tushare"}] if self.doc else [])
+
     class MockDB:
+        def __init__(self):
+            self.market_quotes = MockCollection(
+                {
+                    "code": "000001",
+                    "close": 10.5,
+                    "pre_close": 10.0,
+                    "updated_at": "2025-10-14T10:30:00",
+                }
+            )
+            self.stock_basic_info = MockCollection(
+                {
+                    "code": "000001",
+                    "source": "tushare",
+                    "pe_ttm": 20.0,
+                    "pe": 19.5,
+                    "pb": 3.0,
+                    "total_share": 100000,  # 10亿股
+                    "updated_at": datetime(2025, 10, 14, 14, 0, 0),
+                }
+            )
+            self.stock_financial_data = MockCollection(
+                {
+                    "code": "000001",
+                    "total_equity": 2_000_000_000,  # 20亿元
+                }
+            )
+
         def __getitem__(self, name):
-            return MockCollection()
-    
+            return getattr(self, name)
+
     class MockClient:
+        def __init__(self):
+            self.db = MockDB()
+
         def __getitem__(self, name):
-            return MockDB()
+            assert name == "tradingagents"
+            return self.db
     
     # 执行测试
     result = calculate_realtime_pe_pb("000001", MockClient())
@@ -69,7 +97,7 @@ def test_calculate_realtime_pe_pb_with_mock_data(monkeypatch):
     assert result is not None
     assert result["price"] == 10.5
     assert result["is_realtime"] == True
-    assert result["source"] == "realtime_calculated"
+    assert result["source"] == "realtime_calculated_from_market_quotes"
     
     # 验证PE计算：市值 = 10.5 * 100000 = 1050000万元，PE = 1050000 / 50000 = 21
     assert result["pe"] == 21.0
@@ -133,23 +161,36 @@ def test_get_pe_pb_with_fallback_to_static(monkeypatch):
     
     # Mock静态数据获取
     class MockCollection:
-        def find_one(self, query):
-            return {
-                "code": "000001",
-                "pe": 20.0,
-                "pb": 3.0,
-                "pe_ttm": 21.0,
-                "pb_mrq": 3.1,
-                "updated_at": "2025-10-13T16:00:00"
-            }
-    
+        def __init__(self, doc):
+            self.doc = doc
+
+        def find_one(self, query, *args, **kwargs):
+            return self.doc
+
     class MockDB:
+        def __init__(self):
+            self.stock_basic_info = MockCollection(
+                {
+                    "code": "000001",
+                    "source": "tushare",
+                    "pe": 20.0,
+                    "pb": 3.0,
+                    "pe_ttm": 21.0,
+                    "pb_mrq": 3.1,
+                    "updated_at": "2025-10-13T16:00:00",
+                }
+            )
+
         def __getitem__(self, name):
-            return MockCollection()
+            return getattr(self, name)
     
     class MockClient:
+        def __init__(self):
+            self.db = MockDB()
+
         def __getitem__(self, name):
-            return MockDB()
+            assert name == "tradingagents"
+            return self.db
     
     import tradingagents.dataflows.realtime_metrics as metrics_module
     monkeypatch.setattr(metrics_module, "calculate_realtime_pe_pb", mock_calculate)

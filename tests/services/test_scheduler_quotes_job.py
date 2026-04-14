@@ -9,7 +9,7 @@ def test_scheduler_adds_quotes_job(monkeypatch):
     # Flags to assert behavior
     state = SimpleNamespace(
         ensure_indexes_called=False,
-        create_task_called=False,
+        run_once_called=False,
     )
 
     # Fake QuotesIngestionService used by app.main during startup
@@ -18,7 +18,10 @@ def test_scheduler_adds_quotes_job(monkeypatch):
             state.ensure_indexes_called = True
 
         async def run_once(self):
-            # simple async no-op
+            state.run_once_called = True
+            return None
+
+        async def backfill_last_close_snapshot_if_needed(self):
             return None
 
     # Capture added jobs from scheduler
@@ -37,20 +40,16 @@ def test_scheduler_adds_quotes_job(monkeypatch):
         def shutdown(self, wait=False):
             return None
 
+        def pause_job(self, job_id):
+            return None
+
+        def resume_job(self, job_id):
+            return None
+
     # Patch scheduler and service in app.main before startup runs
     import app.main as main_mod
 
     fake_scheduler = _FakeScheduler()
-
-    def _fake_asyncio_create_task(coro):
-        # We don't need a running loop; just record and close the coroutine to avoid warnings
-        state.create_task_called = True
-        assert inspect.iscoroutine(coro)
-        try:
-            coro.close()
-        except Exception:
-            pass
-        return None
 
     # Patch blocking init/close DB and basic sync service
     async def _noop_async(*args, **kwargs):
@@ -62,12 +61,12 @@ def test_scheduler_adds_quotes_job(monkeypatch):
 
     monkeypatch.setattr(main_mod, "init_db", _noop_async, raising=True)
     monkeypatch.setattr(main_mod, "close_db", _noop_async, raising=True)
+    monkeypatch.setattr(main_mod, "_print_config_summary", _noop_async, raising=True)
     monkeypatch.setattr(main_mod, "get_basics_sync_service", lambda: _FakeBasicsService(), raising=True)
 
     # Patch scheduler, quotes service and asyncio.create_task
     monkeypatch.setattr(main_mod, "AsyncIOScheduler", lambda *args, **kwargs: fake_scheduler, raising=True)
     monkeypatch.setattr(main_mod, "QuotesIngestionService", _FakeQuotesIngestion, raising=True)
-    monkeypatch.setattr(main_mod.asyncio, "create_task", _fake_asyncio_create_task, raising=True)
 
     # Directly drive the lifespan to avoid importing full router stack
     import asyncio as _asyncio
@@ -92,7 +91,8 @@ def test_scheduler_adds_quotes_job(monkeypatch):
 
     # Simulate scheduler tick by invoking the stored func
     job_func = job["func"]
-    job_func()  # should call asyncio.create_task(...) with our fake
+    assert inspect.iscoroutinefunction(job_func)
+    _asyncio.run(job_func())
 
-    assert state.create_task_called is True
+    assert state.run_once_called is True
 

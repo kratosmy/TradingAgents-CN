@@ -79,13 +79,9 @@ def test_quotes_ingestion_run_once_writes_bulk(monkeypatch):
     from app.services.quotes_ingestion_service import QuotesIngestionService
     import app.services.quotes_ingestion_service as qis_mod
 
-    # Fake DataSourceManager to avoid external calls
     class _FakeManager:
-        def get_realtime_quotes_with_fallback(self):
-            return {
-                "000001": {"close": 10.1, "pct_chg": 0.1, "amount": 1.0e8},
-                "600000": {"close": 9.8, "pct_chg": -0.3, "amount": 7.5e7},
-            }, "fake"
+        def find_latest_trade_date_with_fallback(self):
+            return "20250102"
 
     monkeypatch.setattr(qis_mod, "DataSourceManager", _FakeManager, raising=True)
 
@@ -96,7 +92,7 @@ def test_quotes_ingestion_run_once_writes_bulk(monkeypatch):
             self.modified_count = 0
             self.upserted_ids = {i: None for i in range(upserted)}
 
-    class _FakeColl:
+    class _MarketQuotesColl:
         def __init__(self):
             self.last_ops = None
 
@@ -107,12 +103,17 @@ def test_quotes_ingestion_run_once_writes_bulk(monkeypatch):
             self.last_ops = ops
             return _FakeResult(len(ops))
 
+    class _StatusColl:
+        async def update_one(self, *args, **kwargs):
+            return None
+
     class _FakeDB:
         def __init__(self):
-            self._coll = _FakeColl()
+            self.market_quotes = _MarketQuotesColl()
+            self.quotes_ingestion_status = _StatusColl()
 
         def __getitem__(self, name: str):
-            return self._coll
+            return getattr(self, name)
 
     fake_db = _FakeDB()
 
@@ -125,10 +126,24 @@ def test_quotes_ingestion_run_once_writes_bulk(monkeypatch):
         svc = QuotesIngestionService()
         # Force trading time to True
         monkeypatch.setattr(QuotesIngestionService, "_is_trading_time", lambda self, now=None: True, raising=True)
+        monkeypatch.setattr(QuotesIngestionService, "_check_tushare_permission", lambda self: False, raising=True)
+        monkeypatch.setattr(QuotesIngestionService, "_get_next_source", lambda self: ("akshare", "eastmoney"), raising=True)
+        monkeypatch.setattr(
+            QuotesIngestionService,
+            "_fetch_quotes_from_source",
+            lambda self, source_type, akshare_api=None: (
+                {
+                    "000001": {"close": 10.1, "pct_chg": 0.1, "amount": 1.0e8},
+                    "600000": {"close": 9.8, "pct_chg": -0.3, "amount": 7.5e7},
+                },
+                "fake",
+            ),
+            raising=True,
+        )
         await svc.run_once()
         # Verify that two upsert operations were generated
-        assert fake_db._coll.last_ops is not None
-        assert len(fake_db._coll.last_ops) == 2
+        assert fake_db.market_quotes.last_ops is not None
+        assert len(fake_db.market_quotes.last_ops) == 2
 
     import asyncio
     asyncio.run(_run())

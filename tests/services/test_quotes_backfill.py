@@ -5,14 +5,7 @@ def test_offhours_backfill_when_empty(monkeypatch):
     from app.services.quotes_ingestion_service import QuotesIngestionService
     import app.services.quotes_ingestion_service as qis_mod
 
-    # Fake DataSourceManager to avoid external calls
     class _FakeManager:
-        def get_realtime_quotes_with_fallback(self):
-            return {
-                "000001": {"close": 10.2, "pct_chg": 0.2, "amount": 1.1e8},
-                "600000": {"close": 9.7, "pct_chg": -0.4, "amount": 7.1e7},
-            }, "fake"
-
         def find_latest_trade_date_with_fallback(self):
             return "20250102"
 
@@ -25,7 +18,14 @@ def test_offhours_backfill_when_empty(monkeypatch):
             self.modified_count = 0
             self.upserted_ids = {i: None for i in range(upserted)}
 
-    class _FakeColl:
+    class _FakeCursor:
+        def __init__(self, docs):
+            self.docs = docs
+
+        async def to_list(self, length=None):
+            return list(self.docs)
+
+    class _MarketQuotesColl:
         def __init__(self):
             self.last_ops = None
 
@@ -39,12 +39,44 @@ def test_offhours_backfill_when_empty(monkeypatch):
             self.last_ops = ops
             return _FakeResult(len(ops))
 
+    class _DailyQuotesColl:
+        def __init__(self):
+            self.docs = [
+                {
+                    "code": "000001",
+                    "trade_date": "20250102",
+                    "period": "daily",
+                    "close": 10.2,
+                    "pct_chg": 0.2,
+                    "amount": 1.1e8,
+                    "volume": 3.0e7,
+                },
+                {
+                    "code": "600000",
+                    "trade_date": "20250102",
+                    "period": "daily",
+                    "close": 9.7,
+                    "pct_chg": -0.4,
+                    "amount": 7.1e7,
+                    "volume": 2.1e7,
+                },
+            ]
+
+        def find(self, query):
+            return _FakeCursor(self.docs)
+
+    class _StatusColl:
+        async def update_one(self, *args, **kwargs):
+            return None
+
     class _FakeDB:
         def __init__(self):
-            self._coll = _FakeColl()
+            self.market_quotes = _MarketQuotesColl()
+            self.stock_daily_quotes = _DailyQuotesColl()
+            self.quotes_ingestion_status = _StatusColl()
 
         def __getitem__(self, name: str):
-            return self._coll
+            return getattr(self, name)
 
     fake_db = _FakeDB()
 
@@ -58,8 +90,8 @@ def test_offhours_backfill_when_empty(monkeypatch):
         # Force off-hours
         monkeypatch.setattr(QuotesIngestionService, "_is_trading_time", lambda self, now=None: False, raising=True)
         await svc.run_once()
-        assert fake_db._coll.last_ops is not None
-        assert len(fake_db._coll.last_ops) == 2
+        assert fake_db.market_quotes.last_ops is not None
+        assert len(fake_db.market_quotes.last_ops) == 2
 
     asyncio.run(_run())
 
