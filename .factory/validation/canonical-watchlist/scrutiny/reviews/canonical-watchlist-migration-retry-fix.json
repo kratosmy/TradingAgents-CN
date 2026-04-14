@@ -1,0 +1,15 @@
+{
+  "featureId": "canonical-watchlist-migration-retry-fix",
+  "reviewedAt": "2026-04-14T13:59:00.742258+00:00",
+  "commitId": "a492527e",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix directly addresses the original migration-marker bug by separating a retry-safe 'checked' state from a finalized legacy merge, and the added regressions cover both delayed legacy visibility and the post-merge delete/no-resurface contract without introducing new feature-scope defects in the reviewed diff.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/canonical-watchlist/scrutiny/reviews/canonical-watchlist-domain-migration.json",
+  "summary": "Reviewed the prior failing feature review, mission/architecture guidance, worker handoff `01b9d331-f9c0-40c3-a750-e7749d54d6f0`, transcript skeleton, and both commits `c42f32a2` and `a492527e`. The fix keeps empty first-touch canonical docs from finalizing migration, still finalizes migration after a real merge, preserves the no-resurface behavior after canonical delete, and is backed by focused regression coverage plus passing focused/repo-wide pytest evidence in the handoff."
+}

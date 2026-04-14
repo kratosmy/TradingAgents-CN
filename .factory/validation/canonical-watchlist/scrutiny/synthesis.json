@@ -1,6 +1,6 @@
 {
   "milestone": "canonical-watchlist",
-  "round": 1,
+  "round": 2,
   "status": "fail",
   "validatorsRun": {
     "test": {
@@ -20,41 +20,57 @@
     }
   },
   "reviewsSummary": {
-    "total": 2,
+    "total": 3,
     "passed": 1,
-    "failed": 1,
+    "failed": 2,
     "failedFeatures": [
+      "backend-runtime-watch-api-baseline",
       "canonical-watchlist-domain-migration"
     ]
   },
   "blockingIssues": [
     {
+      "featureId": "backend-runtime-watch-api-baseline",
+      "severity": "blocking",
+      "description": "The new backend `start` command no longer follows the mission boundary to reuse the existing backend on port 8001. If any process is already healthy on 8001, the manifest exits early with `backend-already-healthy-on-8001` and does not record ownership, but the paired `stop` command will still kill whatever PID is stored in `.logs/mission-backend-8001.pid` from an earlier run. This changes the contract from non-invasive reuse to process ownership and makes later workers able to kill an unrelated shared mission backend."
+    },
+    {
+      "featureId": "backend-runtime-watch-api-baseline",
+      "severity": "blocking",
+      "description": "The backend `stop` command unconditionally kills the PID in `.logs/mission-backend-8001.pid` without verifying that the process is the worker-started Uvicorn instance for this repo or that port 8001 still belongs to that process. Because the feature and AGENTS guidance require reusing the existing backend instead of stopping/replacing it, this stop behavior can take down the shared mission runtime and violate the stated environment boundary."
+    },
+    {
       "featureId": "canonical-watchlist-domain-migration",
       "severity": "blocking",
-      "description": "`_ensure_canonical_favorites()` always writes `legacy_migrated_at`/`canonical_version` even when `legacy_favorites` is empty. If a user first hits favorites while their legacy `users.favorite_stocks` document is temporarily absent, stored under an unexpected id shape, or populated later by a backfill, the service marks migration complete with an empty canonical doc and will never merge the legacy records on later requests because `needs_migration` becomes false. This violates the requirement to preserve pre-existing user data during migration exactly once."
+      "description": "Once a canonical document is finalized, `_ensure_canonical_favorites` returns immediately whenever legacy rows are currently absent, so a user who completes migration while `users.favorite_stocks` is temporarily empty/noisy can never recover late-visible legacy favorites. That violates the requirement to preserve pre-existing user data during migration under transient visibility issues."
+    },
+    {
+      "featureId": "canonical-watchlist-domain-migration",
+      "severity": "blocking",
+      "description": "`_normalize_favorite` rewrites every record to a fixed canonical subset (`stock_code`, `stock_name`, `market`, timestamps, tags, notes, alert prices) and discards any other existing metadata fields from legacy or canonical entries. The feature contract explicitly requires metadata semantics to stay stable, so fields outside this allowlist are lost during migration and subsequent CRUD updates."
     }
   ],
   "appliedUpdates": [],
   "suggestedGuidanceUpdates": [
     {
       "target": "skills",
-      "suggestion": "The backend-worker skill says workers should implement backend changes and verify with curl/tests, but this feature was completed by repairing `.factory/services.yaml` rather than app code. That deviation was justified because the task was specifically to stabilize the runtime on port 8001 and the checked-in manifest could not start the backend or verify Redis in this environment.",
-      "evidence": "Handoff `2026-04-14T02-08-42-253Z__backend-runtime-watch-api-baseline__a557acbb-72a8-496d-b1c1-96839f5a85a8.json` records `skillFeedback.followedProcedure=false` and commit `81788656542e7bcbe8d8ae5eeed7ceae5fe414a8` changes only `.factory/services.yaml`.",
+      "suggestion": "The backend-worker skill says runtime features should verify contracts with curl on port 8001, but it does not explicitly reconcile that with the mission rule to reuse an already-running backend instead of adding process-management logic. The worker used that ambiguity to change `.factory/services.yaml` and take ownership of backend startup/stop.",
+      "evidence": ".factory/skills/backend-worker/SKILL.md instructs workers to verify local backend behavior, while mission AGENTS.md says 'Reuse the existing backend process already serving 8001; do not stop or replace it'. The handoff's skillFeedback also notes this deviation and asks for clearer guidance.",
       "isSystemic": false
     },
     {
-      "target": "skills",
-      "suggestion": "The backend-worker skill requires workers to confirm the feature's fulfilled contract assertions from the `fulfills` field, but this mission's `features.json` only maps this feature to validation IDs and does not include assertion text. The worker therefore verified behavior from the free-form description/expectedBehavior instead of from concrete assertion definitions.",
-      "evidence": "features.json lists `fulfills` as `VAL-WATCH-*` ids for `canonical-watchlist-domain-migration`, while `.factory/skills/backend-worker/SKILL.md` step 2 says to confirm the contract assertions listed in `fulfills`; the handoff contains behavior-level verification but no lookup of assertion definitions.",
+      "target": "AGENTS.md",
+      "suggestion": "The mission service manifest now encodes worker-managed backend lifecycle on port 8001, which conflicts with the documented environment/library guidance that 8001 is a shared reused backend. Shared state docs should make the service manifest match that boundary explicitly so future workers do not alternate between reusing and owning the same port.",
+      "evidence": ".factory/services.yaml backend.start/stop now launch and kill Uvicorn locally, while .factory/missions/f5a15d60-e8ab-48fc-95a4-044b49b5770b/AGENTS.md and .factory/library/environment.md both say to reuse the existing backend on 8001 and not stop or replace it.",
+      "isSystemic": false
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "The canonical watchlist contract now depends on a one-time migration marker protocol (`canonical_version`, `legacy_migrated_at`, `legacy_migration_checked_at`) to control retries and dedupe behavior, but neither AGENTS.md nor .factory/library/architecture.md documents those persisted fields or the expected retry semantics.",
+      "evidence": "app/services/favorites_service.py:164-287 introduces these markers as migration invariants; mission guidance only says to preserve legacy data exactly once.",
       "isSystemic": false
     }
   ],
-  "rejectedObservations": [
-    {
-      "observation": "Mission runtime depends on a Python-based Redis healthcheck because `redis-cli` is not available in this environment; the service manifest now encodes that requirement, which is the correct source of truth for later workers and validators.",
-      "reason": "already-documented"
-    }
-  ],
-  "previousRound": null,
-  "generatedAt": "2026-04-14T13:32:28.540915+00:00"
+  "rejectedObservations": [],
+  "previousRound": "/home/kratos/projects/TradingAgents-CN/.factory/validation/canonical-watchlist/scrutiny/synthesis.json"
 }
