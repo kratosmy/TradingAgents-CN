@@ -186,9 +186,7 @@ class TradingAgentsLogger:
     def _setup_logging(self):
         """设置日志系统"""
         # 创建日志目录
-        if self.config['handlers']['file']['enabled']:
-            log_dir = Path(self.config['handlers']['file']['directory'])
-            log_dir.mkdir(parents=True, exist_ok=True)
+        file_handlers_usable = self._prepare_file_logging()
         
         # 设置根日志级别
         root_logger = logging.getLogger()
@@ -200,7 +198,7 @@ class TradingAgentsLogger:
         # 添加处理器
         self._add_console_handler(root_logger)
 
-        if not self.config['docker']['enabled'] or not self.config['docker']['stdout_only']:
+        if file_handlers_usable and (not self.config['docker']['enabled'] or not self.config['docker']['stdout_only']):
             self._add_file_handler(root_logger)
             self._add_error_handler(root_logger)  # 🔧 添加错误日志处理器
             if self.config['handlers']['structured']['enabled']:
@@ -226,6 +224,46 @@ class TradingAgentsLogger:
         
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
+
+    def _prepare_file_logging(self) -> bool:
+        """确保文件日志目录可写；否则回退到仅控制台日志。"""
+        if not self.config['handlers']['file']['enabled']:
+            return False
+
+        candidate_dirs = [
+            Path(self.config['handlers']['file']['directory']),
+            Path("./.logs"),
+        ]
+
+        error_config = self.config['handlers'].get('error', {})
+        structured_config = self.config['handlers'].get('structured', {})
+
+        for log_dir in candidate_dirs:
+            try:
+                log_dir.mkdir(parents=True, exist_ok=True)
+                probe = log_dir / ".write_test"
+                with open(probe, "a", encoding="utf-8"):
+                    pass
+                probe.unlink(missing_ok=True)
+            except OSError as exc:
+                _bootstrap_logger.warning(f"日志目录不可写，跳过 {log_dir}: {exc}")
+                continue
+
+            resolved = str(log_dir)
+            self.config['handlers']['file']['directory'] = resolved
+            if error_config.get('enabled', True):
+                error_config['directory'] = resolved
+            if structured_config.get('enabled', False):
+                structured_config['directory'] = resolved
+            return True
+
+        _bootstrap_logger.warning("所有日志目录都不可写，已回退为仅控制台日志")
+        self.config['handlers']['file']['enabled'] = False
+        if error_config:
+            error_config['enabled'] = False
+        if structured_config:
+            structured_config['enabled'] = False
+        return False
     
     def _add_file_handler(self, logger: logging.Logger):
         """添加文件处理器"""

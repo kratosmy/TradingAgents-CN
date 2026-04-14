@@ -113,7 +113,7 @@ def setup_logging(log_level: str = "INFO"):
                 max_bytes = 10 * 1024 * 1024
             backup_count = int(file_handler_cfg.get("backup_count", 5))
 
-            Path(file_dir).mkdir(parents=True, exist_ok=True)
+            file_dir = _resolve_writable_log_dir(file_dir)
 
             # 从TOML配置读取各个日志文件路径
             main_handler_cfg = handlers_cfg.get("main", {})
@@ -126,7 +126,7 @@ def setup_logging(log_level: str = "INFO"):
             print(f"🔍 [setup_logging] worker_handler_cfg: {worker_handler_cfg}")
 
             # 主日志文件（tradingagents.log）
-            main_log = main_handler_cfg.get("filename", str(Path(file_dir) / "tradingagents.log"))
+            main_log = _resolve_log_file(main_handler_cfg.get("filename"), file_dir, "tradingagents.log")
             main_enabled = main_handler_cfg.get("enabled", True)
             main_level = main_handler_cfg.get("level", "INFO")
             main_max_bytes = _parse_size(main_handler_cfg.get("max_size", "100MB"))
@@ -140,7 +140,7 @@ def setup_logging(log_level: str = "INFO"):
             print(f"  - 备份数量: {main_backup_count}")
 
             # WebAPI日志文件
-            webapi_log = webapi_handler_cfg.get("filename", str(Path(file_dir) / "webapi.log"))
+            webapi_log = _resolve_log_file(webapi_handler_cfg.get("filename"), file_dir, "webapi.log")
             webapi_enabled = webapi_handler_cfg.get("enabled", True)
             webapi_level = webapi_handler_cfg.get("level", "DEBUG")
             webapi_max_bytes = _parse_size(webapi_handler_cfg.get("max_size", "100MB"))
@@ -149,7 +149,7 @@ def setup_logging(log_level: str = "INFO"):
             print(f"🔍 [setup_logging] WebAPI日志文件: {webapi_log}, 启用: {webapi_enabled}")
 
             # Worker日志文件
-            worker_log = worker_handler_cfg.get("filename", str(Path(file_dir) / "worker.log"))
+            worker_log = _resolve_log_file(worker_handler_cfg.get("filename"), file_dir, "worker.log")
             worker_enabled = worker_handler_cfg.get("enabled", True)
             worker_level = worker_handler_cfg.get("level", "DEBUG")
             worker_max_bytes = _parse_size(worker_handler_cfg.get("max_size", "100MB"))
@@ -159,7 +159,7 @@ def setup_logging(log_level: str = "INFO"):
 
             # 错误日志文件
             error_handler_cfg = handlers_cfg.get("error", {})
-            error_log = error_handler_cfg.get("filename", str(Path(file_dir) / "error.log"))
+            error_log = _resolve_log_file(error_handler_cfg.get("filename"), file_dir, "error.log")
             error_enabled = error_handler_cfg.get("enabled", True)
             error_level = error_handler_cfg.get("level", "WARNING")
             error_max_bytes = _parse_size(error_handler_cfg.get("max_size", "100MB"))
@@ -421,4 +421,31 @@ def setup_logging(log_level: str = "INFO"):
     }
 
     logging.config.dictConfig(logging_config)
-    logging.getLogger("webapi").info("Logging configured successfully (built-in)")
+
+
+def _resolve_writable_log_dir(preferred_dir: str) -> str:
+    """找到可写日志目录，避免根目录 logs 被 root 占用时启动失败。"""
+    for candidate in (Path(preferred_dir), Path("./.logs")):
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            probe = candidate / ".write_test"
+            with open(probe, "a", encoding="utf-8"):
+                pass
+            probe.unlink(missing_ok=True)
+            return str(candidate)
+        except OSError:
+            continue
+    return str(Path(preferred_dir))
+
+
+def _resolve_log_file(configured_path: str | None, base_dir: str, default_name: str) -> str:
+    """将默认或 logs/ 相对路径重写到可写日志目录。"""
+    if not configured_path:
+        return str(Path(base_dir) / default_name)
+
+    path = Path(configured_path)
+    if path.is_absolute():
+        return str(path)
+    if path.parent == Path("logs") or str(path).startswith("logs/"):
+        return str(Path(base_dir) / path.name)
+    return str(path)

@@ -395,7 +395,7 @@ class TushareProvider(BaseStockDataProvider):
                     'pre_close': row.get('pre_close'),
                     'change': row.get('change'),  # 涨跌额
                     'pct_chg': row.get('pct_chg'),  # 涨跌幅
-                    'volume': row.get('vol'),  # 成交量（手）
+                    'vol': row.get('vol'),  # 成交量（手）
                     'amount': row.get('amount'),  # 成交额（千元）
                 }
 

@@ -68,10 +68,11 @@ class TestTushareProvider:
     
     @pytest.mark.asyncio
     async def test_connect_success(self, provider, mock_tushare_api):
-        """测试连接成功"""
+        """测试连接成功时优先使用数据库中的 token"""
         with patch('tradingagents.dataflows.providers.tushare_provider.TUSHARE_AVAILABLE', True), \
              patch('tradingagents.dataflows.providers.tushare_provider.ts') as mock_ts, \
-             patch.object(provider, 'config', {'token': 'test_token'}):
+             patch.object(provider, 'config', {'token': 'env_token'}), \
+             patch.object(provider, '_get_token_from_database', return_value='db_token'):
             
             mock_ts.pro_api.return_value = mock_tushare_api
             
@@ -80,13 +81,14 @@ class TestTushareProvider:
             assert result is True
             assert provider.connected is True
             assert provider.api is not None
-            mock_ts.set_token.assert_called_once_with('test_token')
+            mock_ts.set_token.assert_called_once_with('db_token')
     
     @pytest.mark.asyncio
     async def test_connect_no_token(self, provider):
         """测试无token连接失败"""
         with patch('tradingagents.dataflows.providers.tushare_provider.TUSHARE_AVAILABLE', True), \
-             patch.object(provider, 'config', {'token': ''}):
+             patch.object(provider, 'config', {'token': ''}), \
+             patch.object(provider, '_get_token_from_database', return_value=None):
             
             result = await provider.connect()
             
@@ -132,17 +134,12 @@ class TestTushareProvider:
     
     @pytest.mark.asyncio
     async def test_get_stock_quotes(self, provider, mock_tushare_api):
-        """测试获取实时行情"""
+        """测试获取实时行情会使用 daily 数据并标准化返回值"""
         provider.connected = True
         provider.api = mock_tushare_api
         
         with patch('asyncio.to_thread', new_callable=AsyncMock) as mock_to_thread:
-            # 模拟realtime_quote失败，回退到daily
-            mock_to_thread.side_effect = [
-                Exception("权限不足"),  # realtime_quote失败
-                mock_tushare_api.daily.return_value,  # daily成功
-                mock_tushare_api.daily_basic.return_value  # daily_basic成功
-            ]
+            mock_to_thread.return_value = mock_tushare_api.daily.return_value
             
             result = await provider.get_stock_quotes('000001')
             
@@ -151,7 +148,7 @@ class TestTushareProvider:
             assert result['close'] == 12.60
             assert result['current_price'] == 12.60
             assert result['pct_chg'] == 1.61
-            assert result['pe'] == 5.2
+            assert result['volume'] == 100000000
             assert result['data_source'] == 'tushare'
     
     @pytest.mark.asyncio
@@ -247,7 +244,8 @@ class TestTushareProvider:
         assert result['code'] == '000001'
         assert result['close'] == 12.60
         assert result['current_price'] == 12.60
-        assert result['volume'] == 1000000
+        assert result['volume'] == 100000000
+        assert result['amount'] == 12600000000
         assert result['pct_chg'] == 1.61
         assert result['trade_date'] == '2024-12-01'
         assert result['data_source'] == 'tushare'

@@ -60,8 +60,9 @@ class TestTushareSyncService:
     async def test_initialize_success(self, sync_service):
         """测试初始化成功"""
         sync_service.provider.connect = AsyncMock(return_value=True)
-        
-        await sync_service.initialize()
+        with patch('app.worker.tushare_sync_service.get_historical_data_service', new=AsyncMock(return_value=Mock())), \
+             patch('app.worker.tushare_sync_service.get_news_data_service', new=AsyncMock(return_value=Mock())):
+            await sync_service.initialize()
         
         sync_service.provider.connect.assert_called_once()
     
@@ -137,22 +138,13 @@ class TestTushareSyncService:
     @pytest.mark.asyncio
     async def test_sync_realtime_quotes_success(self, sync_service):
         """测试同步实时行情成功"""
-        # 模拟数据库查询
-        mock_cursor = AsyncMock()
-        mock_cursor.__aiter__.return_value = [
-            {"code": "000001"},
-            {"code": "000002"}
-        ]
-        sync_service.db.stock_basic_info.find.return_value = mock_cursor
-        
-        # 模拟批量处理
-        sync_service._process_quotes_batch = AsyncMock(return_value={
-            "success_count": 2,
-            "error_count": 0,
-            "errors": []
+        sync_service.provider.get_realtime_quotes_batch = AsyncMock(return_value={
+            "000001": {"close": 12.6},
+            "000002": {"close": 22.3},
         })
-        
-        result = await sync_service.sync_realtime_quotes()
+        sync_service.stock_service.update_market_quotes = AsyncMock(return_value=True)
+
+        result = await sync_service.sync_realtime_quotes(force=True)
         
         assert result["total_processed"] == 2
         assert result["success_count"] == 2

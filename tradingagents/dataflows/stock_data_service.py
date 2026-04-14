@@ -9,6 +9,7 @@ import pandas as pd
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 import logging
+from tradingagents.config.runtime_settings import use_app_cache_enabled
 
 # 导入日志模块
 from tradingagents.utils.logging_manager import get_logger
@@ -69,33 +70,61 @@ class StockDataService:
             Dict: 股票基础信息
         """
         logger.info(f"📊 获取股票基础信息: {stock_code or '全部股票'}")
-        
-        # 1. 优先从MongoDB获取
-        if self.db_manager and self.db_manager.is_mongodb_available():
-            try:
-                result = self._get_from_mongodb(stock_code)
-                if result:
-                    logger.info(f"✅ 从MongoDB获取成功: {len(result) if isinstance(result, list) else 1}条记录")
-                    return result
-            except Exception as e:
-                logger.error(f"⚠️ MongoDB查询失败: {e}")
-        
-        # 2. 降级到增强获取器
-        logger.info(f"🔄 MongoDB不可用，降级到增强获取器")
-        if ENHANCED_FETCHER_AVAILABLE:
-            try:
-                result = self._get_from_enhanced_fetcher(stock_code)
-                if result:
-                    logger.info(f"✅ 从增强获取器获取成功: {len(result) if isinstance(result, list) else 1}条记录")
-                    # 尝试缓存到MongoDB（如果可用）
-                    self._cache_to_mongodb(result)
-                    return result
-            except Exception as e:
-                logger.error(f"⚠️ 增强获取器查询失败: {e}")
-        
-        # 3. 最后的降级方案
+
+        mongo_available = bool(self.db_manager and self.db_manager.is_mongodb_available())
+        use_app_cache = use_app_cache_enabled(default=False)
+
+        if use_app_cache:
+            result = self._try_mongodb(stock_code, mongo_available)
+            if result:
+                return result
+
+            result = self._try_direct_source(stock_code)
+            if result:
+                self._cache_to_mongodb(result)
+                return result
+        else:
+            result = self._try_direct_source(stock_code)
+            if result:
+                self._cache_to_mongodb(result)
+                return result
+
+            result = self._try_mongodb(stock_code, mongo_available)
+            if result:
+                return result
+
+        # 最后的降级方案
         logger.error(f"❌ 所有数据源都不可用")
         return self._get_fallback_data(stock_code)
+
+    def _try_mongodb(self, stock_code: str = None, mongo_available: bool = True) -> Optional[Dict[str, Any]]:
+        if not mongo_available:
+            return None
+
+        try:
+            result = self._get_from_mongodb(stock_code)
+            if result:
+                logger.info(f"✅ 从MongoDB获取成功: {len(result) if isinstance(result, list) else 1}条记录")
+                return result
+        except Exception as e:
+            logger.error(f"⚠️ MongoDB查询失败: {e}")
+
+        return None
+
+    def _try_direct_source(self, stock_code: str = None) -> Optional[Dict[str, Any]]:
+        logger.info("🔄 尝试直连数据源")
+        if not ENHANCED_FETCHER_AVAILABLE:
+            return None
+
+        try:
+            result = self._get_from_tdx_api(stock_code)
+            if result:
+                logger.info(f"✅ 从直连数据源获取成功: {len(result) if isinstance(result, list) else 1}条记录")
+                return result
+        except Exception as e:
+            logger.error(f"⚠️ 直连数据源查询失败: {e}")
+
+        return None
     
     def _get_from_mongodb(self, stock_code: str = None) -> Optional[Dict[str, Any]]:
         """从MongoDB获取数据"""
@@ -180,6 +209,10 @@ class StockDataService:
         except Exception as e:
             logger.error(f"增强获取器查询失败: {e}")
             return None
+
+    def _get_from_tdx_api(self, stock_code: str = None) -> Optional[Dict[str, Any]]:
+        """兼容旧接口命名：直连数据源读取基础信息。"""
+        return self._get_from_enhanced_fetcher(stock_code)
     
     def _cache_to_mongodb(self, data: Any) -> bool:
         """将数据缓存到MongoDB"""

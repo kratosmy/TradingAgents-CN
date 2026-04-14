@@ -11,17 +11,28 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-# The repository's top-level tests/ directory also contains many historical
-# one-off scripts that are intended to be run directly (`python tests/foo.py`)
-# rather than collected by the manifest pytest baseline. Keep collection scoped
-# to the curated automated suites under dedicated subdirectories.
-_CURATED_TEST_DIRS = {
+# The repository's top-level tests/ directory mixes dedicated pytest suites
+# under stable subdirectories with many historical one-off scripts that are
+# intended to be run directly (`python tests/foo.py`). Keep the manifest
+# baseline broad enough to include real automated suites while explicitly
+# reclassifying the manual/archive directories that are not safe for unattended
+# collection.
+_AUTOMATED_TEST_DIRS = {
     "config",
     "dataflows",
     "middleware",
     "services",
     "system",
+    "test_tushare_unified",
+    "tradingagents",
     "unit",
+}
+
+_EXCLUDED_TOP_LEVEL_DIRS = {
+    "0.1.14",      # archived historical regression snapshots
+    "data",        # test fixtures / captured data, not pytest suites
+    "integration", # manual credential/network integration scripts
+    "results",     # generated artifacts, not test code
 }
 
 
@@ -30,7 +41,13 @@ def pytest_ignore_collect(collection_path, path=None, config=None):
 
     if candidate.parent == TESTS_ROOT:
         if candidate.is_dir():
-            return candidate.name not in _CURATED_TEST_DIRS and not candidate.name.startswith("__")
+            if candidate.name.startswith("__"):
+                return False
+            if candidate.name in _AUTOMATED_TEST_DIRS:
+                return False
+            if candidate.name in _EXCLUDED_TOP_LEVEL_DIRS:
+                return True
+            return True
         if candidate.is_file():
             return any(
                 fnmatch(candidate.name, pattern)
