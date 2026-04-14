@@ -1,0 +1,26 @@
+{
+  "featureId": "backend-runtime-watch-api-baseline",
+  "reviewedAt": "2026-04-14T13:31:33.051385+00:00",
+  "commitId": "81788656542e7bcbe8d8ae5eeed7ceae5fe414a8",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The feature's final commit correctly turns the mission service manifest into an executable backend/runtime contract on port 8001: Redis health checks no longer depend on an unavailable CLI, the backend can be started and stopped via a managed PID flow, and the already-implemented protected favorites/watch routes remain reachable for later milestones.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The backend-worker skill says workers should implement backend changes and verify with curl/tests, but this feature was completed by repairing `.factory/services.yaml` rather than app code. That deviation was justified because the task was specifically to stabilize the runtime on port 8001 and the checked-in manifest could not start the backend or verify Redis in this environment.",
+      "evidence": "Handoff `2026-04-14T02-08-42-253Z__backend-runtime-watch-api-baseline__a557acbb-72a8-496d-b1c1-96839f5a85a8.json` records `skillFeedback.followedProcedure=false` and commit `81788656542e7bcbe8d8ae5eeed7ceae5fe414a8` changes only `.factory/services.yaml`."
+    },
+    {
+      "area": "services",
+      "observation": "Mission runtime depends on a Python-based Redis healthcheck because `redis-cli` is not available in this environment; the service manifest now encodes that requirement, which is the correct source of truth for later workers and validators.",
+      "evidence": "`.factory/services.yaml:19` now uses `.venv-mission/bin/python -c \"from redis import Redis ... client.ping()\"` instead of `redis-cli`, and the handoff verification explicitly cites missing `redis-cli` as the reason for the change."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed the feature metadata, final worker handoff, transcript skeleton, skill guidance, architecture docs, and commit `81788656542e7bcbe8d8ae5eeed7ceae5fe414a8`. The final implementation is narrowly scoped to the mission runtime contract and provides the required port-8001 backend lifecycle and protected watch/favorites reachability with no high-confidence correctness issues found."
+}

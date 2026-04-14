@@ -1,0 +1,60 @@
+{
+  "milestone": "canonical-watchlist",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": ".venv-mission/bin/python -m pytest tests/ -v",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "npm --prefix frontend run type-check",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "npm --prefix frontend run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 2,
+    "passed": 1,
+    "failed": 1,
+    "failedFeatures": [
+      "canonical-watchlist-domain-migration"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "canonical-watchlist-domain-migration",
+      "severity": "blocking",
+      "description": "`_ensure_canonical_favorites()` always writes `legacy_migrated_at`/`canonical_version` even when `legacy_favorites` is empty. If a user first hits favorites while their legacy `users.favorite_stocks` document is temporarily absent, stored under an unexpected id shape, or populated later by a backfill, the service marks migration complete with an empty canonical doc and will never merge the legacy records on later requests because `needs_migration` becomes false. This violates the requirement to preserve pre-existing user data during migration exactly once."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skills",
+      "suggestion": "The backend-worker skill says workers should implement backend changes and verify with curl/tests, but this feature was completed by repairing `.factory/services.yaml` rather than app code. That deviation was justified because the task was specifically to stabilize the runtime on port 8001 and the checked-in manifest could not start the backend or verify Redis in this environment.",
+      "evidence": "Handoff `2026-04-14T02-08-42-253Z__backend-runtime-watch-api-baseline__a557acbb-72a8-496d-b1c1-96839f5a85a8.json` records `skillFeedback.followedProcedure=false` and commit `81788656542e7bcbe8d8ae5eeed7ceae5fe414a8` changes only `.factory/services.yaml`.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills",
+      "suggestion": "The backend-worker skill requires workers to confirm the feature's fulfilled contract assertions from the `fulfills` field, but this mission's `features.json` only maps this feature to validation IDs and does not include assertion text. The worker therefore verified behavior from the free-form description/expectedBehavior instead of from concrete assertion definitions.",
+      "evidence": "features.json lists `fulfills` as `VAL-WATCH-*` ids for `canonical-watchlist-domain-migration`, while `.factory/skills/backend-worker/SKILL.md` step 2 says to confirm the contract assertions listed in `fulfills`; the handoff contains behavior-level verification but no lookup of assertion definitions.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Mission runtime depends on a Python-based Redis healthcheck because `redis-cli` is not available in this environment; the service manifest now encodes that requirement, which is the correct source of truth for later workers and validators.",
+      "reason": "already-documented"
+    }
+  ],
+  "previousRound": null,
+  "generatedAt": "2026-04-14T13:32:28.540915+00:00"
+}

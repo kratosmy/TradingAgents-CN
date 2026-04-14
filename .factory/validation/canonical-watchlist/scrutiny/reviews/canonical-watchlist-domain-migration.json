@@ -1,0 +1,28 @@
+{
+  "featureId": "canonical-watchlist-domain-migration",
+  "reviewedAt": "2026-04-14T13:31:47.142128+00:00",
+  "commitId": "c42f32a2",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature correctly centralizes favorites CRUD into the canonical `user_favorites` document and adds good regression coverage for migration and digest projection, but the one-time migration marker is updated even when no legacy records exist, which can permanently block later migration of pre-existing `favorite_stocks` data for users who touch the API before their legacy data is backfilled or becomes visible.",
+    "issues": [
+      {
+        "file": "app/services/favorites_service.py",
+        "line": 214,
+        "severity": "blocking",
+        "description": "`_ensure_canonical_favorites()` always writes `legacy_migrated_at`/`canonical_version` even when `legacy_favorites` is empty. If a user first hits favorites while their legacy `users.favorite_stocks` document is temporarily absent, stored under an unexpected id shape, or populated later by a backfill, the service marks migration complete with an empty canonical doc and will never merge the legacy records on later requests because `needs_migration` becomes false. This violates the requirement to preserve pre-existing user data during migration exactly once."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The backend-worker skill requires workers to confirm the feature's fulfilled contract assertions from the `fulfills` field, but this mission's `features.json` only maps this feature to validation IDs and does not include assertion text. The worker therefore verified behavior from the free-form description/expectedBehavior instead of from concrete assertion definitions.",
+      "evidence": "features.json lists `fulfills` as `VAL-WATCH-*` ids for `canonical-watchlist-domain-migration`, while `.factory/skills/backend-worker/SKILL.md` step 2 says to confirm the contract assertions listed in `fulfills`; the handoff contains behavior-level verification but no lookup of assertion definitions."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed handoff `c85b9866-176b-4dca-bae6-bfadcc3f9492`, commit `c42f32a2`, transcript skeleton, mission guidance, and backend-worker skill. The migration refactor is mostly solid and well-tested, but it prematurely seals migration state for users with no currently visible legacy records, creating a data-loss path for delayed or temporarily inaccessible legacy favorites. Wrote this scrutiny report with one blocking issue and one shared-state observation."
+}
