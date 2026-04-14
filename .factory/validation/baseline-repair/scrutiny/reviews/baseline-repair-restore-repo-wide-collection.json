@@ -1,0 +1,28 @@
+{
+  "featureId": "baseline-repair-restore-repo-wide-collection",
+  "reviewedAt": "2026-04-14T01:07:40.016256Z",
+  "commitId": "befbd96e636bef2275e5ed77e10b2333f22bdca2",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The change re-exposed the previously hidden `tests/test_tushare_unified/*` and `tests/tradingagents/*` suites, but it still keeps `pytest tests/ -v` green by ignoring every top-level `tests/test*.py` file. That means repository-wide collection semantics are still narrowed rather than fully trustworthy.",
+    "issues": [
+      {
+        "file": "tests/conftest.py",
+        "line": 51,
+        "severity": "blocking",
+        "description": "`pytest_ignore_collect()` now ignores any top-level file under `tests/` whose name matches `test*.py` or `*_test.py`. That still hides genuine automated backend pytest coverage such as `tests/test_tradingagents_runtime_settings.py` (see lines 23 and 44 in that file), so the manifest command remains green partly by excluding real suites instead of reflecting repository-wide backend collection semantics."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "The repo now depends on an undocumented distinction between automated pytest suites in selected subdirectories and ad-hoc/manual root-level test files. Shared state does not record that rule, while `tests/README.md` still advertises `python -m pytest tests/` for the `test_*.py` files under `tests/`.",
+      "evidence": "`tests/conftest.py:20-54` whitelists only specific subdirectories and ignores top-level `test*.py`; compare `tests/README.md:14,56-59` and `tests/FILE_ORGANIZATION_SUMMARY.md:98,112`, which still describe the root-level `test_*.py` files as part of the `tests/` collection story."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Fail: although the feature repaired two previously hidden sub-suites, it still narrows `pytest tests/ -v` by suppressing all top-level `tests/test*.py` files, including at least one real automated backend pytest module. The shared state should also document the intended automated-vs-manual test classification because current repo docs still imply broader collection semantics."
+}

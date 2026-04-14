@@ -1,0 +1,65 @@
+{
+  "milestone": "baseline-repair",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": ".venv-mission/bin/python -m pytest tests/ -v",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "npm --prefix frontend run type-check",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "npm --prefix frontend run lint",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 2,
+    "failedFeatures": [
+      "repair-backend-test-baseline",
+      "baseline-repair-restore-repo-wide-collection"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "repair-backend-test-baseline",
+      "severity": "blocking",
+      "description": "tests/pytest.ini narrows `testpaths` to a curated subset of directories, so `.venv-mission/bin/python -m pytest tests/ -v` stops collecting real backend suites such as `tests/test_tushare_unified/` and `tests/tradingagents/` instead of repairing repository-wide backend collection."
+    },
+    {
+      "featureId": "baseline-repair-restore-repo-wide-collection",
+      "severity": "blocking",
+      "description": "tests/conftest.py ignores all top-level `tests/test*.py` files, which still hides real automated backend coverage such as `tests/test_tradingagents_runtime_settings.py` and leaves repo-wide collection semantics untrustworthy."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "skill:mission-worker-base",
+      "suggestion": "Add an explicit exception for baseline-repair features so workers may investigate and fix a failing initial manifest validator instead of returning immediately on the first baseline failure.",
+      "evidence": "The `repair-backend-test-baseline` handoff records a deviation from worker-base step `1.3 Baseline Validation` because the feature's purpose was to repair the failing manifest test command itself.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "State that baseline-repair work must preserve or expand actual automated backend pytest coverage; workers must not make `pytest tests/ -v` pass by narrowing collection or ignore hooks unless suites are explicitly reclassified with documented rationale.",
+      "evidence": "Both reviewed baseline-repair features made the manifest test command green partly by excluding real backend suites (`tests/test_tushare_unified/*`, `tests/tradingagents/*`, then top-level `tests/test*.py`) rather than restoring trustworthy repo-wide collection semantics.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "Document the current automated-vs-manual root-level test classification in shared library state right now.",
+      "reason": "ambiguous: the current classification is part of the blocking problem under review, so codifying it in shared factual docs now would risk legitimizing broken baseline behavior."
+    }
+  ],
+  "previousRound": null
+}
