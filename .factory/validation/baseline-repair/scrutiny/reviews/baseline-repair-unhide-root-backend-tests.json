@@ -1,0 +1,21 @@
+{
+  "featureId": "baseline-repair-unhide-root-backend-tests",
+  "reviewedAt": "2026-04-14T01:40:15.405911Z",
+  "commitId": "fd9791d93d16a73d59bcd8637a93052c40bf16a5",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Pass. Relative to both prior failed reviews, the final state no longer narrows collection with `testpaths`, no longer blanket-ignores top-level `tests/test*.py` modules, restores standalone runtime-settings coverage, and explicitly collects the repaired hermetic root backend suites. Static inspection of the remaining hidden root-level `test*.py` files did not reveal any pytest-style modules without direct-run/manual markers, so the selective reclassification appears consistent with the feature goal.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "knowledge",
+      "observation": "Repo test docs still describe `python -m pytest tests/` and root-level `test_*.py` files as if they all participate in the unattended manifest run, but `tests/conftest.py` now intentionally reclassifies most root-level `test*.py` files as direct-run/manual checks. That collection boundary is clearer in code than in shared state docs.",
+      "evidence": "`tests/README.md:14,56,59` and `tests/FILE_ORGANIZATION_SUMMARY.md:9,98` still present the root `test_*.py` files as part of the general pytest story, while `tests/conftest.py:31-33,68-71` now documents and enforces selective root-level collection."
+    }
+  ],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/baseline-repair/scrutiny/reviews/repair-backend-test-baseline.json; /home/kratos/projects/TradingAgents-CN/.factory/validation/baseline-repair/scrutiny/reviews/baseline-repair-restore-repo-wide-collection.json",
+  "summary": "Pass: this rerun adequately addresses both prior blocking scrutiny failures. The repository state now removes the earlier `testpaths` narrowing, replaces the old blanket top-level ignore with explicit collection of repaired backend root suites, and re-enables runtime-settings coverage without leaving any obvious hidden automated root pytest modules behind."
+}

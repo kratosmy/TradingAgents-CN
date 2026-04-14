@@ -47,6 +47,7 @@ Testing surfaces, required tools, and validation concurrency guidance.
 - Start frontend on `3000`.
 - Reuse existing MongoDB (`27017`) and Redis (`6379`).
 - If `/api/watch/*` is unreachable, treat that as a contract failure for web watch validation rather than silently skipping `/watch` flows.
+- The manifest backend validator `.venv-mission/bin/python -m pytest tests/ -v` intentionally relies on `tests/conftest.py` to collect the automated subdirectories plus a vetted `_AUTOMATED_TOP_LEVEL_FILES` allowlist; most other historical root-level `tests/test*.py` files remain direct-run/manual checks until they are explicitly repaired and promoted.
 
 ## Accepted Limitations
 
