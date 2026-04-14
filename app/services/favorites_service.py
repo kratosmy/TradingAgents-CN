@@ -17,6 +17,18 @@ class FavoritesService:
 
     CANONICAL_VERSION = 1
     DEFAULT_MARKET = "A股"
+    RESERVED_FAVORITE_FIELDS = {
+        "stock_code",
+        "symbol",
+        "stock_name",
+        "market",
+        "exchange",
+        "added_at",
+        "tags",
+        "notes",
+        "alert_price_high",
+        "alert_price_low",
+    }
 
     logger = logging.getLogger("webapi")
     
@@ -95,12 +107,22 @@ class FavoritesService:
         normalized = str(market).strip() if market is not None else ""
         return normalized or self.DEFAULT_MARKET
 
+    def _extract_extra_metadata(self, favorite: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        if not favorite:
+            return {}
+
+        return {
+            key: value
+            for key, value in favorite.items()
+            if key not in self.RESERVED_FAVORITE_FIELDS
+        }
+
     def _normalize_favorite(self, favorite: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         stock_code = self._extract_stock_code(favorite)
         if not stock_code:
             return None
 
-        return {
+        normalized = {
             "stock_code": stock_code,
             "stock_name": favorite.get("stock_name") or stock_code,
             "market": self._normalize_market(favorite),
@@ -110,6 +132,8 @@ class FavoritesService:
             "alert_price_high": favorite.get("alert_price_high"),
             "alert_price_low": favorite.get("alert_price_low"),
         }
+        normalized.update(self._extract_extra_metadata(favorite))
+        return normalized
 
     def _merge_favorite_records(self, primary: Dict[str, Any], secondary: Dict[str, Any]) -> Dict[str, Any]:
         primary_added_at = self._parse_datetime(primary.get("added_at"))
@@ -120,7 +144,7 @@ class FavoritesService:
         else:
             added_at = primary.get("added_at") or secondary.get("added_at") or now_tz()
 
-        return {
+        merged = {
             "stock_code": primary.get("stock_code") or secondary.get("stock_code"),
             "stock_name": primary.get("stock_name") or secondary.get("stock_name"),
             "market": primary.get("market") or secondary.get("market") or self.DEFAULT_MARKET,
@@ -138,6 +162,9 @@ class FavoritesService:
                 else secondary.get("alert_price_low")
             ),
         }
+        merged.update(self._extract_extra_metadata(secondary))
+        merged.update(self._extract_extra_metadata(primary))
+        return merged
 
     def _canonical_contains_legacy_snapshot(
         self,
@@ -230,6 +257,12 @@ class FavoritesService:
                 payload["legacy_migrated_at"] = existing_doc["legacy_migrated_at"]
             else:
                 payload["legacy_migrated_at"] = now
+            if existing_doc.get("legacy_migration_completed_with_favorites"):
+                payload["legacy_migration_completed_with_favorites"] = existing_doc[
+                    "legacy_migration_completed_with_favorites"
+                ]
+            else:
+                payload["legacy_migration_completed_with_favorites"] = bool(favorites)
             if migration_checked_at is None:
                 payload["legacy_migration_checked_at"] = now
 
@@ -251,11 +284,19 @@ class FavoritesService:
 
         if migration_finalized and legacy_has_visible_entries:
             if not canonical_favorites:
-                return canonical_favorites
-            if self._canonical_contains_legacy_snapshot(canonical_favorites, legacy_favorites):
-                return canonical_favorites
+                if canonical_doc.get("legacy_migration_completed_with_favorites"):
+                    return canonical_favorites
+                migration_finalized = False
+            else:
+                if self._canonical_contains_legacy_snapshot(canonical_favorites, legacy_favorites):
+                    return canonical_favorites
 
-        if canonical_doc is not None and not legacy_has_visible_entries and not retry_window_open:
+        if (
+            canonical_doc is not None
+            and canonical_favorites
+            and not legacy_has_visible_entries
+            and not retry_window_open
+        ):
             return canonical_favorites
 
         merged: Dict[str, Dict[str, Any]] = {}

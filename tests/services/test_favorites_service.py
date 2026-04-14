@@ -433,6 +433,125 @@ def test_get_user_favorites_retries_legacy_merge_after_initial_empty_touch(monke
     ]
 
 
+def test_get_user_favorites_retries_late_visible_legacy_data_after_empty_canonical_finalization_pressure(monkeypatch):
+    user_id = "507f1f77bcf86cd799439101"
+    service = FavoritesService()
+    fake_db = _FakeDb(
+        user_favorites_docs=[
+            {
+                "user_id": user_id,
+                "canonical_version": FavoritesService.CANONICAL_VERSION,
+                "favorites": [],
+                "legacy_migration_checked_at": datetime(2026, 4, 12, 9, 0, 0),
+                "legacy_migrated_at": datetime(2026, 4, 12, 9, 0, 0),
+                "legacy_migration_completed_with_favorites": False,
+            }
+        ],
+        user_docs=[
+            {
+                "_id": ObjectId(user_id),
+                "favorite_stocks": [],
+            }
+        ],
+    )
+    service.db = fake_db
+
+    class _QuotesService:
+        async def get_quotes(self, codes):
+            return {}
+
+    monkeypatch.setattr(
+        "app.services.favorites_service.get_quotes_service",
+        lambda: _QuotesService(),
+    )
+
+    first_items = asyncio.run(service.get_user_favorites(user_id))
+    assert first_items == []
+
+    fake_db.users.docs[0]["favorite_stocks"] = [
+        {
+            "stock_code": "000001",
+            "stock_name": "平安银行",
+            "market": "A股",
+            "added_at": datetime(2026, 4, 13, 9, 30, 0),
+            "tags": ["late"],
+            "notes": "became visible later",
+            "alert_price_low": 12.5,
+        }
+    ]
+
+    retried_items = asyncio.run(service.get_user_favorites(user_id))
+
+    assert [item["stock_code"] for item in retried_items] == ["000001"]
+    assert retried_items[0]["notes"] == "became visible later"
+    assert retried_items[0]["tags"] == ["late"]
+    assert retried_items[0]["alert_price_low"] == 12.5
+
+    stored = service.db.user_favorites.get_doc(user_id)
+    assert stored["canonical_version"] == FavoritesService.CANONICAL_VERSION
+    assert [item["stock_code"] for item in stored["favorites"]] == ["000001"]
+
+
+def test_migration_and_updates_preserve_arbitrary_metadata_fields():
+    user_id = "507f1f77bcf86cd799439102"
+    service = FavoritesService()
+    service.db = _FakeDb(
+        user_docs=[
+            {
+                "_id": ObjectId(user_id),
+                "favorite_stocks": [
+                    {
+                        "symbol": "600519",
+                        "stock_name": "贵州茅台",
+                        "market": "A股",
+                        "tags": ["legacy"],
+                        "notes": "legacy note",
+                        "custom_strategy": "swing",
+                        "metadata_blob": {"owner": "legacy", "importance": 2},
+                    }
+                ],
+            }
+        ]
+    )
+
+    migrated = asyncio.run(service.get_user_favorites(user_id))
+    assert migrated[0]["stock_code"] == "600519"
+
+    stored_after_migration = service.db.user_favorites.get_doc(user_id)
+    migrated_item = stored_after_migration["favorites"][0]
+    assert migrated_item["custom_strategy"] == "swing"
+    assert migrated_item["metadata_blob"] == {"owner": "legacy", "importance": 2}
+
+    assert asyncio.run(
+        service.add_favorite(
+            user_id,
+            "000001",
+            "平安银行",
+            tags=["bank"],
+            notes="new favorite",
+        )
+    ) is True
+    stored_after_add = service.db.user_favorites.get_doc(user_id)
+    first_item = next(item for item in stored_after_add["favorites"] if item["stock_code"] == "600519")
+    assert first_item["custom_strategy"] == "swing"
+    assert first_item["metadata_blob"] == {"owner": "legacy", "importance": 2}
+
+    assert asyncio.run(
+        service.update_favorite(
+            user_id,
+            "600519",
+            notes="patched note",
+            alert_price_high=1999.0,
+        )
+    ) is True
+    stored_after_update = service.db.user_favorites.get_doc(user_id)
+    updated_item = next(item for item in stored_after_update["favorites"] if item["stock_code"] == "600519")
+    assert updated_item["notes"] == "patched note"
+    assert updated_item["alert_price_high"] == 1999.0
+    assert updated_item["custom_strategy"] == "swing"
+    assert updated_item["metadata_blob"] == {"owner": "legacy", "importance": 2}
+
+
 def test_favorites_routes_cover_duplicate_partial_update_tags_and_sync_contracts(api_client, monkeypatch):
     favorites_service.db = _FakeDb()
 
