@@ -9,7 +9,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.core.config import settings
 from app.core.database import get_mongo_db
 from app.models.analysis import AnalysisParameters, SingleAnalysisRequest
-from app.models.watch_digest import WatchDigest, WatchDigestCard, WatchRule
+from app.models.watch_digest import WatchDigest, WatchDigestCard, WatchRule, WatchRuleResponse
 from app.services.favorites_service import favorites_service
 from app.services.scheduler_service import get_scheduler_service
 from app.services.simple_analysis_service import get_simple_analysis_service
@@ -51,14 +51,20 @@ class WatchDigestService:
         status: str,
     ) -> Dict[str, Any]:
         db = await self._get_db()
+        stock_code = self._normalize_stock_code(stock_code)
+        status = self._normalize_status(status)
+        validated_schedule_type, validated_cron_expr = self._validate_schedule(
+            schedule_type=schedule_type,
+            cron_expr=cron_expr,
+        )
         now = now_tz()
         payload = WatchRule(
             user_id=user_id,
             stock_code=stock_code,
             stock_name=stock_name,
             market=market,
-            schedule_type=schedule_type,
-            cron_expr=cron_expr,
+            schedule_type=validated_schedule_type,
+            cron_expr=validated_cron_expr,
             status=status,
             created_at=now,
             updated_at=now,
@@ -74,6 +80,7 @@ class WatchDigestService:
 
     async def delete_rule(self, user_id: str, stock_code: str) -> bool:
         db = await self._get_db()
+        stock_code = self._normalize_stock_code(stock_code)
         result = await db.watch_rules.delete_one({"user_id": user_id, "stock_code": stock_code})
         await self._remove_scheduler_job(user_id, stock_code)
         return result.deleted_count > 0
@@ -260,16 +267,20 @@ class WatchDigestService:
         return {row["_id"]: row["doc"] for row in rows}
 
     def _serialize_rule(self, doc: Dict[str, Any]) -> Dict[str, Any]:
-        return {
-            "stock_code": doc.get("stock_code"),
-            "stock_name": doc.get("stock_name"),
-            "market": doc.get("market", "A股"),
-            "schedule_type": doc.get("schedule_type"),
-            "schedule_label": SCHEDULE_LABELS.get(doc.get("schedule_type", ""), "未配置"),
-            "cron_expr": doc.get("cron_expr"),
-            "status": doc.get("status", "active"),
-            "updated_at": self._serialize_datetime(doc.get("updated_at")),
-        }
+        return WatchRuleResponse(
+            stock_code=doc.get("stock_code"),
+            stock_name=doc.get("stock_name"),
+            market=doc.get("market", "A股"),
+            schedule_type=doc.get("schedule_type"),
+            schedule_summary=self._build_schedule_summary(
+                doc.get("schedule_type"),
+                doc.get("cron_expr"),
+            ),
+            cron_expr=doc.get("cron_expr"),
+            status=doc.get("status", "active"),
+            created_at=self._serialize_datetime(doc.get("created_at")),
+            updated_at=self._serialize_datetime(doc.get("updated_at")),
+        ).model_dump()
 
     def _serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
         if value is None:
@@ -343,6 +354,53 @@ class WatchDigestService:
         if schedule_type == "weekly_review":
             return CronTrigger(day_of_week="fri", hour=16, minute=0, timezone=settings.TIMEZONE)
         return CronTrigger(day_of_week="mon-fri", hour=15, minute=30, timezone=settings.TIMEZONE)
+
+    def _normalize_stock_code(self, stock_code: str) -> str:
+        normalized = str(stock_code).strip()
+        if not normalized:
+            raise ValueError("stock_code不能为空")
+        return normalized
+
+    def _normalize_status(self, status: Optional[str]) -> str:
+        normalized = str(status or "active").strip().lower()
+        if normalized not in {"active", "paused"}:
+            raise ValueError("status仅支持 active 或 paused")
+        return normalized
+
+    def _validate_schedule(
+        self,
+        schedule_type: Optional[str],
+        cron_expr: Optional[str],
+    ) -> tuple[str, Optional[str]]:
+        normalized_schedule_type = str(schedule_type or "daily_post_market").strip()
+        normalized_cron_expr = str(cron_expr).strip() if cron_expr is not None else None
+        if normalized_cron_expr == "":
+            normalized_cron_expr = None
+
+        if normalized_schedule_type == "custom":
+            if not normalized_cron_expr:
+                raise ValueError("custom 调度必须提供 cron_expr")
+            self._validate_cron_expr(normalized_cron_expr)
+            return normalized_schedule_type, normalized_cron_expr
+
+        if normalized_schedule_type not in SCHEDULE_LABELS:
+            raise ValueError(f"不支持的 schedule_type: {normalized_schedule_type}")
+
+        if normalized_cron_expr:
+            raise ValueError("仅 custom 调度允许提供 cron_expr")
+
+        return normalized_schedule_type, None
+
+    def _validate_cron_expr(self, cron_expr: str) -> None:
+        try:
+            CronTrigger.from_crontab(cron_expr, timezone=settings.TIMEZONE)
+        except ValueError as exc:
+            raise ValueError("cron_expr格式无效") from exc
+
+    def _build_schedule_summary(self, schedule_type: Optional[str], cron_expr: Optional[str]) -> str:
+        if schedule_type == "custom" and cron_expr:
+            return f"自定义({cron_expr})"
+        return SCHEDULE_LABELS.get(schedule_type or "", "未配置")
 
 
 async def execute_watch_rule_job(user_id: str, stock_code: str, stock_name: str, market: str = "A股") -> None:

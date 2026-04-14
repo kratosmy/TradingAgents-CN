@@ -51,3 +51,15 @@ class WatchDigestCard(BaseModel):
     updated_at: Optional[str] = None
     report_id: Optional[str] = None
     task_id: Optional[str] = None
+
+
+class WatchRuleResponse(BaseModel):
+    stock_code: str
+    stock_name: Optional[str] = None
+    market: str = "A股"
+    schedule_type: str = "daily_post_market"
+    schedule_summary: str = "每天盘后"
+    cron_expr: Optional[str] = None
+    status: str = "active"
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional
 
 from app.core.response import ok
@@ -16,6 +16,17 @@ class UpsertWatchRuleRequest(BaseModel):
     schedule_type: str = Field(default="daily_post_market")
     cron_expr: Optional[str] = None
     status: str = "active"
+
+    @model_validator(mode="after")
+    def validate_schedule_combination(self):
+        normalized_schedule_type = (self.schedule_type or "daily_post_market").strip()
+        normalized_cron_expr = self.cron_expr.strip() if self.cron_expr is not None else None
+
+        if normalized_schedule_type == "custom" and not normalized_cron_expr:
+            raise ValueError("custom 调度必须提供 cron_expr")
+        if normalized_schedule_type != "custom" and normalized_cron_expr:
+            raise ValueError("仅 custom 调度允许提供 cron_expr")
+        return self
 
 
 class RefreshDigestRequest(BaseModel):
