@@ -40,6 +40,23 @@ def test_watch_routes_require_authentication():
     assert refresh_resp.status_code == 401
 
 
+def test_watch_digest_reads_reject_malformed_and_invalid_bearer_sessions(monkeypatch):
+    app = FastAPI()
+    app.include_router(watch_digest.router)
+
+    client = TestClient(app)
+
+    malformed_resp = client.get("/api/watch/digests", headers={"Authorization": "Token invalid"})
+    assert malformed_resp.status_code == 401
+    assert malformed_resp.json()["detail"] == "Invalid authorization format"
+
+    monkeypatch.setattr("app.routers.auth_db.AuthService.verify_token", lambda token: None)
+
+    invalid_resp = client.get("/api/watch/digests", headers={"Authorization": "Bearer invalid-session"})
+    assert invalid_resp.status_code == 401
+    assert invalid_resp.json()["detail"] == "Invalid token"
+
+
 def test_watch_routes_are_mounted_and_reachable(api_client, monkeypatch):
     async def _get_user_favorites(user_id):
         assert user_id == "user-1"

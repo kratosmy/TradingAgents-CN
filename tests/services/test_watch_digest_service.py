@@ -375,6 +375,28 @@ async def test_list_digest_cards_projects_canonical_watchlist_with_compact_place
 
     ready_card = cards[0]
     placeholder_card = cards[1]
+    required_fields = {
+        "stock_code",
+        "stock_name",
+        "market",
+        "board",
+        "exchange",
+        "current_price",
+        "change_percent",
+        "digest_status",
+        "summary",
+        "risk_level",
+        "rule_status",
+        "task_status",
+        "task_id",
+        "updated_at",
+        "task_updated_at",
+    }
+
+    assert required_fields <= set(ready_card)
+    assert required_fields <= set(placeholder_card)
+    assert "symbol" not in ready_card
+    assert "symbol" not in placeholder_card
 
     assert ready_card == {
         "stock_code": "600519",
@@ -427,6 +449,88 @@ async def test_list_digest_cards_projects_canonical_watchlist_with_compact_place
         "schedule_label": "未配置",
     }
     assert "report_body" not in placeholder_card
+
+
+@pytest.mark.asyncio
+async def test_list_digest_cards_preserves_exact_watch_membership_without_orphan_or_cross_user_leakage(monkeypatch):
+    service = WatchDigestService()
+    service.db = _FakeDb(
+        watch_digests_docs=[
+            {
+                "user_id": "user-1",
+                "stock_code": "600519",
+                "stock_name": "贵州茅台",
+                "market": "A股",
+                "summary": "白酒龙头保持强势。",
+                "risk_level": "低",
+                "status": "ready",
+                "updated_at": datetime(2026, 4, 15, 9, 0, tzinfo=timezone.utc),
+            },
+            {
+                "user_id": "user-1",
+                "stock_code": "300750",
+                "stock_name": "宁德时代",
+                "market": "A股",
+                "summary": "孤儿摘要不应泄露到返回结果。",
+                "risk_level": "中等",
+                "status": "ready",
+                "updated_at": datetime(2026, 4, 15, 10, 0, tzinfo=timezone.utc),
+            },
+            {
+                "user_id": "user-2",
+                "stock_code": "000001",
+                "stock_name": "平安银行",
+                "market": "A股",
+                "summary": "其他用户摘要不应泄露。",
+                "risk_level": "高",
+                "status": "ready",
+                "updated_at": datetime(2026, 4, 15, 11, 0, tzinfo=timezone.utc),
+            },
+        ],
+        analysis_task_docs=[
+            {
+                "user_id": "user-1",
+                "task_id": "task-pending",
+                "stock_code": "000001",
+                "status": "pending",
+                "updated_at": datetime(2026, 4, 15, 12, 0, tzinfo=timezone.utc),
+            },
+            {
+                "user_id": "user-2",
+                "task_id": "task-other-user",
+                "stock_code": "000001",
+                "status": "running",
+                "updated_at": datetime(2026, 4, 15, 13, 0, tzinfo=timezone.utc),
+            },
+        ],
+    )
+
+    async def _get_user_favorites(user_id):
+        assert user_id == "user-1"
+        return [
+            {"stock_code": "600519", "stock_name": "贵州茅台", "market": "A股"},
+            {"stock_code": "000001", "stock_name": "平安银行", "market": "A股"},
+        ]
+
+    monkeypatch.setattr(watch_digest_module.favorites_service, "get_user_favorites", _get_user_favorites)
+
+    cards = await service.list_digest_cards("user-1")
+
+    assert [card["stock_code"] for card in cards] == ["000001", "600519"]
+
+    placeholder_card = cards[0]
+    ready_card = cards[1]
+
+    assert placeholder_card["summary"] == "暂无摘要，请先执行一次解读。"
+    assert placeholder_card["digest_status"] == "pending"
+    assert placeholder_card["task_id"] == "task-pending"
+    assert placeholder_card["task_status"] == "pending"
+
+    assert ready_card["summary"] == "白酒龙头保持强势。"
+    assert ready_card["digest_status"] == "ready"
+
+    assert {card["stock_code"] for card in cards} == {"600519", "000001"}
+    assert all(card["stock_code"] != "300750" for card in cards)
 
 
 @pytest.mark.asyncio
