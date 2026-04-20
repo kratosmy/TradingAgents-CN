@@ -4,6 +4,10 @@
 
 This document captures the high-level architecture for the watchlist mission: the system components, their responsibilities, the main data flows between them, the canonical watchlist domain model, and the cross-client boundaries that must stay stable for web, WeChat Mini Program, and a future iOS client. It intentionally does not include an implementation checklist.
 
+## Mission-scope callout
+
+For the current Mini MVP mission, the delivered auth path is the existing JWT/bearer login contract plus authenticated reads from `GET /api/watch/digests`. Real WeChat runtime validation and WeChat-specific bind delivery are out of scope for this mission, so workers must treat the Mini client as a thin local-contract consumer only.
+
 ## Components
 
 ### Canonical watchlist domain
@@ -67,7 +71,7 @@ External identities are bindings onto an internal account, not replacements for 
 
 ### Web client
 
-The web client has two primary watch surfaces:
+The web client has two primary watch surfaces over the same canonical membership domain:
 
 - canonical watchlist management (`favorites`)
 - digest-oriented monitoring dashboard (`watch`)
@@ -147,6 +151,7 @@ Backend contracts therefore serve as the system boundary between shared watchlis
 - Snapshot enrichment may be partial or stale, but absent enrichment must not drop otherwise valid watchlist membership.
 - Mobile and web clients consume presentation-neutral fields; backend payloads must not require browser-only context or Mini-only custom semantics.
 - The Mini Program and future iOS clients share the same backend ownership and contract model even if their UI composition differs.
+- For the current Mini MVP, authenticated digest reads must yield exactly one card per watched canonical `stock_code`, including placeholder waiting-state cards when digest content is not ready yet.
 
 ## Validation-relevant boundaries
 
@@ -177,3 +182,10 @@ Validation should treat the web client as a consumer of canonical watchlist and 
 ### Mini/mobile boundary
 
 Validation should treat the Mini client as a thin consumer of compact aggregated contracts. Build/source verification can confirm the boundary exists, but runtime claims must remain limited to the tooling actually available. The same contract shape should remain suitable for future iOS reuse.
+
+
+## Current Mini MVP boundary
+
+For this mission, the concrete delivery target is a new top-level `mini/` application rather than the existing Vue demo references. The Mini client is a thin local-contract MVP: it reuses the existing JWT login contract, reads compact digest cards from `GET /api/watch/digests`, and renders placeholder waiting-state cards when analysis is not ready yet.
+
+This mission does **not** deliver real WeChat runtime validation or WeChat-specific identity binding. The Mini boundary must therefore stay source/build-verifiable, explicit about local-only validation, and free of browser-only assumptions so the same contract can remain reusable for future mobile clients.

@@ -7,24 +7,31 @@ Environment variables, external dependencies, and setup notes.
 
 ---
 
-## Mission-local runtime assumptions
+## Mini MVP runtime assumptions
 
-- Backend workers use `.venv-mission` created by `.factory/init.sh`.
-- Backend runtime for this mission must use port `8001`, not `8000`; the mission may now restart that backend when needed to load code changes.
-- Existing MongoDB on `localhost:27017` and Redis on `localhost:6379` are reused.
-- Redis password is expected to match current project defaults (`tradingagents123`) unless a worker proves otherwise.
+- The approved mission builds a new top-level `mini/` client as a local-contract MVP.
+- Real WeChat Mini Program runtime, simulator, and device validation are not available in this environment.
+- Existing demo artifacts under `frontend/src/views/MiniDemo/index.vue` and `mini-demo-local.html` are reference surfaces only; they are not valid final delivery evidence for the mission.
+- The Mini client should reuse the existing JWT login contract and watch digest contract instead of introducing WeChat-specific auth semantics in this mission.
 
-## Known environment constraints
+## Local dependency state
 
-- Port `8000` is occupied and off-limits for this mission.
-- Port `8001` is reserved for the mission backend; restarts must remain scoped to the mission process only.
-- The backend PID file under `.logs/mission-backend-8001.pid` can become stale if a previous `uvicorn` on `8001` outlives the recorded PID; if a restart appears healthy but new code is not loaded, verify the real `8001` owner before trusting the service state.
-- Current checked-in `venv` is not reliable for mission work; workers should use `.venv-mission`.
-- True WeChat Mini Program runtime tooling is not available in this environment, so Mini validation is limited to source/build-level evidence unless that tooling is added later.
-- Backend startup may log permission-denied warnings when trying to write `config/settings.json` or `config/pricing.json`; current evidence shows the server can still start and serve requests despite those warnings.
+- Workers use `.venv-mission` created by `.factory/init.sh` for Python validation.
+- Frontend dependencies may need local installation before any web or Mini source/build validation can run.
+- Docker is unavailable in this environment.
+- MongoDB is currently not running on `127.0.0.1:27017`.
+- Redis is currently not running on `127.0.0.1:6379`.
+- Browser automation is blocked by the missing system library `libasound.so.2`.
 
-## External identity and integration expectations
+## Backend configuration notes
 
-- WeChat login plus account bind is in scope for this mission.
-- The bind model must attach external identities to one stable internal `user_id` instead of creating a second ownership model.
-- Future iOS reuse depends on stable backend contracts, not shared UI code.
+- The backend target for shared contract work is `http://localhost:8001` when it can be started.
+- Backend startup currently requires local config such as `MONGODB_HOST`, `MONGODB_PORT`, `MONGODB_DATABASE`, `REDIS_HOST`, `REDIS_PORT`, and `JWT_SECRET`.
+- Even with development defaults supplied, live backend startup still fails if MongoDB is unreachable.
+- Focused backend contract tests remain the honest fallback validation surface when live backend startup is blocked.
+
+## Scope constraints
+
+- WeChat account bind flows are out of scope for this mission.
+- The Mini client must remain thin and contract-first so the same backend payloads stay reusable for future iOS/mobile work.
+- Secrets must stay local-only and must never be committed.

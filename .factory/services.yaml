@@ -4,18 +4,20 @@ commands:
   lint: npm --prefix frontend run lint
   typecheck: npm --prefix frontend run type-check
   build: npm --prefix frontend run build
+  mini_install: test -f mini/package.json && npm --prefix mini install || echo mini-package-not-yet-created
+  mini_validate: test -f mini/package.json && (npm --prefix mini run validate || npm --prefix mini run build || npm --prefix mini run lint) || echo mini-package-not-yet-created
 
 services:
   mongodb:
-    start: echo using-existing-mongodb-on-27017
-    stop: echo leaving-existing-mongodb-on-27017-running
+    start: echo mongodb-must-be-provided-locally-on-27017
+    stop: echo leaving-local-mongodb-untouched
     healthcheck: python3 -c "import socket; s=socket.create_connection(('127.0.0.1',27017),2); s.close()"
     port: 27017
     depends_on: []
 
   redis:
-    start: echo using-existing-redis-on-6379
-    stop: echo leaving-existing-redis-on-6379-running
+    start: echo redis-must-be-provided-locally-on-6379
+    stop: echo leaving-local-redis-untouched
     healthcheck: .venv-mission/bin/python -c "from redis import Redis; client = Redis(host='127.0.0.1', port=6379, password='tradingagents123', decode_responses=True); assert client.ping() is True"
     port: 6379
     depends_on: []

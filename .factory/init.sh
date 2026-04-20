@@ -13,6 +13,10 @@ fi
 .venv-mission/bin/python -m pip install -r requirements.txt
 .venv-mission/bin/python -m pip install pytest pytest-asyncio
 
-if [ ! -d "frontend/node_modules" ]; then
+if [ -f "frontend/package.json" ] && [ ! -d "frontend/node_modules" ]; then
   npm --prefix frontend install
+fi
+
+if [ -f "mini/package.json" ] && [ ! -d "mini/node_modules" ]; then
+  npm --prefix mini install
 fi
