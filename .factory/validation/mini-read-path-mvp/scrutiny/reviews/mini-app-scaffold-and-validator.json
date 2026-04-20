@@ -1,0 +1,21 @@
+{
+  "featureId": "mini-app-scaffold-and-validator",
+  "reviewedAt": "2026-04-20T08:42:33.800194+00:00",
+  "commitId": "a713c24b409dfbac9fd406f8ca98215bb9fa336f",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The reviewed commit adds a real top-level `mini/` scaffold with Mini-specific entry/config files, a named `npm --prefix mini run validate` path, and generated `mini/`-sourced preview artifacts that clearly disclose local-only validation rather than real WeChat runtime coverage. I did not find a high-confidence correctness issue against the feature's scoped requirements (VAL-MINI-001 and VAL-MINI-002).",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The repository-level ignore rules can hide nested `mini/data/*` scaffold fixtures, but the mission guidance and `mobile-contract-worker` skill do not warn workers that these files may need forced staging.",
+      "evidence": "`.gitignore:78` ignores `data/`, and the feature handoff's `skillFeedback.suggestedChanges` explicitly notes that broad root `.gitignore` rules such as `data/` can ignore `mini/data/*` fixtures and may require `git add -f`."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Pass. The feature's commit satisfies the scaffold-specific delivery goals by introducing a real `mini/` application surface, a named local validator, and local-only disclosure in the generated preview/build evidence. No scoped blocking or non-blocking correctness defects were identified in the reviewed diff."
+}

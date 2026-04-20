@@ -1,0 +1,15 @@
+{
+  "featureId": "digest-api-contract-hardening-for-mini",
+  "reviewedAt": "2026-04-20T08:42:26.860305+00:00",
+  "commitId": "e1aa5d344ecd2c91890439600f16524b3cd0b7e1",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Pass. The change only adds regression coverage, and the new tests match the existing implementation. `tests/services/test_watch_api_baseline.py:43-57` verifies malformed and invalid bearer sessions against the fail-closed auth path in `app/routers/auth_db.py:69-91`. `tests/services/test_watch_digest_service.py:378-399` and `455-533` verify the Mini-safe digest-card baseline, placeholder waiting-state behavior, and exact user-scoped membership projection implemented in `app/services/watch_digest_service.py:93-146`, `298-308`, and `386-399`. I found no high-confidence correctness issues in the reviewed feature.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed the worker transcript skeleton, handoff, skill, and commit `e1aa5d344ecd2c91890439600f16524b3cd0b7e1`. The added regressions are aligned with the current auth and digest service behavior, and I did not find actionable correctness defects or shared-state gaps for this feature."
+}

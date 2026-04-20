@@ -1,0 +1,28 @@
+{
+  "featureId": "mini-auth-session-boundary",
+  "reviewedAt": "2026-04-20T08:43:20.661923+00:00",
+  "commitId": "61dd623890b71383fe44f01b9c491ed20c6733e4",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature wires the Mini login and protected digest read path, but it does not fail closed after a login failure when a prior bearer session already exists. A failed login leaves the old session persisted, so the page can rehydrate into an authenticated state on the next refresh and show protected digest cards again.",
+    "issues": [
+      {
+        "file": "mini/lib/auth-session-boundary.js",
+        "line": 324,
+        "severity": "blocking",
+        "description": "On non-200 login responses, `login()` returns a classified failure but never clears any previously persisted bearer session. `submitLogin()` in `mini/lib/home-controller.js:281` only clears in-memory cards, so a stale valid session survives a failed login attempt. I confirmed this with a local Node probe: starting with a stored session, calling `submitLogin()` against a 401 login response leaves `boundary.getSession()` populated afterward. That means a page reload can authenticate with the old token and reshow protected digest cards, violating the requirement that failed auth blocks or clears protected watch content instead of falling through to stale data."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The worker had to deviate from the documented startup procedure because the environment did not provide `jq`; the shared skill guidance appears to assume `jq` exists but does not document a fallback.",
+      "evidence": "Handoff `skillFeedback.deviations[0]` says the worker replaced the documented `jq` milestone filter with a Python JSON reader because `jq` was not installed; the transcript skeleton also shows an attempted `jq --arg m \"mini-read-path-mvp\" ... features.json` step during feature startup."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed the mission feature metadata, handoff, transcript skeleton, `mobile-contract-worker` skill, mission/library guidance, and commit `61dd623890b71383fe44f01b9c491ed20c6733e4`. Result: fail, because failed login attempts do not clear an existing persisted bearer session, allowing stale protected access to return on subsequent hydration."
+}

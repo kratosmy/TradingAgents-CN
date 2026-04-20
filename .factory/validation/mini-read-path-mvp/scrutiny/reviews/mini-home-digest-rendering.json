@@ -1,0 +1,22 @@
+{
+  "featureId": "mini-home-digest-rendering",
+  "reviewedAt": "2026-04-20T16:44:21+08:00",
+  "commitId": "e2d45af",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature mostly matches the Mini home rendering contract, but the duplicate-card selector can replace a completed digest with a newer placeholder/staler row, so the rendered card for a canonical stock_code is not reliably the correct compact card.",
+    "issues": [
+      {
+        "file": "mini/lib/home-controller.js",
+        "line": 67,
+        "severity": "blocking",
+        "description": "The dedupe path does not actually choose the correct canonical card when duplicate rows exist. `parseCompactTimestamp()` only reads `updated_at || task_updated_at`, and `shouldReplaceDigestCard()` compares only that single timestamp. That means a newer pending placeholder row will replace an older ready digest for the same `stock_code`, and a row with a fresher `task_updated_at` but older `updated_at` is treated as stale. In both cases the Mini home can hide completed digest content even though this feature is supposed to keep one correct compact card per canonical `stock_code` while only using placeholders for stocks that do not yet have completed digests."
+      }
+    ]
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed the feature entry, worker handoff/transcript skeleton, mobile-contract-worker skill, mission guidance, and commit `e2d45af`. I found one blocking correctness issue in the duplicate-card selection logic: duplicate digest rows are resolved by a timestamp heuristic that can surface a placeholder or otherwise stale row instead of the correct compact card for that stock."
+}

@@ -1,0 +1,65 @@
+{
+  "milestone": "mini-read-path-mvp",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "sh -c 'cd \"/home/kratos/projects/TradingAgents-CN\" && .venv-mission/bin/python -m pytest tests/services/test_watch_api_baseline.py tests/services/test_watch_digest_service.py tests/services/test_mini_auth_session_boundary.py -v && npm --prefix mini run test'",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "sh -c 'cd \"/home/kratos/projects/TradingAgents-CN\" && npm --prefix mini run validate'",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "sh -c 'cd \"/home/kratos/projects/TradingAgents-CN\" && npm --prefix mini run validate'",
+      "exitCode": 0
+    },
+    "build": {
+      "passed": true,
+      "command": "sh -c 'cd \"/home/kratos/projects/TradingAgents-CN\" && npm --prefix mini run build'",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 4,
+    "passed": 2,
+    "failed": 2,
+    "failedFeatures": [
+      "mini-auth-session-boundary",
+      "mini-home-digest-rendering"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "mini-auth-session-boundary",
+      "severity": "blocking",
+      "description": "Failed login attempts leave any previously persisted bearer session intact in `mini/lib/auth-session-boundary.js`, so a later hydrate/reload can reuse stale credentials and re-open protected digest cards after auth failure."
+    },
+    {
+      "featureId": "mini-home-digest-rendering",
+      "severity": "blocking",
+      "description": "Duplicate digest-card selection in `mini/lib/home-controller.js` compares only a single timestamp heuristic and can choose a newer placeholder or otherwise stale row over a ready digest for the same canonical `stock_code`."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "mobile-contract-worker",
+      "suggestion": "Document that broad root `.gitignore` rules can also ignore nested Mini scaffold fixtures such as `mini/data/*`, and instruct workers to verify git tracking and use forced staging when those fixture files are intentional deliverables.",
+      "evidence": "The `mini-app-scaffold-and-validator` review linked root `.gitignore` rule `data/` with worker feedback that `mini/data/*` fixtures may need `git add -f` to be committed.",
+      "isSystemic": true
+    },
+    {
+      "target": "skills",
+      "suggestion": "Avoid assuming `jq` is installed in worker environments; where milestone/feature filtering examples depend on JSON extraction, document a portable Python fallback alongside `jq`.",
+      "evidence": "The `mini-auth-session-boundary` review and worker handoff both noted that the documented startup flow had to be changed because `jq` was unavailable in this environment (`which jq` returned not found).",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [],
+  "previousRound": null
+}
