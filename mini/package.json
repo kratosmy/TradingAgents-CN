@@ -5,7 +5,7 @@
   "description": "Local-only WeChat Mini Program scaffold for contract/source-build validation.",
   "scripts": {
     "build": "node ./scripts/build-local-preview.mjs",
-    "test": "node --test ./tests/auth-session-boundary.test.mjs",
+    "test": "node --test ./tests/auth-session-boundary.test.mjs ./tests/home-digest-rendering.test.mjs",
     "validate": "node ./scripts/validate-mini.mjs"
   },
   "engines": {

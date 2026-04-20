@@ -27,6 +27,33 @@
     ],
     "authenticatedCardCount": 2
   },
+  "homeDigestRendering": {
+    "rawPayloadCardCount": 3,
+    "renderedCardCount": 2,
+    "dedupedCount": 1,
+    "placeholderCount": 1,
+    "renderedStockCodes": [
+      "600519",
+      "000001"
+    ],
+    "compactFieldKeys": [
+      "stock_code",
+      "stock_name",
+      "market",
+      "board",
+      "exchange",
+      "current_price",
+      "change_percent",
+      "digest_status",
+      "summary",
+      "risk_level",
+      "rule_status",
+      "task_status",
+      "task_id",
+      "updated_at",
+      "task_updated_at"
+    ]
+  },
   "entryFiles": [
     "app.js",
     "app.json",
@@ -39,6 +66,7 @@
     "pages/home/index.json",
     "lib/auth-session-boundary.js",
     "lib/home-controller.js",
-    "tests/auth-session-boundary.test.mjs"
+    "tests/auth-session-boundary.test.mjs",
+    "tests/home-digest-rendering.test.mjs"
   ]
 }

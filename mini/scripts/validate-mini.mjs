@@ -22,6 +22,7 @@ const requiredFiles = [
   'pages/home/index.wxss',
   'scripts/build-local-preview.mjs',
   'tests/auth-session-boundary.test.mjs',
+  'tests/home-digest-rendering.test.mjs',
 ]
 
 async function ensureFilesExist() {
@@ -58,10 +59,14 @@ async function ensureDisclosures() {
     throw new Error('pages/home/index.wxml must visibly disclose the auth-required state')
   }
 
-  const testResult = spawnSync('node', ['--test', 'tests/auth-session-boundary.test.mjs'], {
-    cwd: miniRoot,
-    stdio: 'inherit',
-  })
+  const testResult = spawnSync(
+    'node',
+    ['--test', 'tests/auth-session-boundary.test.mjs', 'tests/home-digest-rendering.test.mjs'],
+    {
+      cwd: miniRoot,
+      stdio: 'inherit',
+    },
+  )
 
   if (testResult.status !== 0) {
     throw new Error(`mini auth/session tests failed with exit code ${testResult.status ?? 'unknown'}`)
@@ -91,6 +96,24 @@ async function ensureDisclosures() {
     !previewText.includes('missing_fields')
   ) {
     throw new Error('dist/local-preview.html must surface auth-required and distinct login failure states')
+  }
+
+  if (
+    !previewText.includes('one-card-per-stock_code') ||
+    !previewText.includes('Placeholder/waiting-state cards remain visible') ||
+    !previewText.includes('compact digest-card fields')
+  ) {
+    throw new Error('dist/local-preview.html must show one-card-per-stock_code, placeholder-card, and compact-field evidence')
+  }
+
+  const summary = JSON.parse(await fs.readFile(path.join(miniRoot, 'dist/validation-summary.json'), 'utf8'))
+  if (
+    !summary.homeDigestRendering ||
+    summary.homeDigestRendering.rawPayloadCardCount < summary.homeDigestRendering.renderedCardCount ||
+    summary.homeDigestRendering.dedupedCount < 1 ||
+    summary.homeDigestRendering.placeholderCount < 1
+  ) {
+    throw new Error('dist/validation-summary.json must prove dedupe and placeholder-card rendering for the Mini home surface')
   }
 }
 

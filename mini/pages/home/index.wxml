@@ -15,12 +15,20 @@
 
     <view class="hero-metrics">
       <view class="metric-pill">
-        <text class="metric-label">受保护卡片</text>
+        <text class="metric-label">原始 payload</text>
+        <text class="metric-value">{{rawPayloadCount}}</text>
+      </view>
+      <view class="metric-pill">
+        <text class="metric-label">可见卡片</text>
         <text class="metric-value">{{monitoredCount}}</text>
       </view>
       <view class="metric-pill">
         <text class="metric-label">活跃规则</text>
         <text class="metric-value">{{activeRuleCount}}</text>
+      </view>
+      <view class="metric-pill">
+        <text class="metric-label">等待态卡片</text>
+        <text class="metric-value">{{placeholderCount}}</text>
       </view>
     </view>
   </view>
@@ -68,6 +76,13 @@
   </view>
 
   <view wx:if="{{authState === 'authenticated'}}" class="card-list">
+    <view class="contract-card">
+      <text class="contract-title">render contract evidence</text>
+      <text class="contract-copy">当前页面从 {{rawPayloadCount}} 条受保护 digest payload 中仅渲染 {{monitoredCount}} 张卡；重复 canonical `stock_code` 已去重 {{dedupedCount}} 次。</text>
+      <text class="contract-copy">已渲染 stock_code：{{renderedStockCodes}}</text>
+      <text class="contract-copy">仅消费共享紧凑字段：{{compactFieldKeysText}}</text>
+    </view>
+
     <view wx:for="{{cards}}" wx:key="stockCode" class="digest-card">
       <view class="card-header">
         <view>

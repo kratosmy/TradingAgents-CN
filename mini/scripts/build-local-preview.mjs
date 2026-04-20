@@ -148,6 +148,10 @@ function renderFailureStates(failureStates) {
     .join('\n')
 }
 
+function renderCompactFields(fields) {
+  return fields.map((field) => `<span class="checkpoint">${escapeHtml(field)}</span>`).join('')
+}
+
 const previewStates = await buildPreviewStates()
 
 const html = `<!DOCTYPE html>
@@ -219,6 +223,7 @@ const html = `<!DOCTYPE html>
       .metric { background: rgba(255,255,255,0.14); color: #fff; display: flex; flex-direction: column; }
       .metric strong { font-size: 24px; margin-top: 4px; }
       .checkpoints { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .compact-fields { display: flex; flex-wrap: wrap; gap: 8px; }
       .checkpoint { background: rgba(148, 163, 184, 0.16); color: #0f172a; text-align: center; }
       .stock-market, .summary-copy, .meta-row, .status-label, .panel p { color: #475569; }
       .current-price { font-size: 28px; font-weight: 700; }
@@ -251,11 +256,29 @@ const html = `<!DOCTYPE html>
         <p>${escapeHtml(previewMeta.hero.subtitle)}</p>
         <div class="metrics">
           <div class="metric"><span>authState</span><strong>${escapeHtml(previewStates.authenticatedState.authState)}</strong></div>
-          <div class="metric"><span>protected cards</span><strong>${previewStates.authenticatedState.cards.length}</strong></div>
+          <div class="metric"><span>raw payload cards</span><strong>${previewStates.authenticatedState.rawPayloadCount}</strong></div>
+          <div class="metric"><span>visible cards</span><strong>${previewStates.authenticatedState.cards.length}</strong></div>
+          <div class="metric"><span>placeholder cards</span><strong>${previewStates.authenticatedState.placeholderCount}</strong></div>
         </div>
       </section>
       <section class="checkpoints">
         ${previewMeta.checkpoints.map((item) => `<div class="checkpoint">${escapeHtml(item)}</div>`).join('')}
+      </section>
+      <section class="panel">
+        <div class="badge-row">
+          <span class="badge info">one-card-per-stock_code</span>
+          <span class="badge warn">deduped ${previewStates.authenticatedState.dedupedCount}</span>
+        </div>
+        <p>Authenticated preview payload contained ${previewStates.authenticatedState.rawPayloadCount} digest rows and rendered ${previewStates.authenticatedState.cards.length} visible cards for canonical stock_code values: ${escapeHtml(previewStates.authenticatedState.renderedStockCodes)}.</p>
+        <p>Placeholder/waiting-state cards remain visible after dedupe, so pending watched stocks are not dropped from the Mini home surface.</p>
+      </section>
+      <section class="panel">
+        <div class="badge-row">
+          <span class="badge info">compact shared fields</span>
+          <span class="badge warn">presentation-neutral</span>
+        </div>
+        <p>The Mini mapping consumes only compact digest-card fields and does not require report bodies, browser routes, or runtime-specific context.</p>
+        <div class="compact-fields">${renderCompactFields(previewMeta.compactFieldKeys)}</div>
       </section>
       <section class="panel auth-state">
         <div class="badge-row">
@@ -290,6 +313,14 @@ const summary = {
     })),
     authenticatedCardCount: previewStates.authenticatedState.cards.length,
   },
+  homeDigestRendering: {
+    rawPayloadCardCount: previewStates.authenticatedState.rawPayloadCount,
+    renderedCardCount: previewStates.authenticatedState.cards.length,
+    dedupedCount: previewStates.authenticatedState.dedupedCount,
+    placeholderCount: previewStates.authenticatedState.placeholderCount,
+    renderedStockCodes: previewStates.authenticatedState.cards.map((card) => card.stockCode),
+    compactFieldKeys: previewMeta.compactFieldKeys,
+  },
   entryFiles: [
     'app.js',
     'app.json',
@@ -303,6 +334,7 @@ const summary = {
     'lib/auth-session-boundary.js',
     'lib/home-controller.js',
     'tests/auth-session-boundary.test.mjs',
+    'tests/home-digest-rendering.test.mjs',
   ],
 }
 

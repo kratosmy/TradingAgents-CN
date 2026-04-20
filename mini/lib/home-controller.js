@@ -59,10 +59,78 @@ function formatUpdatedAt(value, fallback) {
   return fallback
 }
 
+function normalizeStockCode(stockCode) {
+  return typeof stockCode === 'string' ? stockCode.trim() : ''
+}
+
+function parseCompactTimestamp(card) {
+  const candidate = card && (card.updated_at || card.task_updated_at)
+  if (typeof candidate !== 'string' || !candidate.trim()) {
+    return Number.NEGATIVE_INFINITY
+  }
+
+  const timestamp = Date.parse(candidate)
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp
+}
+
+function shouldReplaceDigestCard(existingCard, nextCard) {
+  const existingTimestamp = parseCompactTimestamp(existingCard)
+  const nextTimestamp = parseCompactTimestamp(nextCard)
+
+  if (nextTimestamp !== existingTimestamp) {
+    return nextTimestamp > existingTimestamp
+  }
+
+  return false
+}
+
+function selectCompactDigestCards(cards) {
+  if (!Array.isArray(cards)) {
+    return []
+  }
+
+  const cardsByStockCode = new Map()
+  for (const card of cards) {
+    if (!card || typeof card !== 'object') {
+      continue
+    }
+
+    const stockCode = normalizeStockCode(card.stock_code)
+    if (!stockCode) {
+      continue
+    }
+
+    const normalizedCard = {
+      stock_code: stockCode,
+      stock_name: card.stock_name,
+      market: card.market,
+      board: card.board,
+      exchange: card.exchange,
+      current_price: card.current_price,
+      change_percent: card.change_percent,
+      digest_status: card.digest_status,
+      summary: card.summary,
+      risk_level: card.risk_level,
+      rule_status: card.rule_status,
+      task_status: card.task_status,
+      task_id: card.task_id,
+      updated_at: card.updated_at,
+      task_updated_at: card.task_updated_at,
+    }
+
+    const existingCard = cardsByStockCode.get(stockCode)
+    if (!existingCard || shouldReplaceDigestCard(existingCard, normalizedCard)) {
+      cardsByStockCode.set(stockCode, normalizedCard)
+    }
+  }
+
+  return Array.from(cardsByStockCode.values())
+}
+
 function mapDigestCard(card) {
   return {
-    stockCode: card.stock_code || '--',
-    stockName: card.stock_name || card.stock_code || '--',
+    stockCode: normalizeStockCode(card.stock_code) || '--',
+    stockName: card.stock_name || normalizeStockCode(card.stock_code) || '--',
     market: card.market || '--',
     board: card.board || '--',
     exchange: card.exchange || '--',
@@ -98,6 +166,14 @@ function buildBaseState(previewMeta = {}) {
     authIssueCode: '',
     loginErrorCode: '',
     loginErrorMessage: '',
+    compactFieldKeys: Array.isArray(previewMeta.compactFieldKeys) ? previewMeta.compactFieldKeys : [],
+    rawPayloadCount: 0,
+    dedupedCount: 0,
+    placeholderCount: 0,
+    compactFieldKeysText: Array.isArray(previewMeta.compactFieldKeys)
+      ? previewMeta.compactFieldKeys.join(', ')
+      : '',
+    renderedStockCodes: '',
     cards: [],
     monitoredCount: 0,
     activeRuleCount: 0,
@@ -137,6 +213,10 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
     state.authMessage = message
     state.loginErrorCode = loginErrorCode
     state.loginErrorMessage = loginErrorMessage
+    state.rawPayloadCount = 0
+    state.dedupedCount = 0
+    state.placeholderCount = 0
+    state.renderedStockCodes = ''
     state.cards = []
     state.monitoredCount = 0
     state.activeRuleCount = 0
@@ -144,7 +224,9 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
   }
 
   function applyAuthenticatedState(cards, session) {
-    const mappedCards = Array.isArray(cards) ? cards.map(mapDigestCard) : []
+    const compactCards = selectCompactDigestCards(cards)
+    const mappedCards = compactCards.map(mapDigestCard)
+    const rawPayloadCount = Array.isArray(cards) ? cards.length : 0
     state.authState = 'authenticated'
     state.authIssueCode = ''
     state.authTitle = '已使用 Bearer 会话读取受保护盯盘摘要'
@@ -152,6 +234,10 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
       '当前卡片来自受保护的 `/api/watch/digests` 读取结果；如果会话缺失或失效，页面会立即回到 auth-required 状态。'
     state.loginErrorCode = ''
     state.loginErrorMessage = ''
+    state.rawPayloadCount = rawPayloadCount
+    state.dedupedCount = Math.max(rawPayloadCount - mappedCards.length, 0)
+    state.placeholderCount = mappedCards.filter((card) => card.digestStatus !== 'ready').length
+    state.renderedStockCodes = mappedCards.map((card) => card.stockCode).join(', ')
     state.cards = mappedCards
     state.monitoredCount = mappedCards.length
     state.activeRuleCount = mappedCards.filter((card) => card.ruleStatus === 'active').length
@@ -239,4 +325,5 @@ module.exports = {
   buildBaseState,
   createMiniHomeController,
   mapDigestCard,
+  selectCompactDigestCards,
 }
