@@ -1,0 +1,15 @@
+{
+  "featureId": "mini-home-dedupe-prefers-ready-digest",
+  "reviewedAt": "2026-04-20T09:08:46.634913+00:00",
+  "commitId": "2f244c97a27838929f27958e6be94a642452f42f",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The rerun fix addresses the prior blocking dedupe defect: `mini/lib/home-controller.js` now prefers `digest_status: ready` rows before comparing digest/task freshness, so a newer pending placeholder no longer replaces completed digest content for the same canonical `stock_code`. The updated regression suite and Mini preview artifacts also preserve one-card-per-stock behavior and keep a waiting-state card visible when no ready digest exists.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-read-path-mvp/scrutiny/reviews/mini-home-digest-rendering.json",
+  "summary": "Reviewed the prior blocking report, both feature diffs (`e2d45af` and `2f244c97a27838929f27958e6be94a642452f42f`), the fix handoff/transcript skeleton, and the shared mission guidance. The fix now gives ready digests precedence over newer placeholder duplicates, retains legitimate waiting-state cards when no ready digest exists, and still renders one compact card per canonical `stock_code`, so this rerun passes with no review issues."
+}

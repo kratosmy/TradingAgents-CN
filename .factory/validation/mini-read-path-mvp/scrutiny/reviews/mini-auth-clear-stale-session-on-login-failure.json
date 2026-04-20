@@ -1,0 +1,15 @@
+{
+  "featureId": "mini-auth-clear-stale-session-on-login-failure",
+  "reviewedAt": "2026-04-20T17:07:17+08:00",
+  "commitId": "3f4a7e6dd4040f6accd96c85ec302619fc47be36",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The rerun fix addresses the prior stale-session reuse failure without regressing the Mini auth boundary. Compared with the original `mini-auth-session-boundary` commit, the fix now clears persisted bearer state on every non-200 login result in `mini/lib/auth-session-boundary.js:328`, and the added regression in `mini/tests/auth-session-boundary.test.mjs:142` proves 400/401/422 login failures leave the controller in `auth-required`, remove stored session data, and prevent later hydrate from reusing stale credentials or hitting the protected digest read path.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-read-path-mvp/scrutiny/reviews/mini-auth-session-boundary.json",
+  "summary": "Reviewed the prior failing review, both feature diffs (`61dd623890b71383fe44f01b9c491ed20c6733e4` and `3f4a7e6dd4040f6accd96c85ec302619fc47be36`), the fix handoff/transcript skeleton, mission guidance, and the current Mini auth/session code. Result: pass — the stale persisted bearer session is now cleared on failed login, failure classifications remain distinct, and the new regression demonstrates that post-failure hydrate stays auth-required with no reusable stale credentials."
+}

@@ -1,7 +1,7 @@
 {
   "milestone": "mini-read-path-mvp",
-  "round": 2,
-  "status": "pass",
+  "round": 1,
+  "status": "fail",
   "validatorsRun": {
     "test": {
       "passed": true,
@@ -26,11 +26,25 @@
   },
   "reviewsSummary": {
     "total": 4,
-    "passed": 4,
-    "failed": 0,
-    "failedFeatures": []
+    "passed": 2,
+    "failed": 2,
+    "failedFeatures": [
+      "mini-auth-session-boundary",
+      "mini-home-digest-rendering"
+    ]
   },
-  "blockingIssues": [],
+  "blockingIssues": [
+    {
+      "featureId": "mini-auth-session-boundary",
+      "severity": "blocking",
+      "description": "Failed login attempts leave any previously persisted bearer session intact in `mini/lib/auth-session-boundary.js`, so a later hydrate/reload can reuse stale credentials and re-open protected digest cards after auth failure."
+    },
+    {
+      "featureId": "mini-home-digest-rendering",
+      "severity": "blocking",
+      "description": "Duplicate digest-card selection in `mini/lib/home-controller.js` compares only a single timestamp heuristic and can choose a newer placeholder or otherwise stale row over a ready digest for the same canonical `stock_code`."
+    }
+  ],
   "appliedUpdates": [],
   "suggestedGuidanceUpdates": [
     {
@@ -47,5 +61,5 @@
     }
   ],
   "rejectedObservations": [],
-  "previousRound": ".factory/validation/mini-read-path-mvp/scrutiny/synthesis.round1.json"
+  "previousRound": null
 }
