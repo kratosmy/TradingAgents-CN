@@ -1,0 +1,489 @@
+{
+  "groupId": "mini-surface",
+  "milestone": "mini-read-path-mvp",
+  "testedAt": "2026-04-20T09:19:09.829139+00:00",
+  "isolation": {
+    "missionDir": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4",
+    "flowValidatorGuidanceSection": "Flow Validator Guidance: Mini source/build surface",
+    "boundary": "Validated only from the delivered top-level mini/ surface using its local validator, source inspection, and generated preview artifacts.",
+    "claimsExcluded": [
+      "No browser automation claimed.",
+      "No WeChat simulator/device/runtime success claimed.",
+      "No reliance on frontend/src/views/MiniDemo/index.vue or mini-demo-local.html as final evidence."
+    ]
+  },
+  "toolsUsed": [
+    "Read",
+    "Execute"
+  ],
+  "assertionsTested": [
+    "VAL-MINI-001",
+    "VAL-MINI-002",
+    "VAL-MINI-003",
+    "VAL-MINI-004",
+    "VAL-CROSS-003"
+  ],
+  "passedAssertions": [
+    "VAL-MINI-001",
+    "VAL-MINI-002",
+    "VAL-MINI-003",
+    "VAL-MINI-004",
+    "VAL-CROSS-003"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "commandsRun": [
+    {
+      "command": "node --version",
+      "exitCode": 0,
+      "observation": "Node present for mini tooling: v24.14.1",
+      "logPath": "mini-read-path-mvp/mini-surface/node-version.txt"
+    },
+    {
+      "command": "npm --version",
+      "exitCode": 0,
+      "observation": "npm present for mini tooling: 11.11.0",
+      "logPath": "mini-read-path-mvp/mini-surface/npm-version.txt"
+    },
+    {
+      "command": "npm --prefix mini run validate",
+      "exitCode": 0,
+      "observation": "Validator exited 0, ran 13 passing tests, rebuilt dist/local-preview.html and dist/validation-summary.json, and confirmed real mini entry/config/build files plus local-only disclosure.",
+      "logPath": "mini-read-path-mvp/mini-surface/npm-validate.txt"
+    },
+    {
+      "command": "npm --prefix mini run build",
+      "exitCode": 0,
+      "observation": "Build exited 0 and refreshed the local-only preview artifacts without claiming WeChat runtime coverage.",
+      "logPath": "mini-read-path-mvp/mini-surface/npm-build.txt"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "VAL-MINI-001",
+      "title": "The new top-level mini/ app has a real Mini-specific local validator",
+      "status": "pass",
+      "proofSummary": "Top-level mini/ contains real Mini entry/config files and a named validate script. The validator passed and explicitly verified Mini-specific scaffold files plus generated artifacts from mini/.",
+      "commandEvidence": [
+        {
+          "command": "npm --prefix mini run validate",
+          "exitCode": 0,
+          "logPath": "mini-read-path-mvp/mini-surface/npm-validate.txt",
+          "observed": "mini_validate passed: verified real mini entry/config files and local-only preview/build evidence from mini/; tests 13, pass 13; artifacts: dist/local-preview.html, dist/validation-summary.json"
+        }
+      ],
+      "sourceReferences": [
+        {
+          "file": "mini/package.json",
+          "line": 9,
+          "text": "\"validate\": \"node ./scripts/validate-mini.mjs\""
+        },
+        {
+          "file": "mini/package.json",
+          "line": 7,
+          "text": "\"build\": \"node ./scripts/build-local-preview.mjs\","
+        },
+        {
+          "file": "mini/app.json",
+          "line": 2,
+          "text": "\"pages\": [\"pages/home/index\"],"
+        },
+        {
+          "file": "mini/project.config.json",
+          "line": 3,
+          "text": "\"compileType\": \"miniprogram\","
+        },
+        {
+          "file": "mini/scripts/validate-mini.mjs",
+          "line": 44,
+          "text": "throw new Error('app.json must declare pages/home/index as a real Mini entry page')"
+        },
+        {
+          "file": "mini/scripts/validate-mini.mjs",
+          "line": 48,
+          "text": "throw new Error('project.config.json must declare compileType=miniprogram')"
+        }
+      ],
+      "artifactReferences": [
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-local-preview.html",
+          "reason": "Copied generated local preview artifact from mini/dist for evidence retention."
+        },
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-validation-summary.json",
+          "reason": "Copied generated validation summary artifact from mini/dist for evidence retention."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-MINI-002",
+      "title": "The local Mini surface stays explicit about non-runtime validation",
+      "status": "pass",
+      "proofSummary": "Source and generated preview both label the surface as local-only source/build validation and explicitly deny simulator/device/runtime proof.",
+      "commandEvidence": [
+        {
+          "command": "npm --prefix mini run validate",
+          "exitCode": 0,
+          "logPath": "mini-read-path-mvp/mini-surface/npm-validate.txt",
+          "observed": "Validator required local-only disclosure in pages/home/index.wxml and dist/local-preview.html, including text that the preview is not evidence of real WeChat simulator, device, or runtime success."
+        },
+        {
+          "command": "npm --prefix mini run build",
+          "exitCode": 0,
+          "logPath": "mini-read-path-mvp/mini-surface/npm-build.txt",
+          "observed": "Build log states: validation posture: local-only source/build evidence from mini/; no real WeChat runtime coverage claimed."
+        }
+      ],
+      "sourceReferences": [
+        {
+          "file": "mini/pages/home/index.wxml",
+          "line": 5,
+          "text": "<text class=\"badge badge--warn\">local-only validation</text>"
+        },
+        {
+          "file": "mini/app.js",
+          "line": 4,
+          "text": "validationMode: 'local-source-build-only',"
+        },
+        {
+          "file": "mini/data/digest-cards.js",
+          "line": 2,
+          "text": "localOnlyDisclosure:"
+        },
+        {
+          "file": "mini/scripts/validate-mini.mjs",
+          "line": 89,
+          "text": "throw new Error('dist/local-preview.html must disclose that validation is local-only and not real WeChat runtime coverage')"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 91,
+          "text": "<span class=\"badge warn\">local-only validation</span>"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 95,
+          "text": "<p>Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success.</p>"
+        },
+        {
+          "file": "mini/dist/validation-summary.json",
+          "line": 2,
+          "text": "\"validationMode\": \"local-source-build-only\","
+        }
+      ],
+      "artifactReferences": [
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-local-preview.html",
+          "reason": "Generated preview contains the visible local-only disclaimer."
+        },
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-validation-summary.json",
+          "reason": "Generated summary records validationMode=local-source-build-only and disclaimers."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-MINI-003",
+      "title": "The Mini home renders one authenticated payload-backed card per canonical stock_code",
+      "status": "pass",
+      "proofSummary": "The page wires Bearer-backed digest hydration, normalizes digest rows to compact canonical stock_code cards, dedupes to one card per stock_code, preserves waiting-state placeholders, and the generated preview/summary show 3 raw rows -> 2 rendered cards with one placeholder retained.",
+      "commandEvidence": [
+        {
+          "command": "npm --prefix mini run validate",
+          "exitCode": 0,
+          "logPath": "mini-read-path-mvp/mini-surface/npm-validate.txt",
+          "observed": "Passing tests include: digest reads reuse the login-issued bearer token on the protected read path; selectCompactDigestCards keeps one canonical card per stock_code and strips non-compact fields; authenticated Mini home state renders deduped digest cards and preserves placeholder waiting cards."
+        }
+      ],
+      "sourceReferences": [
+        {
+          "file": "mini/pages/home/index.js",
+          "line": 17,
+          "text": "authBoundary: createMiniAuthSessionBoundary({"
+        },
+        {
+          "file": "mini/pages/home/index.js",
+          "line": 34,
+          "text": "const nextState = await this.controller.hydrate()"
+        },
+        {
+          "file": "mini/lib/auth-session-boundary.js",
+          "line": 351,
+          "text": "Authorization: `Bearer ${session.accessToken}`,"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 246,
+          "text": "const compactCards = selectCompactDigestCards(cards)"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 123,
+          "text": "stock_code: stockCode,"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 137,
+          "text": "task_updated_at: card.task_updated_at,"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 258,
+          "text": "state.placeholderCount = mappedCards.filter((card) => card.digestStatus !== 'ready').length"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 259,
+          "text": "state.renderedStockCodes = mappedCards.map((card) => card.stockCode).join(', ')"
+        },
+        {
+          "file": "mini/pages/home/index.wxml",
+          "line": 81,
+          "text": "<text class=\"contract-copy\">当前页面从 {{rawPayloadCount}} 条受保护 digest payload 中仅渲染 {{monitoredCount}} 张卡；重复 canonical `stock_code` 已去重 {{dedupedCount}} 次。</text>"
+        },
+        {
+          "file": "mini/pages/home/index.wxml",
+          "line": 82,
+          "text": "<text class=\"contract-copy\">若同一 `stock_code` 同时出现 ready digest 与更新更晚的等待/占位重复行，页面仍优先展示 ready digest；若不存在 ready digest，则等待态卡片继续保留。</text>"
+        },
+        {
+          "file": "mini/dist/validation-summary.json",
+          "line": 28,
+          "text": "\"authenticatedCardCount\": 2"
+        },
+        {
+          "file": "mini/dist/validation-summary.json",
+          "line": 35,
+          "text": "\"readyDigestPreferredOverPendingDuplicate\": true,"
+        },
+        {
+          "file": "mini/dist/validation-summary.json",
+          "line": 36,
+          "text": "\"waitingStateRetainedWithoutReady\": true,"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 113,
+          "text": "<span class=\"badge info\">one-card-per-stock_code</span>"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 118,
+          "text": "<p>Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists, so pending watched stocks are not dropped from the Mini home surface.</p>"
+        }
+      ],
+      "artifactReferences": [
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-local-preview.html",
+          "reason": "Preview shows one-card-per-stock_code, ready-over-placeholder precedence, and placeholder retention text."
+        },
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-validation-summary.json",
+          "reason": "Summary shows authenticatedCardCount=2, readyDigestPreferredOverPendingDuplicate=true, waitingStateRetainedWithoutReady=true, renderedStockCodes=[600519,000001]."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-MINI-004",
+      "title": "Auth failures do not fall through to stale, mock, or empty-success watch cards",
+      "status": "pass",
+      "proofSummary": "Missing/invalid sessions return auth-required, persisted sessions are cleared on 401/login failures, controller empties card state, and the page/preview explicitly say no mock, stale, or fake-success cards are shown when auth is missing or failed.",
+      "commandEvidence": [
+        {
+          "command": "npm --prefix mini run validate",
+          "exitCode": 0,
+          "logPath": "mini-read-path-mvp/mini-surface/npm-validate.txt",
+          "observed": "Passing tests include: login failure modes remain distinguishable to the Mini client; login failures clear any stale persisted session before later auth-required hydrates; missing or invalid auth clears protected cards and returns an auth-required state."
+        }
+      ],
+      "sourceReferences": [
+        {
+          "file": "mini/lib/auth-session-boundary.js",
+          "line": 341,
+          "text": "authRequired: true,"
+        },
+        {
+          "file": "mini/lib/auth-session-boundary.js",
+          "line": 342,
+          "text": "code: 'missing_or_invalid_session',"
+        },
+        {
+          "file": "mini/lib/auth-session-boundary.js",
+          "line": 316,
+          "text": "clearPersistedSession(storage)"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 229,
+          "text": "state.authState = 'auth-required'"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 239,
+          "text": "state.cards = []"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 278,
+          "text": "message: '当前未检测到可用 Bearer 会话，页面已阻止显示任何受保护盯盘卡片。',"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 286,
+          "text": "message: '摘要读取未成功完成，已保持受保护内容关闭，避免显示过期或伪成功数据。',"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 319,
+          "text": "message: '登录会话未能完成受保护摘要读取，页面已清空所有盯盘卡片并返回 auth-required 状态。',"
+        },
+        {
+          "file": "mini/pages/home/index.wxml",
+          "line": 129,
+          "text": "<text class=\"empty-state-title\">auth-required</text>"
+        },
+        {
+          "file": "mini/pages/home/index.wxml",
+          "line": 130,
+          "text": "<text class=\"empty-state-copy\">未认证或认证失败时，不显示任何 mock、stale 或 fake-success 空盯盘卡片。</text>"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 130,
+          "text": "<span class=\"badge warn\">auth-required</span>"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 144,
+          "text": "<p><strong>blank_credentials</strong></p>"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 155,
+          "text": "<p><strong>invalid_credentials</strong></p>"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 166,
+          "text": "<p><strong>missing_fields</strong></p>"
+        }
+      ],
+      "artifactReferences": [
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-local-preview.html",
+          "reason": "Preview shows auth-required state plus blank_credentials / invalid_credentials / missing_fields evidence."
+        },
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-validation-summary.json",
+          "reason": "Summary records authRequired=missing_or_invalid_session and explicit login failure codes."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-003",
+      "title": "The Mini boundary stays contract-first and presentation-neutral",
+      "status": "pass",
+      "proofSummary": "The home controller selects only compact shared digest-card fields, maps them into render state, ignores preview payload extras such as symbol/route/report/browser context, and the generated preview explicitly states that browser routes, report bodies, and runtime-specific context are not required.",
+      "commandEvidence": [
+        {
+          "command": "npm --prefix mini run validate",
+          "exitCode": 0,
+          "logPath": "mini-read-path-mvp/mini-surface/npm-validate.txt",
+          "observed": "Validator output includes a passing test that selectCompactDigestCards keeps one canonical card per stock_code and strips non-compact fields."
+        }
+      ],
+      "sourceReferences": [
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 124,
+          "text": "stock_name: card.stock_name,"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 125,
+          "text": "market: card.market,"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 131,
+          "text": "summary: card.summary,"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 137,
+          "text": "task_updated_at: card.task_updated_at,"
+        },
+        {
+          "file": "mini/lib/home-controller.js",
+          "line": 151,
+          "text": "stockCode: normalizeStockCode(card.stock_code) || '--',"
+        },
+        {
+          "file": "mini/data/digest-cards.js",
+          "line": 83,
+          "text": "symbol: 'MOUTAI',"
+        },
+        {
+          "file": "mini/data/digest-cards.js",
+          "line": 84,
+          "text": "route_name: 'watch-detail',"
+        },
+        {
+          "file": "mini/data/digest-cards.js",
+          "line": 85,
+          "text": "report_body: 'heavy preview body that must not be required by the Mini home surface',"
+        },
+        {
+          "file": "mini/data/digest-cards.js",
+          "line": 121,
+          "text": "browser_route_context: '/watch/000001',"
+        },
+        {
+          "file": "mini/dist/local-preview.html",
+          "line": 125,
+          "text": "<p>The Mini mapping consumes only compact digest-card fields and does not require report bodies, browser routes, or runtime-specific context.</p>"
+        },
+        {
+          "file": "mini/dist/validation-summary.json",
+          "line": 41,
+          "text": "\"compactFieldKeys\": ["
+        }
+      ],
+      "artifactReferences": [
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-local-preview.html",
+          "reason": "Preview states that only compact digest-card fields are consumed and browser/report/runtime context is unnecessary."
+        },
+        {
+          "file": "mini-read-path-mvp/mini-surface/mini-dist-validation-summary.json",
+          "reason": "Summary enumerates compactFieldKeys for the Mini digest-card baseline."
+        }
+      ],
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "evidence": {
+    "evidenceDirectory": "mini-read-path-mvp/mini-surface",
+    "files": [
+      "mini-read-path-mvp/mini-surface/command-results.json",
+      "mini-read-path-mvp/mini-surface/npm-validate.txt",
+      "mini-read-path-mvp/mini-surface/npm-build.txt",
+      "mini-read-path-mvp/mini-surface/node-version.txt",
+      "mini-read-path-mvp/mini-surface/npm-version.txt",
+      "mini-read-path-mvp/mini-surface/mini-dist-local-preview.html",
+      "mini-read-path-mvp/mini-surface/mini-dist-validation-summary.json",
+      "mini-read-path-mvp/mini-surface/source-inspection.json"
+    ],
+    "artifactSources": [
+      "mini/dist/local-preview.html",
+      "mini/dist/validation-summary.json"
+    ]
+  },
+  "summary": "Tested 5 assigned assertions on the Mini source/build surface: 5 passed, 0 failed, 0 blocked. Evidence shows a real top-level mini/ validator, explicit local-only disclosure, authenticated canonical stock_code card rendering with placeholder retention, auth-required fallback on missing/failed auth, and a compact presentation-neutral boundary."
+}

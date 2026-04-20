@@ -1,0 +1,171 @@
+{
+  "groupId": "api-contract",
+  "milestone": "mini-read-path-mvp",
+  "testedAt": "2026-04-20T09:19:09.324042+00:00",
+  "isolation": {
+    "missionDir": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4",
+    "repoRoot": "/home/kratos/projects/TradingAgents-CN",
+    "mode": "in-process validation only",
+    "environment": ".venv-mission",
+    "forbiddenRuntime": [
+      "live MongoDB",
+      "live Redis",
+      "backend server",
+      "browser runtime",
+      "WeChat runtime"
+    ]
+  },
+  "toolsUsed": [
+    "pytest",
+    "FastAPI TestClient",
+    "python"
+  ],
+  "assertionsTested": [
+    "VAL-API-001",
+    "VAL-API-002",
+    "VAL-API-003",
+    "VAL-API-004",
+    "VAL-API-005",
+    "VAL-CROSS-001",
+    "VAL-CROSS-002"
+  ],
+  "passedAssertions": [
+    "VAL-API-001",
+    "VAL-API-002",
+    "VAL-API-003",
+    "VAL-API-004",
+    "VAL-API-005",
+    "VAL-CROSS-001",
+    "VAL-CROSS-002"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "commandsRun": [
+    {
+      "command": "/home/kratos/projects/TradingAgents-CN/.venv-mission/bin/python -m pytest /home/kratos/projects/TradingAgents-CN/tests/services/test_mini_auth_session_boundary.py /home/kratos/projects/TradingAgents-CN/tests/services/test_watch_api_baseline.py /home/kratos/projects/TradingAgents-CN/tests/services/test_watch_digest_service.py -v",
+      "exitCode": 0,
+      "observation": "19 targeted auth/watch contract tests passed in 12.88s; only the pre-existing deprecation warnings documented in mission guidance were emitted.",
+      "evidencePath": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt"
+    },
+    {
+      "command": "PYTHONPATH=/home/kratos/projects/TradingAgents-CN /home/kratos/projects/TradingAgents-CN/.venv-mission/bin/python <probe-auth-and-protection>",
+      "exitCode": 0,
+      "observation": "Captured explicit login success envelope, distinct login failure bodies (400/401/422), protected digest 401 responses, and a successful bearer-token reuse on GET /api/watch/digests.",
+      "evidencePath": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-auth-and-protection.json"
+    },
+    {
+      "command": "PYTHONPATH=/home/kratos/projects/TradingAgents-CN /home/kratos/projects/TradingAgents-CN/.venv-mission/bin/python <probe-digest-projection>",
+      "exitCode": 0,
+      "observation": "Captured canonical digest-card projection, placeholder waiting-state card data, symbol-field absence, and exact watch-membership projection without orphan or cross-user leakage.",
+      "evidencePath": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-digest-projection.json"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "VAL-API-001",
+      "title": "Login returns the bearer session envelope the Mini client needs",
+      "status": "pass",
+      "testCases": [
+        "tests/services/test_mini_auth_session_boundary.py::test_login_success_envelope_and_digest_token_handoff"
+      ],
+      "observation": "POST /api/auth/login returned HTTP 200 with success=true, string access_token, refresh_token, expires_in=3600, and a user object containing id=user-1 and username=mini-user.",
+      "evidence": {
+        "pytestLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt",
+        "probe": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-auth-and-protection.json#loginSuccess"
+      }
+    },
+    {
+      "id": "VAL-API-002",
+      "title": "Login failure paths are explicit and usable by a thin client",
+      "status": "pass",
+      "testCases": [
+        "tests/services/test_mini_auth_session_boundary.py::test_login_failure_modes_remain_distinct_for_mini_client"
+      ],
+      "observation": "Blank credentials returned 400 with 用户名和密码不能为空, invalid credentials returned 401 with 用户名或密码错误, and missing/mistyped username fields returned FastAPI 422 validation errors pointing at body.username.",
+      "evidence": {
+        "pytestLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt",
+        "probe": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-auth-and-protection.json#loginFailures"
+      }
+    },
+    {
+      "id": "VAL-API-003",
+      "title": "Digest reads are protected by bearer authentication",
+      "status": "pass",
+      "testCases": [
+        "tests/services/test_watch_api_baseline.py::test_watch_routes_require_authentication",
+        "tests/services/test_watch_api_baseline.py::test_watch_digest_reads_reject_malformed_and_invalid_bearer_sessions"
+      ],
+      "observation": "GET /api/watch/digests returned 401 for missing, malformed, and invalid bearer sessions instead of returning an empty success payload.",
+      "evidence": {
+        "pytestLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt",
+        "probe": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-auth-and-protection.json#digestAuthFailures"
+      }
+    },
+    {
+      "id": "VAL-API-004",
+      "title": "Digest list returns compact canonical cards keyed by stock_code",
+      "status": "pass",
+      "testCases": [
+        "tests/services/test_watch_digest_service.py::test_list_digest_cards_projects_canonical_watchlist_with_compact_placeholders_and_task_metadata"
+      ],
+      "observation": "Digest cards were keyed by stock_code and included the required compact fields (identity, market/quote, summary/risk, rule/task state); no client-facing symbol field leaked into returned cards.",
+      "evidence": {
+        "pytestLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt",
+        "probe": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-digest-projection.json#canonicalDigestCards"
+      }
+    },
+    {
+      "id": "VAL-API-005",
+      "title": "Stocks without a ready digest still return placeholder card state",
+      "status": "pass",
+      "testCases": [
+        "tests/services/test_watch_digest_service.py::test_list_digest_cards_projects_canonical_watchlist_with_compact_placeholders_and_task_metadata"
+      ],
+      "observation": "A watched stock without a completed digest still returned one placeholder card with stock_code=000001, summary=暂无摘要，请先执行一次解读。, digest_status=pending, rule_status=inactive, and task waiting-state fields task_id/task_status/task_updated_at.",
+      "evidence": {
+        "pytestLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt",
+        "probe": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-digest-projection.json#canonicalDigestCards.placeholderCard"
+      }
+    },
+    {
+      "id": "VAL-CROSS-001",
+      "title": "Successful login hands off a reusable bearer session to the Mini digest read path",
+      "status": "pass",
+      "testCases": [
+        "tests/services/test_mini_auth_session_boundary.py::test_login_success_envelope_and_digest_token_handoff"
+      ],
+      "observation": "The focused probe logged in, reused the returned access_token as Authorization: Bearer access-token-1 on GET /api/watch/digests, and the Mini boundary source normalizes access_token/refresh_token/user.id+username before calling /api/watch/digests with the stored bearer token.",
+      "evidence": {
+        "pytestLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt",
+        "probe": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-auth-and-protection.json#digestAuthorizedReuse",
+        "sourceReferences": [
+          "mini/lib/auth-session-boundary.js:142-158",
+          "mini/lib/auth-session-boundary.js:348-351",
+          "mini/tests/auth-session-boundary.test.mjs:18-27",
+          "mini/tests/auth-session-boundary.test.mjs:82-83"
+        ]
+      }
+    },
+    {
+      "id": "VAL-CROSS-002",
+      "title": "Authenticated digest reads preserve exactly canonical watch membership before enrichment",
+      "status": "pass",
+      "testCases": [
+        "tests/services/test_watch_digest_service.py::test_list_digest_cards_preserves_exact_watch_membership_without_orphan_or_cross_user_leakage"
+      ],
+      "observation": "Returned cards matched only the authenticated user’s watched stock_code set {000001,600519}; orphan digest 300750 was excluded, the other user’s digest/task state did not leak, and the unwarmed watch member still produced a placeholder card.",
+      "evidence": {
+        "pytestLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt",
+        "probe": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-digest-projection.json#exactMembershipProjection"
+      }
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "evidence": [
+    "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/pytest-api-contract.txt",
+    "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-auth-and-protection.json",
+    "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-read-path-mvp/api-contract/probe-digest-projection.json"
+  ],
+  "summary": "All 7 assigned API/cross-contract assertions passed. Evidence combines a 19-test focused pytest run plus two in-process probes that captured login/session envelopes, 401 auth failures, canonical digest-card payloads, placeholder waiting-state cards, and exact watch-membership projection behavior."
+}

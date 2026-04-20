@@ -56,3 +56,17 @@ Testing surfaces, required tools, and validation concurrency guidance.
 - No honest WeChat runtime, simulator, or device validation is possible in this environment.
 - No honest browser automation is possible until `libasound.so.2` is available.
 - Local Mini validation proves source/build readiness and contract-faithful client mapping only.
+
+## Flow Validator Guidance: API contract surface
+
+- Isolation boundary: use in-process `pytest` and `FastAPI TestClient` only; do not start or depend on live MongoDB/Redis/backend services for these assertions.
+- Safe shared resources: the repo working tree and `.venv-mission` are shared, but tests must avoid writing outside their assigned flow report and evidence paths.
+- Off-limits: do not mutate app business logic, runtime env secrets, or mission files other than the assigned flow report/evidence.
+- Evidence expectations: capture the exact test commands, exit codes, and the key assertion evidence for login success/failure, bearer protection, canonical digest-card fields, placeholder states, and canonical watch-membership projection.
+
+## Flow Validator Guidance: Mini source/build surface
+
+- Isolation boundary: validate only from the delivered top-level `mini/` surface using its local validator, source inspection, and generated local preview artifacts.
+- Safe shared resources: `mini/` source files, `mini/dist/`, and the assigned flow report/evidence paths.
+- Off-limits: do not claim browser, WeChat simulator, or device runtime success; do not rely on `frontend/src/views/MiniDemo/index.vue` or `mini-demo-local.html` as final evidence.
+- Evidence expectations: show the named `mini/` validator output, the local-only disclosure from the delivered Mini surface, authenticated digest-card mapping by canonical `stock_code`, placeholder-card handling, and the auth-required empty state on missing/failed auth.
