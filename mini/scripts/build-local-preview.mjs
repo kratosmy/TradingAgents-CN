@@ -7,7 +7,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const miniRoot = path.resolve(__dirname, '..')
 const distDir = path.join(miniRoot, 'dist')
 const require = createRequire(import.meta.url)
-const miniDigestData = require('../data/digest-cards.js')
+const previewMeta = require('../data/digest-cards.js')
+const {
+  createMemoryStorage,
+  createMiniAuthSessionBoundary,
+} = require('../lib/auth-session-boundary.js')
+const { createMiniHomeController } = require('../lib/home-controller.js')
 
 function escapeHtml(value) {
   return String(value)
@@ -16,6 +21,84 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+async function buildPreviewStates() {
+  const authRequiredController = createMiniHomeController({
+    previewMeta,
+    authBoundary: createMiniAuthSessionBoundary({
+      storage: createMemoryStorage(),
+      request: async () => ({
+        statusCode: 401,
+        data: { detail: 'Invalid token' },
+      }),
+    }),
+  })
+
+  const authRequiredState = await authRequiredController.hydrate()
+
+  const loginFailureStates = []
+  for (const failure of previewMeta.previewAuthFailures) {
+    const controller = createMiniHomeController({
+      previewMeta,
+      authBoundary: createMiniAuthSessionBoundary({
+        storage: createMemoryStorage(),
+        request: async () => ({
+          statusCode: failure.statusCode,
+          data:
+            failure.statusCode === 422
+              ? { detail: [{ loc: ['body', 'username'], msg: 'Field required', type: 'missing' }] }
+              : { detail: failure.detail },
+        }),
+      }),
+    })
+
+    const state = await controller.submitLogin({
+      username: failure.statusCode === 400 ? '' : 'mini-preview',
+      password: failure.statusCode === 400 ? '' : 'bad-password',
+    })
+    loginFailureStates.push({
+      ...failure,
+      state,
+    })
+  }
+
+  const authenticatedController = createMiniHomeController({
+    previewMeta,
+    authBoundary: createMiniAuthSessionBoundary({
+      storage: createMemoryStorage(),
+      request: async (options) => {
+        if (options.url.endsWith('/api/auth/login')) {
+          return {
+            statusCode: 200,
+            data: {
+              success: true,
+              data: previewMeta.previewSession,
+            },
+          }
+        }
+
+        return {
+          statusCode: 200,
+          data: {
+            success: true,
+            data: previewMeta.previewCards,
+          },
+        }
+      },
+    }),
+  })
+
+  const authenticatedState = await authenticatedController.submitLogin({
+    username: 'mini-preview',
+    password: 'correct-password',
+  })
+
+  return {
+    authRequiredState,
+    loginFailureStates,
+    authenticatedState,
+  }
 }
 
 function renderCards(cards) {
@@ -47,6 +130,26 @@ function renderCards(cards) {
     .join('\n')
 }
 
+function renderFailureStates(failureStates) {
+  return failureStates
+    .map(
+      ({ label, statusCode, state }) => `
+        <article class="panel">
+          <div class="badge-row">
+            <span class="badge warn">login failure</span>
+            <span class="badge info">HTTP ${statusCode}</span>
+          </div>
+          <h3>${escapeHtml(label)}</h3>
+          <p><strong>${escapeHtml(state.loginErrorCode)}</strong></p>
+          <p>${escapeHtml(state.loginErrorMessage)}</p>
+        </article>
+      `,
+    )
+    .join('\n')
+}
+
+const previewStates = await buildPreviewStates()
+
 const html = `<!DOCTYPE html>
 <html lang="zh-CN">
   <head>
@@ -77,6 +180,10 @@ const html = `<!DOCTYPE html>
         border-radius: 24px;
         padding: 18px;
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      }
+      .panel-grid {
+        display: grid;
+        gap: 16px;
       }
       .panel--warning {
         background: #fffaf0;
@@ -124,6 +231,7 @@ const html = `<!DOCTYPE html>
       .status-item { background: rgba(148, 163, 184, 0.08); border-radius: 16px; padding: 12px; }
       .status-item strong { display: block; margin-top: 6px; }
       .meta-row { font-size: 12px; margin-top: 14px; }
+      .auth-state { border: 1px dashed rgba(245, 158, 11, 0.4); }
     </style>
   </head>
   <body>
@@ -133,23 +241,34 @@ const html = `<!DOCTYPE html>
           <span class="badge info">mini/ preview</span>
           <span class="badge warn">local-only validation</span>
         </div>
-        <p>${escapeHtml(miniDigestData.localOnlyDisclosure)}</p>
-        <p>${escapeHtml(miniDigestData.previewEvidenceLabel)}</p>
+        <p>${escapeHtml(previewMeta.localOnlyDisclosure)}</p>
+        <p>${escapeHtml(previewMeta.previewEvidenceLabel)}</p>
         <p>Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success.</p>
       </section>
       <section class="panel hero">
-        <span>${escapeHtml(miniDigestData.hero.eyebrow)}</span>
-        <h1>${escapeHtml(miniDigestData.hero.title)}</h1>
-        <p>${escapeHtml(miniDigestData.hero.subtitle)}</p>
+        <span>${escapeHtml(previewMeta.hero.eyebrow)}</span>
+        <h1>${escapeHtml(previewMeta.hero.title)}</h1>
+        <p>${escapeHtml(previewMeta.hero.subtitle)}</p>
         <div class="metrics">
-          <div class="metric"><span>监控中</span><strong>${miniDigestData.cards.length}</strong></div>
-          <div class="metric"><span>活跃策略</span><strong>${miniDigestData.cards.filter((card) => card.ruleStatus === 'active').length}</strong></div>
+          <div class="metric"><span>authState</span><strong>${escapeHtml(previewStates.authenticatedState.authState)}</strong></div>
+          <div class="metric"><span>protected cards</span><strong>${previewStates.authenticatedState.cards.length}</strong></div>
         </div>
       </section>
       <section class="checkpoints">
-        ${miniDigestData.checkpoints.map((item) => `<div class="checkpoint">${escapeHtml(item)}</div>`).join('')}
+        ${previewMeta.checkpoints.map((item) => `<div class="checkpoint">${escapeHtml(item)}</div>`).join('')}
       </section>
-      ${renderCards(miniDigestData.cards)}
+      <section class="panel auth-state">
+        <div class="badge-row">
+          <span class="badge warn">auth-required</span>
+          <span class="badge info">${escapeHtml(previewStates.authRequiredState.authIssueCode)}</span>
+        </div>
+        <h3>${escapeHtml(previewStates.authRequiredState.authTitle)}</h3>
+        <p>${escapeHtml(previewStates.authRequiredState.authMessage)}</p>
+      </section>
+      <section class="panel-grid">
+        ${renderFailureStates(previewStates.loginFailureStates)}
+      </section>
+      ${renderCards(previewStates.authenticatedState.cards)}
     </main>
   </body>
 </html>
@@ -160,9 +279,17 @@ const summary = {
   generatedArtifacts: ['dist/local-preview.html', 'dist/validation-summary.json'],
   evidenceSource: 'mini/',
   disclaimers: [
-    miniDigestData.localOnlyDisclosure,
+    previewMeta.localOnlyDisclosure,
     'Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success.',
   ],
+  authStates: {
+    authRequired: previewStates.authRequiredState.authIssueCode,
+    loginFailures: previewStates.loginFailureStates.map((item) => ({
+      statusCode: item.statusCode,
+      code: item.state.loginErrorCode,
+    })),
+    authenticatedCardCount: previewStates.authenticatedState.cards.length,
+  },
   entryFiles: [
     'app.js',
     'app.json',
@@ -173,6 +300,9 @@ const summary = {
     'pages/home/index.wxml',
     'pages/home/index.wxss',
     'pages/home/index.json',
+    'lib/auth-session-boundary.js',
+    'lib/home-controller.js',
+    'tests/auth-session-boundary.test.mjs',
   ],
 }
 

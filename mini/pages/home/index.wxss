@@ -7,6 +7,8 @@
 
 .disclaimer-card,
 .hero-card,
+.auth-card,
+.empty-state-card,
 .digest-card {
   background: #ffffff;
   border-radius: 24rpx;
@@ -26,7 +28,9 @@
 .stock-row,
 .card-header,
 .quote-row,
-.meta-row {
+.meta-row,
+.auth-header,
+.session-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -42,7 +46,8 @@
 .checkpoint-chip,
 .risk-pill,
 .change-pill,
-.metric-pill {
+.metric-pill,
+.error-chip {
   border-radius: 999rpx;
   font-size: 22rpx;
   padding: 8rpx 16rpx;
@@ -58,13 +63,36 @@
   background: rgba(245, 158, 11, 0.16);
 }
 
+.badge--status {
+  text-transform: uppercase;
+}
+
+.badge--auth-required {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.badge--authenticated {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.badge--checking {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.12);
+}
+
 .disclaimer-copy,
 .evidence-copy,
 .hero-subtitle,
 .summary-copy,
 .stock-market,
 .meta-row,
-.status-label {
+.status-label,
+.auth-message,
+.empty-state-copy,
+.session-copy,
+.error-copy {
   color: #475569;
   line-height: 1.6;
 }
@@ -121,6 +149,66 @@
   background: rgba(148, 163, 184, 0.16);
 }
 
+.auth-card,
+.empty-state-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.auth-title,
+.empty-state-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.auth-message,
+.empty-state-copy {
+  display: block;
+  margin-top: 8rpx;
+}
+
+.form-stack,
+.error-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.auth-input {
+  width: 100%;
+  border: 2rpx solid rgba(148, 163, 184, 0.3);
+  border-radius: 18rpx;
+  padding: 18rpx 20rpx;
+  font-size: 26rpx;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.primary-button,
+.ghost-button {
+  margin: 0;
+  border-radius: 18rpx;
+  font-size: 26rpx;
+}
+
+.primary-button {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.ghost-button {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+}
+
+.error-chip {
+  width: fit-content;
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+}
+
 .card-list {
   display: flex;
   flex-direction: column;
@@ -165,6 +253,11 @@
 .change-pill--down {
   color: #b91c1c;
   background: rgba(239, 68, 68, 0.12);
+}
+
+.change-pill--flat {
+  color: #475569;
+  background: rgba(148, 163, 184, 0.16);
 }
 
 .summary-copy {

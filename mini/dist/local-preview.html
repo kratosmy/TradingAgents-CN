@@ -29,6 +29,10 @@
         padding: 18px;
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
       }
+      .panel-grid {
+        display: grid;
+        gap: 16px;
+      }
       .panel--warning {
         background: #fffaf0;
         border: 1px solid rgba(245, 158, 11, 0.35);
@@ -75,6 +79,7 @@
       .status-item { background: rgba(148, 163, 184, 0.08); border-radius: 16px; padding: 12px; }
       .status-item strong { display: block; margin-top: 6px; }
       .meta-row { font-size: 12px; margin-top: 14px; }
+      .auth-state { border: 1px dashed rgba(245, 158, 11, 0.4); }
     </style>
   </head>
   <body>
@@ -84,21 +89,64 @@
           <span class="badge info">mini/ preview</span>
           <span class="badge warn">local-only validation</span>
         </div>
-        <p>本地源码/构建验证：当前 mini/ 证据仅证明本地 Mini 源文件与构建产物存在，不代表真实微信模拟器、真机或运行时验证。</p>
+        <p>本地源码/构建验证：当前 mini/ 证据仅证明 Mini auth/session 边界与本地构建产物存在，不代表真实微信模拟器、真机或运行时验证。</p>
         <p>Evidence source: mini/ local source-build validation output.</p>
         <p>Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success.</p>
       </section>
       <section class="panel hero">
-        <span>自选股智能盯盘</span>
-        <h1>Mini 本地验证骨架</h1>
-        <p>此页面使用 mini/ 自带样例数据生成本地预览与源码证据，后续真实登录/摘要读取会在独立特性中接入既有 JWT + watch digest 契约。</p>
+        <span>JWT 登录 + Bearer 会话</span>
+        <h1>Mini auth/session boundary</h1>
+        <p>此页面聚焦既有 `/api/auth/login` 与受保护 `/api/watch/digests` 契约的本地源码/构建验证，强调 Bearer 会话持久化、失败态区分与 auth-required 阻断行为。</p>
         <div class="metrics">
-          <div class="metric"><span>监控中</span><strong>3</strong></div>
-          <div class="metric"><span>活跃策略</span><strong>2</strong></div>
+          <div class="metric"><span>authState</span><strong>authenticated</strong></div>
+          <div class="metric"><span>protected cards</span><strong>2</strong></div>
         </div>
       </section>
       <section class="checkpoints">
-        <div class="checkpoint">top-level mini/ delivery surface</div><div class="checkpoint">real Mini entry + config files</div><div class="checkpoint">named local validator</div><div class="checkpoint">local-only disclosure</div>
+        <div class="checkpoint">POST /api/auth/login contract</div><div class="checkpoint">persisted bearer session</div><div class="checkpoint">protected digest read path</div><div class="checkpoint">local-only disclosure</div>
+      </section>
+      <section class="panel auth-state">
+        <div class="badge-row">
+          <span class="badge warn">auth-required</span>
+          <span class="badge info">missing_or_invalid_session</span>
+        </div>
+        <h3>需要重新登录后才能查看受保护盯盘内容</h3>
+        <p>当前未检测到可用 Bearer 会话，页面已阻止显示任何受保护盯盘卡片。</p>
+      </section>
+      <section class="panel-grid">
+        
+        <article class="panel">
+          <div class="badge-row">
+            <span class="badge warn">login failure</span>
+            <span class="badge info">HTTP 400</span>
+          </div>
+          <h3>空白凭证</h3>
+          <p><strong>blank_credentials</strong></p>
+          <p>用户名和密码不能为空</p>
+        </article>
+      
+
+        <article class="panel">
+          <div class="badge-row">
+            <span class="badge warn">login failure</span>
+            <span class="badge info">HTTP 401</span>
+          </div>
+          <h3>错误凭证</h3>
+          <p><strong>invalid_credentials</strong></p>
+          <p>用户名或密码错误</p>
+        </article>
+      
+
+        <article class="panel">
+          <div class="badge-row">
+            <span class="badge warn">login failure</span>
+            <span class="badge info">HTTP 422</span>
+          </div>
+          <h3>缺失字段</h3>
+          <p><strong>missing_fields</strong></p>
+          <p>body.username: Field required</p>
+        </article>
+      
       </section>
       
         <article class="digest-card">
@@ -113,35 +161,13 @@
             <div class="current-price">¥1688.50</div>
             <div class="change-pill change-pill--up">+1.82%</div>
           </div>
-          <p class="summary-copy">本地预览卡片：结构对齐 watch digest 紧凑字段，显示行情快照、摘要和状态标签。</p>
+          <p class="summary-copy">认证成功后的本地预览卡片：通过 Bearer 会话读取紧凑 digest 字段。</p>
           <div class="status-grid">
             <div class="status-item"><span class="status-label">digest_status</span><strong>ready</strong></div>
             <div class="status-item"><span class="status-label">rule_status</span><strong>active</strong></div>
             <div class="status-item"><span class="status-label">task_status</span><strong>completed</strong></div>
           </div>
-          <div class="meta-row"><span>摘要已生成</span><span>18:12 更新</span></div>
-        </article>
-      
-
-        <article class="digest-card">
-          <div class="card-header">
-            <div>
-              <div class="stock-row"><strong>宁德时代</strong><span>300750</span></div>
-              <p class="stock-market">A股 · 创业板 · SZSE</p>
-            </div>
-            <span class="risk-pill risk-pill--warning">重点关注</span>
-          </div>
-          <div class="quote-row">
-            <div class="current-price">¥214.36</div>
-            <div class="change-pill change-pill--down">-2.14%</div>
-          </div>
-          <p class="summary-copy">本地预览卡片：保留风险标签与任务状态位，但不宣称真实微信运行时已验证。</p>
-          <div class="status-grid">
-            <div class="status-item"><span class="status-label">digest_status</span><strong>ready</strong></div>
-            <div class="status-item"><span class="status-label">rule_status</span><strong>active</strong></div>
-            <div class="status-item"><span class="status-label">task_status</span><strong>running</strong></div>
-          </div>
-          <div class="meta-row"><span>策略运行中</span><span>17:48 更新</span></div>
+          <div class="meta-row"><span>任务 task-preview-1</span><span>2026-04-20T15:45:00+08:00</span></div>
         </article>
       
 
@@ -157,13 +183,13 @@
             <div class="current-price">¥11.28</div>
             <div class="change-pill change-pill--up">+0.43%</div>
           </div>
-          <p class="summary-copy">等待态占位卡片：表示股票仍在监控中，但当前只提供本地样例与源码验证证据。</p>
+          <p class="summary-copy">等待态仍来自受保护 digest 读取结果，而不是未认证时的假成功空列表。</p>
           <div class="status-grid">
             <div class="status-item"><span class="status-label">digest_status</span><strong>pending</strong></div>
             <div class="status-item"><span class="status-label">rule_status</span><strong>pending</strong></div>
             <div class="status-item"><span class="status-label">task_status</span><strong>waiting</strong></div>
           </div>
-          <div class="meta-row"><span>等待任务生成</span><span>等待解读</span></div>
+          <div class="meta-row"><span>任务 task-preview-2</span><span>2026-04-20T15:40:00+08:00</span></div>
         </article>
       
     </main>

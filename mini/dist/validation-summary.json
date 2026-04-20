@@ -6,9 +6,27 @@
   ],
   "evidenceSource": "mini/",
   "disclaimers": [
-    "本地源码/构建验证：当前 mini/ 证据仅证明本地 Mini 源文件与构建产物存在，不代表真实微信模拟器、真机或运行时验证。",
+    "本地源码/构建验证：当前 mini/ 证据仅证明 Mini auth/session 边界与本地构建产物存在，不代表真实微信模拟器、真机或运行时验证。",
     "Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success."
   ],
+  "authStates": {
+    "authRequired": "missing_or_invalid_session",
+    "loginFailures": [
+      {
+        "statusCode": 400,
+        "code": "blank_credentials"
+      },
+      {
+        "statusCode": 401,
+        "code": "invalid_credentials"
+      },
+      {
+        "statusCode": 422,
+        "code": "missing_fields"
+      }
+    ],
+    "authenticatedCardCount": 2
+  },
   "entryFiles": [
     "app.js",
     "app.json",
@@ -18,6 +36,9 @@
     "pages/home/index.js",
     "pages/home/index.wxml",
     "pages/home/index.wxss",
-    "pages/home/index.json"
+    "pages/home/index.json",
+    "lib/auth-session-boundary.js",
+    "lib/home-controller.js",
+    "tests/auth-session-boundary.test.mjs"
   ]
 }

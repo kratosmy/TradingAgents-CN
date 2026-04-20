@@ -14,11 +14,14 @@ const requiredFiles = [
   'project.config.json',
   'sitemap.json',
   'data/digest-cards.js',
+  'lib/auth-session-boundary.js',
+  'lib/home-controller.js',
   'pages/home/index.js',
   'pages/home/index.json',
   'pages/home/index.wxml',
   'pages/home/index.wxss',
   'scripts/build-local-preview.mjs',
+  'tests/auth-session-boundary.test.mjs',
 ]
 
 async function ensureFilesExist() {
@@ -51,6 +54,19 @@ async function ensureDisclosures() {
     throw new Error('pages/home/index.wxml must visibly disclose local-only validation')
   }
 
+  if (!sourceText.includes('auth-required')) {
+    throw new Error('pages/home/index.wxml must visibly disclose the auth-required state')
+  }
+
+  const testResult = spawnSync('node', ['--test', 'tests/auth-session-boundary.test.mjs'], {
+    cwd: miniRoot,
+    stdio: 'inherit',
+  })
+
+  if (testResult.status !== 0) {
+    throw new Error(`mini auth/session tests failed with exit code ${testResult.status ?? 'unknown'}`)
+  }
+
   const buildResult = spawnSync('node', ['scripts/build-local-preview.mjs'], {
     cwd: miniRoot,
     stdio: 'inherit',
@@ -61,8 +77,20 @@ async function ensureDisclosures() {
   }
 
   const previewText = await fs.readFile(path.join(miniRoot, 'dist/local-preview.html'), 'utf8')
-  if (!previewText.includes('local-only validation') || !previewText.includes('not evidence of real WeChat simulator, device, or runtime success')) {
+  if (
+    !previewText.includes('local-only validation') ||
+    !previewText.includes('not evidence of real WeChat simulator, device, or runtime success')
+  ) {
     throw new Error('dist/local-preview.html must disclose that validation is local-only and not real WeChat runtime coverage')
+  }
+
+  if (
+    !previewText.includes('auth-required') ||
+    !previewText.includes('blank_credentials') ||
+    !previewText.includes('invalid_credentials') ||
+    !previewText.includes('missing_fields')
+  ) {
+    throw new Error('dist/local-preview.html must surface auth-required and distinct login failure states')
   }
 }
 

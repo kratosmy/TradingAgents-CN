@@ -15,11 +15,11 @@
 
     <view class="hero-metrics">
       <view class="metric-pill">
-        <text class="metric-label">监控中</text>
+        <text class="metric-label">受保护卡片</text>
         <text class="metric-value">{{monitoredCount}}</text>
       </view>
       <view class="metric-pill">
-        <text class="metric-label">活跃策略</text>
+        <text class="metric-label">活跃规则</text>
         <text class="metric-value">{{activeRuleCount}}</text>
       </view>
     </view>
@@ -29,7 +29,45 @@
     <text wx:for="{{checkpoints}}" wx:key="*this" class="checkpoint-chip">{{item}}</text>
   </view>
 
-  <view class="card-list">
+  <view class="auth-card">
+    <view class="auth-header">
+      <view>
+        <text class="auth-title">{{authTitle}}</text>
+        <text class="auth-message">{{authMessage}}</text>
+      </view>
+      <text class="badge badge--status badge--{{authState}}">{{authState}}</text>
+    </view>
+
+    <view wx:if="{{loginErrorCode}}" class="error-stack">
+      <text class="error-chip">{{loginErrorCode}}</text>
+      <text class="error-copy">{{loginErrorMessage}}</text>
+    </view>
+
+    <view wx:if="{{sessionUserLabel}}" class="session-row">
+      <text class="session-copy">session_user {{sessionUserLabel}}</text>
+      <button class="ghost-button" bindtap="onLogout">清除会话</button>
+    </view>
+
+    <view wx:else class="form-stack">
+      <input
+        class="auth-input"
+        type="text"
+        placeholder="username"
+        value="{{username}}"
+        bindinput="onUsernameInput"
+      />
+      <input
+        class="auth-input"
+        password="true"
+        placeholder="password"
+        value="{{password}}"
+        bindinput="onPasswordInput"
+      />
+      <button class="primary-button" bindtap="onSubmitLogin">调用 /api/auth/login</button>
+    </view>
+  </view>
+
+  <view wx:if="{{authState === 'authenticated'}}" class="card-list">
     <view wx:for="{{cards}}" wx:key="stockCode" class="digest-card">
       <view class="card-header">
         <view>
@@ -69,5 +107,10 @@
         <text>{{item.updatedAt}}</text>
       </view>
     </view>
+  </view>
+
+  <view wx:else class="empty-state-card">
+    <text class="empty-state-title">auth-required</text>
+    <text class="empty-state-copy">未认证或认证失败时，不显示任何 mock、stale 或 fake-success 空盯盘卡片。</text>
   </view>
 </view>
