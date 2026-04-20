@@ -139,6 +139,77 @@ test('login failure modes remain distinguishable to the Mini client', async (t) 
   })
 })
 
+test('login failures clear any stale persisted session before later auth-required hydrates', async (t) => {
+  const failureCases = [
+    {
+      name: 'blank credentials clear stale session state',
+      statusCode: 400,
+      body: { detail: '用户名和密码不能为空' },
+      credentials: { username: '', password: '' },
+      expectedCode: 'blank_credentials',
+    },
+    {
+      name: 'invalid credentials clear stale session state',
+      statusCode: 401,
+      body: { detail: '用户名或密码错误' },
+      credentials: { username: 'mini-user', password: 'bad-password' },
+      expectedCode: 'invalid_credentials',
+    },
+    {
+      name: 'missing fields clear stale session state',
+      statusCode: 422,
+      body: {
+        detail: [{ loc: ['body', 'username'], msg: 'Field required', type: 'missing' }],
+      },
+      credentials: { username: 'mini-user', password: 'correct-password' },
+      expectedCode: 'missing_fields',
+    },
+  ]
+
+  for (const failureCase of failureCases) {
+    await t.test(failureCase.name, async () => {
+      const requests = []
+      const storage = createMemoryStorage({
+        [SESSION_STORAGE_KEY]: JSON.stringify({
+          accessToken: 'stale-access-token',
+          refreshToken: 'stale-refresh-token',
+          expiresIn: 3600,
+          tokenType: 'bearer',
+          user: { id: 'user-1', username: 'mini-user' },
+        }),
+      })
+      const boundary = createMiniAuthSessionBoundary({
+        baseUrl: 'http://localhost:8001',
+        storage,
+        request: async (options) => {
+          requests.push(options)
+          return {
+            statusCode: failureCase.statusCode,
+            data: failureCase.body,
+          }
+        },
+      })
+      const controller = createMiniHomeController({ authBoundary: boundary })
+
+      const failedLoginState = await controller.submitLogin(failureCase.credentials)
+
+      assert.equal(failedLoginState.authState, 'auth-required')
+      assert.equal(failedLoginState.loginErrorCode, failureCase.expectedCode)
+      assert.deepEqual(failedLoginState.cards, [])
+      assert.equal(boundary.getSession(), null)
+      assert.equal(storage.getItem(SESSION_STORAGE_KEY), null)
+
+      const hydratedState = await controller.hydrate()
+
+      assert.equal(hydratedState.authState, 'auth-required')
+      assert.equal(hydratedState.authIssueCode, 'missing_or_invalid_session')
+      assert.deepEqual(hydratedState.cards, [])
+      assert.equal(requests.length, 1)
+      assert.equal(requests[0].url, 'http://localhost:8001/api/auth/login')
+    })
+  }
+})
+
 test('missing or invalid auth clears protected cards and returns an auth-required state', async () => {
   const boundary = createMiniAuthSessionBoundary({
     baseUrl: 'http://localhost:8001',

@@ -325,6 +325,7 @@ function createMiniAuthSessionBoundary({
       }
     }
 
+    clearPersistedSession(storage)
     return {
       ok: false,
       failure: classifyLoginFailure(response.statusCode, response.data),
