@@ -1,9 +1,9 @@
 commands:
   install: ./.factory/init.sh
-  test: .venv-mission/bin/python -m pytest tests/services/test_watch_api_baseline.py tests/services/test_watch_digest_service.py -v
-  lint: npm --prefix frontend run lint
-  typecheck: npm --prefix frontend run type-check
-  build: npm --prefix frontend run build
+  test: sh -c '.venv-mission/bin/python -m pytest tests/services/test_watch_api_baseline.py tests/services/test_watch_digest_service.py tests/services/test_mini_auth_session_boundary.py -v && npm --prefix mini run test'
+  lint: npm --prefix mini run validate
+  typecheck: npm --prefix mini run validate
+  build: npm --prefix mini run build
   mini_install: test -f mini/package.json && npm --prefix mini install || echo mini-package-not-yet-created
   mini_validate: test -f mini/package.json && (npm --prefix mini run validate || npm --prefix mini run build || npm --prefix mini run lint) || echo mini-package-not-yet-created
 
