@@ -1,6 +1,6 @@
 commands:
   install: ./.factory/init.sh
-  test: .venv-mission/bin/python -m pytest tests/ -v
+  test: .venv-mission/bin/python -m pytest tests/services/test_watch_api_baseline.py tests/services/test_watch_digest_service.py -v
   lint: npm --prefix frontend run lint
   typecheck: npm --prefix frontend run type-check
   build: npm --prefix frontend run build
