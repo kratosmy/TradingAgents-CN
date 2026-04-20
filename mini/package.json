@@ -1,0 +1,14 @@
+{
+  "name": "tradingagents-mini",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-only WeChat Mini Program scaffold for contract/source-build validation.",
+  "scripts": {
+    "build": "node ./scripts/build-local-preview.mjs",
+    "validate": "node ./scripts/validate-mini.mjs"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

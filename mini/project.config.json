@@ -1,0 +1,19 @@
+{
+  "appid": "wx-local-validation-only",
+  "compileType": "miniprogram",
+  "miniprogramRoot": ".",
+  "projectname": "TradingAgentsMiniLocalValidation",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false,
+    "packNpmManually": false,
+    "coverView": true,
+    "ignoreUploadUnusedFiles": true,
+    "showShadowRootInWxmlPanel": true
+  },
+  "simulatorType": "wechat",
+  "srcMiniprogramRoot": "."
+}

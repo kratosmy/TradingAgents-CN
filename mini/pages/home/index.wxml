@@ -1,0 +1,73 @@
+<view class="page-shell">
+  <view class="disclaimer-card">
+    <view class="badge-row">
+      <text class="badge badge--info">mini/ source</text>
+      <text class="badge badge--warn">local-only validation</text>
+    </view>
+    <text class="disclaimer-copy">{{localOnlyDisclosure}}</text>
+    <text class="evidence-copy">{{previewEvidenceLabel}}</text>
+  </view>
+
+  <view class="hero-card">
+    <text class="hero-eyebrow">{{hero.eyebrow}}</text>
+    <text class="hero-title">{{hero.title}}</text>
+    <text class="hero-subtitle">{{hero.subtitle}}</text>
+
+    <view class="hero-metrics">
+      <view class="metric-pill">
+        <text class="metric-label">监控中</text>
+        <text class="metric-value">{{monitoredCount}}</text>
+      </view>
+      <view class="metric-pill">
+        <text class="metric-label">活跃策略</text>
+        <text class="metric-value">{{activeRuleCount}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="checkpoint-row">
+    <text wx:for="{{checkpoints}}" wx:key="*this" class="checkpoint-chip">{{item}}</text>
+  </view>
+
+  <view class="card-list">
+    <view wx:for="{{cards}}" wx:key="stockCode" class="digest-card">
+      <view class="card-header">
+        <view>
+          <view class="stock-row">
+            <text class="stock-name">{{item.stockName}}</text>
+            <text class="stock-code">{{item.stockCode}}</text>
+          </view>
+          <text class="stock-market">{{item.market}} · {{item.board}} · {{item.exchange}}</text>
+        </view>
+        <text class="risk-pill risk-pill--{{item.riskTone}}">{{item.riskLabel}}</text>
+      </view>
+
+      <view class="quote-row">
+        <text class="current-price">¥{{item.currentPrice}}</text>
+        <text class="change-pill change-pill--{{item.changeDirection}}">{{item.changePercent}}</text>
+      </view>
+
+      <text class="summary-copy">{{item.summary}}</text>
+
+      <view class="status-grid">
+        <view class="status-item">
+          <text class="status-label">digest_status</text>
+          <text class="status-value">{{item.digestStatus}}</text>
+        </view>
+        <view class="status-item">
+          <text class="status-label">rule_status</text>
+          <text class="status-value">{{item.ruleStatus}}</text>
+        </view>
+        <view class="status-item">
+          <text class="status-label">task_status</text>
+          <text class="status-value">{{item.taskStatus}}</text>
+        </view>
+      </view>
+
+      <view class="meta-row">
+        <text>{{item.taskLabel}}</text>
+        <text>{{item.updatedAt}}</text>
+      </view>
+    </view>
+  </view>
+</view>

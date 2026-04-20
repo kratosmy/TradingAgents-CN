@@ -1,0 +1,9 @@
+{
+  "desc": "Local-only sitemap for the mini scaffold validation surface.",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}
