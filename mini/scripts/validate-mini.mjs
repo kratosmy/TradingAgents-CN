@@ -100,10 +100,11 @@ async function ensureDisclosures() {
 
   if (
     !previewText.includes('one-card-per-stock_code') ||
-    !previewText.includes('Placeholder/waiting-state cards remain visible') ||
+    !previewText.includes('Ready digest content wins over duplicate placeholder rows') ||
+    !previewText.includes('Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists') ||
     !previewText.includes('compact digest-card fields')
   ) {
-    throw new Error('dist/local-preview.html must show one-card-per-stock_code, placeholder-card, and compact-field evidence')
+    throw new Error('dist/local-preview.html must show ready-over-placeholder dedupe precedence, placeholder-card, and compact-field evidence')
   }
 
   const summary = JSON.parse(await fs.readFile(path.join(miniRoot, 'dist/validation-summary.json'), 'utf8'))
@@ -111,9 +112,11 @@ async function ensureDisclosures() {
     !summary.homeDigestRendering ||
     summary.homeDigestRendering.rawPayloadCardCount < summary.homeDigestRendering.renderedCardCount ||
     summary.homeDigestRendering.dedupedCount < 1 ||
-    summary.homeDigestRendering.placeholderCount < 1
+    summary.homeDigestRendering.placeholderCount < 1 ||
+    summary.homeDigestRendering.readyDigestPreferredOverPendingDuplicate !== true ||
+    summary.homeDigestRendering.waitingStateRetainedWithoutReady !== true
   ) {
-    throw new Error('dist/validation-summary.json must prove dedupe and placeholder-card rendering for the Mini home surface')
+    throw new Error('dist/validation-summary.json must prove ready-over-placeholder dedupe precedence and waiting-state card retention for the Mini home surface')
   }
 }
 

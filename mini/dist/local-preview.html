@@ -114,7 +114,8 @@
           <span class="badge warn">deduped 1</span>
         </div>
         <p>Authenticated preview payload contained 3 digest rows and rendered 2 visible cards for canonical stock_code values: 600519, 000001.</p>
-        <p>Placeholder/waiting-state cards remain visible after dedupe, so pending watched stocks are not dropped from the Mini home surface.</p>
+        <p>Ready digest content wins over duplicate placeholder rows for the same canonical stock_code, even when the placeholder row is newer by timestamp.</p>
+        <p>Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists, so pending watched stocks are not dropped from the Mini home surface.</p>
       </section>
       <section class="panel">
         <div class="badge-row">
@@ -180,7 +181,7 @@
             <div class="current-price">¥1688.50</div>
             <div class="change-pill change-pill--up">+1.82%</div>
           </div>
-          <p class="summary-copy">认证成功后的本地预览卡片：重复 payload 已按 canonical stock_code 收敛为单张卡，并继续使用紧凑 digest 字段。</p>
+          <p class="summary-copy">认证成功后的本地预览卡片：即便存在更新更晚的等待态重复行，也优先显示 ready digest 内容。</p>
           <div class="status-grid">
             <div class="status-item"><span class="status-label">digest_status</span><strong>ready</strong></div>
             <div class="status-item"><span class="status-label">rule_status</span><strong>active</strong></div>

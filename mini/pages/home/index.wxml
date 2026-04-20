@@ -79,6 +79,7 @@
     <view class="contract-card">
       <text class="contract-title">render contract evidence</text>
       <text class="contract-copy">当前页面从 {{rawPayloadCount}} 条受保护 digest payload 中仅渲染 {{monitoredCount}} 张卡；重复 canonical `stock_code` 已去重 {{dedupedCount}} 次。</text>
+      <text class="contract-copy">若同一 `stock_code` 同时出现 ready digest 与更新更晚的等待/占位重复行，页面仍优先展示 ready digest；若不存在 ready digest，则等待态卡片继续保留。</text>
       <text class="contract-copy">已渲染 stock_code：{{renderedStockCodes}}</text>
       <text class="contract-copy">仅消费共享紧凑字段：{{compactFieldKeysText}}</text>
     </view>

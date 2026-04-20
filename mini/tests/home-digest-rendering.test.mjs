@@ -36,13 +36,13 @@ test('selectCompactDigestCards keeps one canonical card per stock_code and strip
       current_price: 1679.0,
       change_percent: '+0.92%',
       digest_status: 'pending',
-      summary: 'older pending digest',
+      summary: 'newer pending placeholder must not replace ready digest',
       risk_level: '等待解读',
       rule_status: 'active',
       task_status: 'waiting',
       task_id: 'task-older',
-      updated_at: '2026-04-20T15:32:00+08:00',
-      task_updated_at: '2026-04-20T15:32:00+08:00',
+      updated_at: '2026-04-20T15:48:00+08:00',
+      task_updated_at: '2026-04-20T15:48:00+08:00',
       symbol: 'MOUTAI',
       report_body: 'heavy body',
       browser_route_context: '/watch/600519',
@@ -64,6 +64,23 @@ test('selectCompactDigestCards keeps one canonical card per stock_code and strip
       updated_at: '2026-04-20T15:45:00+08:00',
       task_updated_at: '2026-04-20T15:45:00+08:00',
       report_html: '<p>not needed</p>',
+    },
+    {
+      stock_code: '000001',
+      stock_name: '平安银行',
+      market: 'A股',
+      board: '主板',
+      exchange: 'SZSE',
+      current_price: 11.18,
+      change_percent: '+0.22%',
+      digest_status: 'pending',
+      summary: 'older placeholder should yield to the fresher waiting-state card',
+      risk_level: '等待解读',
+      rule_status: 'pending',
+      task_status: 'queued',
+      task_id: 'task-waiting-older',
+      updated_at: '2026-04-20T15:38:00+08:00',
+      task_updated_at: '2026-04-20T15:38:00+08:00',
     },
     {
       stock_code: '000001',
@@ -93,6 +110,7 @@ test('selectCompactDigestCards keeps one canonical card per stock_code and strip
   assert.equal(cards[0].summary, 'newer ready digest')
   assert.equal(cards[0].digest_status, 'ready')
   assert.equal(cards[1].digest_status, 'pending')
+  assert.equal(cards[1].summary, 'placeholder still visible')
   assert.equal(cards[1].task_status, 'waiting')
   assert.ok(!Object.hasOwn(cards[0], 'symbol'))
   assert.ok(!Object.hasOwn(cards[0], 'report_body'))
@@ -121,13 +139,13 @@ test('authenticated Mini home state renders deduped digest cards and preserves p
               current_price: 1679.0,
               change_percent: '+0.92%',
               digest_status: 'pending',
-              summary: 'older pending digest',
+              summary: 'newer pending placeholder must not replace ready digest',
               risk_level: '等待解读',
               rule_status: 'active',
               task_status: 'waiting',
               task_id: 'task-older',
-              updated_at: '2026-04-20T15:32:00+08:00',
-              task_updated_at: '2026-04-20T15:32:00+08:00',
+              updated_at: '2026-04-20T15:48:00+08:00',
+              task_updated_at: '2026-04-20T15:48:00+08:00',
             },
             {
               stock_code: '600519',
@@ -145,6 +163,23 @@ test('authenticated Mini home state renders deduped digest cards and preserves p
               task_id: 'task-ready',
               updated_at: '2026-04-20T15:45:00+08:00',
               task_updated_at: '2026-04-20T15:45:00+08:00',
+            },
+            {
+              stock_code: '000001',
+              stock_name: '平安银行',
+              market: 'A股',
+              board: '主板',
+              exchange: 'SZSE',
+              current_price: 11.18,
+              change_percent: '+0.22%',
+              digest_status: 'pending',
+              summary: 'older placeholder should yield to the fresher waiting-state card',
+              risk_level: '等待解读',
+              rule_status: 'pending',
+              task_status: 'queued',
+              task_id: 'task-waiting-older',
+              updated_at: '2026-04-20T15:38:00+08:00',
+              task_updated_at: '2026-04-20T15:38:00+08:00',
             },
             {
               stock_code: '000001',
@@ -172,14 +207,15 @@ test('authenticated Mini home state renders deduped digest cards and preserves p
   const state = await controller.hydrate()
 
   assert.equal(state.authState, 'authenticated')
-  assert.equal(state.rawPayloadCount, 3)
+  assert.equal(state.rawPayloadCount, 4)
   assert.equal(state.monitoredCount, 2)
-  assert.equal(state.dedupedCount, 1)
+  assert.equal(state.dedupedCount, 2)
   assert.equal(state.placeholderCount, 1)
   assert.equal(state.cards[0].stockCode, '600519')
   assert.equal(state.cards[0].summary, 'newer ready digest')
   assert.equal(state.cards[1].stockCode, '000001')
   assert.equal(state.cards[1].digestStatus, 'pending')
+  assert.equal(state.cards[1].summary, 'placeholder still visible')
   assert.equal(state.cards[1].taskStatus, 'waiting')
   assert.match(state.renderedStockCodes, /600519/)
   assert.match(state.renderedStockCodes, /000001/)

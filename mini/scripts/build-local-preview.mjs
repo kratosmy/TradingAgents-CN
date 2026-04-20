@@ -270,7 +270,8 @@ const html = `<!DOCTYPE html>
           <span class="badge warn">deduped ${previewStates.authenticatedState.dedupedCount}</span>
         </div>
         <p>Authenticated preview payload contained ${previewStates.authenticatedState.rawPayloadCount} digest rows and rendered ${previewStates.authenticatedState.cards.length} visible cards for canonical stock_code values: ${escapeHtml(previewStates.authenticatedState.renderedStockCodes)}.</p>
-        <p>Placeholder/waiting-state cards remain visible after dedupe, so pending watched stocks are not dropped from the Mini home surface.</p>
+        <p>Ready digest content wins over duplicate placeholder rows for the same canonical stock_code, even when the placeholder row is newer by timestamp.</p>
+        <p>Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists, so pending watched stocks are not dropped from the Mini home surface.</p>
       </section>
       <section class="panel">
         <div class="badge-row">
@@ -318,6 +319,17 @@ const summary = {
     renderedCardCount: previewStates.authenticatedState.cards.length,
     dedupedCount: previewStates.authenticatedState.dedupedCount,
     placeholderCount: previewStates.authenticatedState.placeholderCount,
+    readyDigestPreferredOverPendingDuplicate:
+      previewStates.authenticatedState.cards.some(
+        (card) =>
+          card.stockCode === '600519' &&
+          card.digestStatus === 'ready' &&
+          card.summary.includes('优先显示 ready digest'),
+      ),
+    waitingStateRetainedWithoutReady:
+      previewStates.authenticatedState.cards.some(
+        (card) => card.stockCode === '000001' && card.digestStatus !== 'ready',
+      ),
     renderedStockCodes: previewStates.authenticatedState.cards.map((card) => card.stockCode),
     compactFieldKeys: previewMeta.compactFieldKeys,
   },

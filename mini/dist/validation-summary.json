@@ -32,6 +32,8 @@
     "renderedCardCount": 2,
     "dedupedCount": 1,
     "placeholderCount": 1,
+    "readyDigestPreferredOverPendingDuplicate": true,
+    "waitingStateRetainedWithoutReady": true,
     "renderedStockCodes": [
       "600519",
       "000001"

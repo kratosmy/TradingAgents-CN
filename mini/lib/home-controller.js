@@ -63,22 +63,41 @@ function normalizeStockCode(stockCode) {
   return typeof stockCode === 'string' ? stockCode.trim() : ''
 }
 
-function parseCompactTimestamp(card) {
-  const candidate = card && (card.updated_at || card.task_updated_at)
-  if (typeof candidate !== 'string' || !candidate.trim()) {
+function parseTimestamp(value) {
+  if (typeof value !== 'string' || !value.trim()) {
     return Number.NEGATIVE_INFINITY
   }
 
-  const timestamp = Date.parse(candidate)
+  const timestamp = Date.parse(value)
   return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp
 }
 
-function shouldReplaceDigestCard(existingCard, nextCard) {
-  const existingTimestamp = parseCompactTimestamp(existingCard)
-  const nextTimestamp = parseCompactTimestamp(nextCard)
+function isReadyDigestCard(card) {
+  return String(card?.digest_status || '')
+    .trim()
+    .toLowerCase() === 'ready'
+}
 
-  if (nextTimestamp !== existingTimestamp) {
-    return nextTimestamp > existingTimestamp
+function shouldReplaceDigestCard(existingCard, nextCard) {
+  const existingReady = isReadyDigestCard(existingCard)
+  const nextReady = isReadyDigestCard(nextCard)
+
+  if (nextReady !== existingReady) {
+    return nextReady
+  }
+
+  const existingDigestTimestamp = parseTimestamp(existingCard?.updated_at)
+  const nextDigestTimestamp = parseTimestamp(nextCard?.updated_at)
+
+  if (nextDigestTimestamp !== existingDigestTimestamp) {
+    return nextDigestTimestamp > existingDigestTimestamp
+  }
+
+  const existingTaskTimestamp = parseTimestamp(existingCard?.task_updated_at)
+  const nextTaskTimestamp = parseTimestamp(nextCard?.task_updated_at)
+
+  if (nextTaskTimestamp !== existingTaskTimestamp) {
+    return nextTaskTimestamp > existingTaskTimestamp
   }
 
   return false
