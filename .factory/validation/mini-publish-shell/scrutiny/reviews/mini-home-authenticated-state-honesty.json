@@ -1,22 +1,15 @@
 {
   "featureId": "mini-home-authenticated-state-honesty",
-  "reviewedAt": "2026-04-21T06:50:47Z",
-  "commitId": "a3666138bd6a8b2c86f9122ecac17393b057df10",
+  "reviewedAt": "2026-04-21T07:50:02Z",
+  "commitId": "3597136182c2d3416ba713ddbb5053dc045cbd7f",
   "transcriptSkeletonReviewed": true,
   "diffReviewed": true,
-  "status": "fail",
+  "status": "pass",
   "codeReview": {
-    "summary": "Reviewed the original failing feature `mini-stateful-watch-auth-shell` and the follow-up fix `mini-home-authenticated-state-honesty`. The original bug in `mini/lib/shell-surface-state.js` was real: Home treated the user as signed in only when `digestResult.ok` was true and reused signed-out copy for authenticated-empty states. The fix correctly moves the builder logic onto persisted session state, adds distinct authenticated-empty/authenticated-error copy, and updates proof/test coverage for those post-response states. However, the page lifecycle still leaves an already-mounted Home page on its previous signed-out data until `loadDigests()` resolves, so the signed-in posture can still be wrong immediately after an in-app login or tab return.",
-    "issues": [
-      {
-        "file": "mini/pages/home/index.js",
-        "line": 42,
-        "severity": "blocking",
-        "description": "`onShow()` only calls `refreshOverview()`, and `refreshOverview()` does not rebuild Home from `getSession()` until after awaiting `loadDigests()` at line 54. If a user signs in on Watch and returns to an already-mounted Home page, Home keeps its prior signed-out copy while the digest read is pending, so Home and Account can still disagree about signed-in posture on slow or stalled requests."
-      }
-    ]
+    "summary": "Re-reviewed the fixed feature against the prior stale-state failure. `mini/pages/home/index.js` now rebuilds Home from the persisted session before awaiting `loadDigests()`, so an already-mounted Home page immediately enters `authenticated-loading` on refresh or tab return when a session exists. The shared Home state builder still derives signed-in posture from session presence, and it keeps authenticated-loading, authenticated-empty, and authenticated-error copy distinct from signed-out copy. The current diff also extends Mini regression coverage and generated proof for those Home states.",
+    "issues": []
   },
   "sharedStateObservations": [],
-  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-publish-shell/scrutiny/reviews/mini-stateful-watch-auth-shell.json",
-  "summary": "Fail. The builder-level fix is real, but the Home page still has a reachable stale-state path after in-app login: an already-mounted Home surface does not switch to a signed-in loading posture until the digest request completes. The prior blocking honesty issue is therefore only partially resolved."
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-publish-shell/scrutiny/reviews/mini-home-authenticated-state-honesty.json",
+  "summary": "Pass. The prior blocking stale signed-out path is fixed: Home now refreshes from persisted session state immediately, authenticated loading/empty/error states remain distinct from signed-out copy, and I found no new high-confidence blocking or non-blocking issues in the current diff/state for this feature."
 }

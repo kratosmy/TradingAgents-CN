@@ -1,7 +1,7 @@
 {
   "milestone": "mini-publish-shell",
-  "round": 2,
-  "status": "fail",
+  "round": 3,
+  "status": "pass",
   "validatorsRun": {
     "test": {
       "passed": true,
@@ -25,28 +25,14 @@
     }
   },
   "reviewsSummary": {
-    "total": 3,
-    "passed": 1,
-    "failed": 2,
-    "failedFeatures": [
-      "mini-runtime-config-override-and-loopback-hardening",
-      "mini-home-authenticated-state-honesty"
-    ]
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "failedFeatures": []
   },
-  "blockingIssues": [
-    {
-      "featureId": "mini-runtime-config-override-and-loopback-hardening",
-      "severity": "blocking",
-      "description": "mini/lib/runtime-config.js still accepts IPv4-mapped IPv6 loopback targets such as [::ffff:127.0.0.1] as non-loopback, so the publish-shell validator can still green-light a loopback-only checked-in runtime target."
-    },
-    {
-      "featureId": "mini-home-authenticated-state-honesty",
-      "severity": "blocking",
-      "description": "mini/pages/home/index.js only rebuilds Home from session state after loadDigests() resolves, leaving an already-mounted Home surface on stale signed-out copy after in-app login or tab return while the digest request is pending."
-    }
-  ],
+  "blockingIssues": [],
   "appliedUpdates": [],
   "suggestedGuidanceUpdates": [],
   "rejectedObservations": [],
-  "previousRound": ".factory/validation/mini-publish-shell/scrutiny/synthesis.round1.json"
+  "previousRound": ".factory/validation/mini-publish-shell/scrutiny/synthesis.round2.json"
 }

@@ -1,22 +1,15 @@
 {
   "featureId": "mini-runtime-config-override-and-loopback-hardening",
-  "reviewedAt": "2026-04-21T15:13:00Z",
-  "commitId": "6ebf8fe1cd4c075bea670c11872f7cf07a2f24f3",
+  "reviewedAt": "2026-04-21T07:50:22Z",
+  "commitId": "a326cfa475208ea646f53f45ee08182c2159f9a2",
   "transcriptSkeletonReviewed": true,
   "diffReviewed": true,
-  "status": "fail",
+  "status": "pass",
   "codeReview": {
-    "summary": "Reviewed the original failed feature `mini-runtime-config-and-import-shell` and the follow-up fix `mini-runtime-config-override-and-loopback-hardening`. The fix does resolve the first blocker: `loadOperatorOverrides()` now distinguishes an actually missing `mini/config/runtime.local.js` from a broken override file, and the new regression at `mini/tests/runtime-config-boundary.test.mjs:54` proves nested dependency failures now surface instead of silently falling back to placeholder defaults. However, loopback hardening is still incomplete because the runtime helper only recognizes bare IPv6 loopback literals (`::1` and `0:0:0:0:0:0:0:1`).",
-    "issues": [
-      {
-        "file": "mini/lib/runtime-config.js",
-        "line": 87,
-        "severity": "blocking",
-        "description": "`isIPv6LoopbackHost()` only treats `::1` and `0:0:0:0:0:0:0:1` as loopback. Node normalizes `https://[::ffff:127.0.0.1]` to the IPv4-mapped IPv6 hostname `::ffff:7f00:1`, so `isLoopbackUrl('https://[::ffff:127.0.0.1]')` currently returns `false` (confirmed with a local Node probe). Because `mini/scripts/validate-mini.mjs:155` still relies on `isLoopbackUrl()` to enforce the checked-in runtime boundary, a loopback-only runtime target can still bypass VAL-PUBLISH-001 / VAL-PUBLISH-006 through an IPv4-mapped IPv6 spelling."
-      }
-    ]
+    "summary": "Reviewed the rerun against the prior failure. The current runtime boundary now blocks IPv4-mapped IPv6 loopback targets: `mini/lib/runtime-config.js:7-11,89-110` adds a shared `net.BlockList` with the mapped-loopback subnet `::ffff:7f00:0/104`, `mini/tests/runtime-config-boundary.test.mjs:87-105` covers `[::ffff:127.0.0.1]`, `[::ffff:127.255.255.255]`, and `[::ffff:7f00:1]`, and `mini/scripts/validate-mini.mjs:155-156` still enforces checked-in runtime targets through `isLoopbackUrl()`. An independent Node probe against HEAD returned `true` for those mapped loopback spellings while leaving `https://[::ffff:128.0.0.1]` and `https://mini-runtime.example.com` as non-loopback. The earlier runtime.local.js failure handling also remains intact: `mini/lib/runtime-config.js:122-155` still only treats the override module itself as optional, so broken dependency/import failures continue to surface, and `mini/tests/runtime-config-boundary.test.mjs:54-85` still asserts that behavior. I did not find any new high-confidence blocking or non-blocking issues in the current diff/state for this feature.",
+    "issues": []
   },
   "sharedStateObservations": [],
-  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-publish-shell/scrutiny/reviews/mini-runtime-config-and-import-shell.json",
-  "summary": "Fail. The fix successfully stops swallowing broken `runtime.local.js` dependency/import failures, but loopback detection is still incomplete: IPv4-mapped IPv6 loopback targets such as `[::ffff:127.0.0.1]` are accepted as non-loopback, so the publish-shell validator can still green-light a loopback-only checked-in runtime target."
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-publish-shell/scrutiny/reviews/mini-runtime-config-override-and-loopback-hardening.json",
+  "summary": "Pass. The rerun fixes the prior blocker: IPv4-mapped IPv6 loopback targets such as `[::ffff:127.0.0.1]` are now rejected by the shared runtime boundary and by the publish-shell validator path, while broken `mini/config/runtime.local.js` dependency/import failures still surface instead of falling back. No new high-confidence issues were found."
 }
