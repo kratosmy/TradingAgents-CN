@@ -12,9 +12,11 @@ const require = createRequire(import.meta.url)
 const { getCheckedInRuntimeConfig, isLoopbackUrl } = require('../lib/runtime-config.js')
 const { createReleaseHandoff, renderReleaseHandoffMarkdown } = require('../lib/release-handoff.js')
 const packageJson = require('../package.json')
+const packageLock = require('../package-lock.json')
 
 const requiredFiles = [
   'package.json',
+  'package-lock.json',
   'app.js',
   'app.json',
   'app.wxss',
@@ -144,6 +146,16 @@ async function ensureConfigShape() {
 
   if (packageJson.scripts['upload:wechat'] !== 'node ./scripts/upload-wechat.mjs') {
     throw new Error('mini/package.json must expose upload:wechat -> node ./scripts/upload-wechat.mjs for the gated miniprogram-ci scaffold')
+  }
+
+  const declaredMiniprogramCiRange = packageJson.dependencies?.['miniprogram-ci']
+  if (
+    typeof declaredMiniprogramCiRange !== 'string' ||
+    declaredMiniprogramCiRange.length === 0 ||
+    packageLock.packages?.['']?.dependencies?.['miniprogram-ci'] !== declaredMiniprogramCiRange ||
+    typeof packageLock.packages?.['node_modules/miniprogram-ci']?.version !== 'string'
+  ) {
+    throw new Error('mini/package.json and package-lock.json must declare miniprogram-ci so a clean install can reach the live-enabled upload branch')
   }
 
   if (

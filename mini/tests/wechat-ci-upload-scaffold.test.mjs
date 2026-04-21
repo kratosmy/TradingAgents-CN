@@ -5,9 +5,12 @@ import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const miniRoot = path.resolve(__dirname, '..')
+const require = createRequire(import.meta.url)
+const { runWechatCiUpload } = require('../lib/wechat-ci-upload.js')
 
 const CLEARED_UPLOAD_ENV = {
   WECHAT_MINI_CI_PRIVATE_KEY_PATH: '',
@@ -30,6 +33,21 @@ function runUpload(args = ['--dry-run'], envOverrides = {}) {
     },
   })
 }
+
+function readMiniJson(relativePath) {
+  return JSON.parse(fs.readFileSync(path.join(miniRoot, relativePath), 'utf8'))
+}
+
+test('mini package manifest and lockfile declare miniprogram-ci for clean installs', () => {
+  const packageJson = readMiniJson('package.json')
+  const packageLock = readMiniJson('package-lock.json')
+  const declaredRange = packageJson.dependencies?.['miniprogram-ci']
+
+  assert.equal(typeof declaredRange, 'string')
+  assert.notEqual(declaredRange.length, 0)
+  assert.equal(packageLock.packages?.['']?.dependencies?.['miniprogram-ci'], declaredRange)
+  assert.equal(typeof packageLock.packages?.['node_modules/miniprogram-ci']?.version, 'string')
+})
 
 test('upload scaffold refuses to proceed without injected secrets and operator inputs', () => {
   const result = runUpload(['--dry-run'])
@@ -93,4 +111,45 @@ test('non-dry-run upload stays gated until the operator explicitly enables live 
   } finally {
     fs.rmSync(tempDirectory, { recursive: true, force: true })
   }
+})
+
+test('live-enabled upload path reaches miniprogram-ci once secrets and metadata are injected', async () => {
+  const projectCalls = []
+  const uploadCalls = []
+  const fakeMiniprogramCi = {
+    Project: class Project {
+      constructor(options) {
+        projectCalls.push(options)
+      }
+    },
+    upload: async (options) => {
+      uploadCalls.push(options)
+      return { ok: true }
+    },
+  }
+
+  const result = await runWechatCiUpload({
+    env: {
+      ...process.env,
+      ...CLEARED_UPLOAD_ENV,
+      WECHAT_MINI_CI_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\nSIMULATED-PRIVATE-KEY\n-----END PRIVATE KEY-----\n',
+      WECHAT_MINI_CI_ROBOT_ID: '1',
+      WECHAT_MINI_CI_VERSION: '0.1.0',
+      WECHAT_MINI_CI_DESC: 'live activation path',
+      WECHAT_MINI_CI_ENABLE_LIVE_UPLOAD: '1',
+    },
+    argv: [],
+    cwd: miniRoot,
+    loadMiniprogramCi: () => fakeMiniprogramCi,
+  })
+
+  assert.equal(result.ok, true)
+  assert.equal(result.outcome, 'uploaded')
+  assert.equal(projectCalls.length, 1)
+  assert.equal(projectCalls[0].appid, 'wx1d02a932c4f9a4ae')
+  assert.equal(projectCalls[0].projectPath, miniRoot)
+  assert.equal(uploadCalls.length, 1)
+  assert.equal(uploadCalls[0].version, '0.1.0')
+  assert.equal(uploadCalls[0].desc, 'live activation path')
+  assert.equal(uploadCalls[0].robot, 1)
 })

@@ -233,10 +233,19 @@ function materializePrivateKey(privateKey) {
   }
 }
 
-async function performLiveWechatCiUpload(request) {
+function loadMiniprogramCiDependency() {
+  return require('miniprogram-ci')
+}
+
+async function performLiveWechatCiUpload(
+  request,
+  {
+    loadMiniprogramCi = loadMiniprogramCiDependency,
+  } = {},
+) {
   let miniprogramCi
   try {
-    miniprogramCi = require('miniprogram-ci')
+    miniprogramCi = await Promise.resolve(loadMiniprogramCi())
   } catch (error) {
     return {
       ...request,
@@ -297,7 +306,7 @@ async function runWechatCiUpload(options = {}) {
     return request
   }
 
-  return performLiveWechatCiUpload(request)
+  return performLiveWechatCiUpload(request, options)
 }
 
 function formatWechatCiUploadReport(result) {
