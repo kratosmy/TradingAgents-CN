@@ -1,8 +1,8 @@
 {
-  "appid": "wx-local-validation-only",
+  "appid": "wx1d02a932c4f9a4ae",
   "compileType": "miniprogram",
   "miniprogramRoot": ".",
-  "projectname": "TradingAgentsMiniLocalValidation",
+  "projectname": "TradingAgentsMiniImportShell",
   "setting": {
     "urlCheck": false,
     "es6": true,

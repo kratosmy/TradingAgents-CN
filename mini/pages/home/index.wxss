@@ -7,6 +7,7 @@
 
 .disclaimer-card,
 .hero-card,
+.runtime-card,
 .auth-card,
 .contract-card,
 .empty-state-card,
@@ -26,6 +27,7 @@
 }
 
 .badge-row,
+.brand-row,
 .stock-row,
 .card-header,
 .quote-row,
@@ -64,6 +66,11 @@
   background: rgba(245, 158, 11, 0.16);
 }
 
+.badge--brand {
+  color: #0f766e;
+  background: rgba(20, 184, 166, 0.16);
+}
+
 .badge--status {
   text-transform: uppercase;
 }
@@ -90,6 +97,7 @@
 .stock-market,
 .meta-row,
 .status-label,
+.runtime-copy,
 .auth-message,
 .empty-state-copy,
 .session-copy,
@@ -101,6 +109,42 @@
 .hero-card {
   background: linear-gradient(135deg, #2563eb, #4f46e5);
   color: #ffffff;
+}
+
+.brand-row {
+  gap: 20rpx;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.brand-copy-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.brand-mark {
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 28rpx;
+  flex-shrink: 0;
+}
+
+.brand-overline {
+  font-size: 22rpx;
+  color: #0f172a;
+  opacity: 0.72;
+}
+
+.brand-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.brand-subtitle {
+  font-size: 22rpx;
+  color: #475569;
 }
 
 .hero-eyebrow {
@@ -150,6 +194,7 @@
   background: rgba(148, 163, 184, 0.16);
 }
 
+.runtime-card,
 .auth-card,
 .contract-card,
 .empty-state-card {
@@ -158,6 +203,7 @@
   gap: 20rpx;
 }
 
+.runtime-title,
 .auth-title,
 .contract-title,
 .empty-state-title {
@@ -166,11 +212,17 @@
   color: #0f172a;
 }
 
+.runtime-copy,
 .auth-message,
 .contract-copy,
 .empty-state-copy {
   display: block;
   margin-top: 8rpx;
+}
+
+.runtime-card {
+  border: 2rpx solid rgba(20, 184, 166, 0.18);
+  background: rgba(240, 253, 250, 0.92);
 }
 
 .form-stack,

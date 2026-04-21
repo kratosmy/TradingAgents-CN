@@ -1,10 +1,19 @@
 <view class="page-shell">
   <view class="disclaimer-card">
     <view class="badge-row">
-      <text class="badge badge--info">mini/ source</text>
-      <text class="badge badge--warn">local-only validation</text>
+      <text class="badge badge--info">import shell</text>
+      <text class="badge badge--brand">{{runtimeBoundary.mode}}</text>
     </view>
-    <text class="disclaimer-copy">{{localOnlyDisclosure}}</text>
+    <view class="brand-row">
+      <image class="brand-mark" src="{{brand.brandMarkPath}}" mode="aspectFit" />
+      <view class="brand-copy-stack">
+        <text class="brand-overline">{{brand.productName}}</text>
+        <text class="brand-title">{{brand.entryName}}</text>
+        <text class="brand-subtitle">AppID {{runtimeBoundary.appId}}</text>
+      </view>
+    </view>
+    <text class="disclaimer-copy">{{runtimeBoundary.disclosure}}</text>
+    <text class="evidence-copy">{{localOnlyDisclosure}}</text>
     <text class="evidence-copy">{{previewEvidenceLabel}}</text>
   </view>
 
@@ -31,6 +40,20 @@
         <text class="metric-value">{{placeholderCount}}</text>
       </view>
     </view>
+  </view>
+
+  <view class="runtime-card">
+    <view class="badge-row">
+      <text class="badge badge--info">runtime boundary</text>
+      <text class="badge badge--warn">safe default</text>
+    </view>
+    <text class="runtime-title">配置切换不需要修改页面源码</text>
+    <text class="runtime-copy">checked-in mode：placeholder-preview（当前：{{runtimeBoundary.mode}}）</text>
+    <text class="runtime-copy">checked-in baseUrl：{{runtimeBoundary.baseUrl}}</text>
+    <text class="runtime-copy">shared config：{{runtimeBoundary.sharedConfigPath}}</text>
+    <text class="runtime-copy">local override：mini/config/runtime.local.js</text>
+    <text class="runtime-copy">private DevTools config：mini/project.private.config.json</text>
+    <text class="runtime-copy">{{runtimeBoundary.swapSummary}}</text>
   </view>
 
   <view class="checkpoint-row">

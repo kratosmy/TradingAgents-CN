@@ -7,12 +7,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const miniRoot = path.resolve(__dirname, '..')
 const distDir = path.join(miniRoot, 'dist')
 const require = createRequire(import.meta.url)
-const previewMeta = require('../data/digest-cards.js')
+const { createPreviewMeta } = require('../data/digest-cards.js')
 const {
   createMemoryStorage,
   createMiniAuthSessionBoundary,
 } = require('../lib/auth-session-boundary.js')
 const { createMiniHomeController } = require('../lib/home-controller.js')
+const { getCheckedInRuntimeConfig, isLoopbackUrl } = require('../lib/runtime-config.js')
+
+const runtimeConfig = getCheckedInRuntimeConfig()
+const previewMeta = createPreviewMeta(runtimeConfig)
 
 function escapeHtml(value) {
   return String(value)
@@ -159,17 +163,17 @@ const html = `<!DOCTYPE html>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TradingAgents Mini Local Validation Preview</title>
+    <title>${escapeHtml(runtimeConfig.shell.projectName)} Preview</title>
     <style>
       :root {
         color-scheme: light;
         font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-        background: #f7f8fa;
+        background: #eef2ff;
         color: #0f172a;
       }
       body {
         margin: 0;
-        background: linear-gradient(180deg, #f7f8fa 0%, #eef2ff 100%);
+        background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
       }
       main {
         max-width: 480px;
@@ -179,7 +183,8 @@ const html = `<!DOCTYPE html>
         flex-direction: column;
         gap: 16px;
       }
-      .panel, .digest-card {
+      .panel,
+      .digest-card {
         background: rgba(255, 255, 255, 0.94);
         border-radius: 24px;
         padding: 18px;
@@ -193,15 +198,31 @@ const html = `<!DOCTYPE html>
         background: #fffaf0;
         border: 1px solid rgba(245, 158, 11, 0.35);
       }
-      .badge-row, .stock-row, .card-header, .quote-row, .meta-row {
+      .runtime-panel {
+        background: rgba(240, 253, 250, 0.92);
+        border: 1px solid rgba(20, 184, 166, 0.24);
+      }
+      .badge-row,
+      .brand-row,
+      .stock-row,
+      .card-header,
+      .quote-row,
+      .meta-row {
         display: flex;
         align-items: center;
         gap: 8px;
       }
-      .card-header, .quote-row, .meta-row {
+      .brand-row,
+      .card-header,
+      .quote-row,
+      .meta-row {
         justify-content: space-between;
       }
-      .badge, .risk-pill, .change-pill, .checkpoint, .metric {
+      .badge,
+      .risk-pill,
+      .change-pill,
+      .checkpoint,
+      .metric {
         border-radius: 999px;
         padding: 6px 10px;
         font-size: 12px;
@@ -209,6 +230,30 @@ const html = `<!DOCTYPE html>
       }
       .badge.info { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; }
       .badge.warn { background: rgba(245, 158, 11, 0.16); color: #b45309; }
+      .badge.brand { background: rgba(20, 184, 166, 0.16); color: #0f766e; }
+      .brand-stack {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .brand-mark {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        flex-shrink: 0;
+      }
+      .brand-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .brand-meta strong {
+        font-size: 28px;
+      }
+      .brand-meta span {
+        color: #475569;
+        line-height: 1.5;
+      }
       .hero {
         background: linear-gradient(135deg, #2563eb, #4f46e5);
         color: #fff;
@@ -225,7 +270,13 @@ const html = `<!DOCTYPE html>
       .checkpoints { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .compact-fields { display: flex; flex-wrap: wrap; gap: 8px; }
       .checkpoint { background: rgba(148, 163, 184, 0.16); color: #0f172a; text-align: center; }
-      .stock-market, .summary-copy, .meta-row, .status-label, .panel p { color: #475569; }
+      .stock-market, .summary-copy, .meta-row, .status-label, .panel p, .runtime-list li, code { color: #475569; }
+      .runtime-list {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 8px;
+      }
       .current-price { font-size: 28px; font-weight: 700; }
       .risk-pill--positive, .change-pill--up { background: rgba(34, 197, 94, 0.12); color: #15803d; }
       .risk-pill--warning { background: rgba(245, 158, 11, 0.16); color: #b45309; }
@@ -243,23 +294,47 @@ const html = `<!DOCTYPE html>
     <main>
       <section class="panel panel--warning">
         <div class="badge-row">
-          <span class="badge info">mini/ preview</span>
-          <span class="badge warn">local-only validation</span>
+          <span class="badge info">import shell</span>
+          <span class="badge brand">${escapeHtml(previewMeta.runtimeBoundary.mode)}</span>
         </div>
+        <div class="brand-row">
+          <div class="brand-stack">
+            <img class="brand-mark" src="${escapeHtml(previewMeta.brand.previewBrandMarkPath)}" alt="${escapeHtml(previewMeta.brand.brandMarkAlt)}" />
+            <div class="brand-meta">
+              <strong>${escapeHtml(previewMeta.brand.entryName)}</strong>
+              <span>${escapeHtml(previewMeta.brand.productName)} · ${escapeHtml(previewMeta.brand.projectName)}</span>
+              <span>AppID ${escapeHtml(previewMeta.runtimeBoundary.appId)}</span>
+            </div>
+          </div>
+        </div>
+        <p>${escapeHtml(previewMeta.runtimeBoundary.disclosure)}</p>
         <p>${escapeHtml(previewMeta.localOnlyDisclosure)}</p>
         <p>${escapeHtml(previewMeta.previewEvidenceLabel)}</p>
-        <p>Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success.</p>
+        <p>Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, upload, or runtime success.</p>
       </section>
       <section class="panel hero">
         <span>${escapeHtml(previewMeta.hero.eyebrow)}</span>
         <h1>${escapeHtml(previewMeta.hero.title)}</h1>
         <p>${escapeHtml(previewMeta.hero.subtitle)}</p>
         <div class="metrics">
+          <div class="metric"><span>runtimeMode</span><strong>${escapeHtml(previewMeta.runtimeBoundary.mode)}</strong></div>
           <div class="metric"><span>authState</span><strong>${escapeHtml(previewStates.authenticatedState.authState)}</strong></div>
           <div class="metric"><span>raw payload cards</span><strong>${previewStates.authenticatedState.rawPayloadCount}</strong></div>
           <div class="metric"><span>visible cards</span><strong>${previewStates.authenticatedState.cards.length}</strong></div>
-          <div class="metric"><span>placeholder cards</span><strong>${previewStates.authenticatedState.placeholderCount}</strong></div>
         </div>
+      </section>
+      <section class="panel runtime-panel">
+        <div class="badge-row">
+          <span class="badge info">runtime boundary</span>
+          <span class="badge warn">safe default</span>
+        </div>
+        <p>Checked-in baseUrl: <code>${escapeHtml(previewMeta.runtimeBoundary.baseUrl)}</code></p>
+        <ul class="runtime-list">
+          <li>shared config: <code>${escapeHtml(previewMeta.runtimeBoundary.sharedConfigPath)}</code></li>
+          <li>local override: <code>${escapeHtml(previewMeta.runtimeBoundary.localOverridePath)}</code></li>
+          <li>private DevTools config: <code>${escapeHtml(previewMeta.runtimeBoundary.privateProjectConfigPath)}</code></li>
+        </ul>
+        <p>${escapeHtml(previewMeta.runtimeBoundary.swapSummary)}</p>
       </section>
       <section class="checkpoints">
         ${previewMeta.checkpoints.map((item) => `<div class="checkpoint">${escapeHtml(item)}</div>`).join('')}
@@ -299,13 +374,30 @@ const html = `<!DOCTYPE html>
 `
 
 const summary = {
-  validationMode: 'local-source-build-only',
+  validationMode: runtimeConfig.validation.evidenceMode,
   generatedArtifacts: ['dist/local-preview.html', 'dist/validation-summary.json'],
   evidenceSource: 'mini/',
   disclaimers: [
+    previewMeta.runtimeBoundary.disclosure,
     previewMeta.localOnlyDisclosure,
-    'Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success.',
+    'Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, upload, or runtime success.',
   ],
+  runtimeBoundary: {
+    appId: runtimeConfig.appId,
+    mode: runtimeConfig.backend.mode,
+    baseUrl: runtimeConfig.backend.baseUrl,
+    sharedConfigPath: previewMeta.runtimeBoundary.sharedConfigPath,
+    localOverridePath: previewMeta.runtimeBoundary.localOverridePath,
+    privateProjectConfigPath: previewMeta.runtimeBoundary.privateProjectConfigPath,
+    isLoopbackTarget: isLoopbackUrl(runtimeConfig.backend.baseUrl),
+  },
+  shellMetadata: {
+    productName: runtimeConfig.shell.productName,
+    entryName: runtimeConfig.shell.entryName,
+    projectName: runtimeConfig.shell.projectName,
+    navigationBarTitle: runtimeConfig.shell.navigationBarTitle,
+    brandMarkPath: runtimeConfig.shell.brandMarkPath,
+  },
   authStates: {
     authRequired: previewStates.authRequiredState.authIssueCode,
     loginFailures: previewStates.loginFailureStates.map((item) => ({
@@ -339,14 +431,19 @@ const summary = {
     'app.wxss',
     'project.config.json',
     'sitemap.json',
+    'config/runtime.shared.js',
+    'lib/runtime-config.js',
+    'lib/auth-session-boundary.js',
+    'lib/home-controller.js',
     'pages/home/index.js',
     'pages/home/index.wxml',
     'pages/home/index.wxss',
     'pages/home/index.json',
-    'lib/auth-session-boundary.js',
-    'lib/home-controller.js',
+    'assets/tradingagents-mini-logo.png',
+    'assets/tradingagents-mini-logo.svg',
     'tests/auth-session-boundary.test.mjs',
     'tests/home-digest-rendering.test.mjs',
+    'tests/runtime-config-boundary.test.mjs',
   ],
 }
 
@@ -355,4 +452,4 @@ await fs.writeFile(path.join(distDir, 'local-preview.html'), html, 'utf8')
 await fs.writeFile(path.join(distDir, 'validation-summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8')
 
 console.log('mini build complete: wrote dist/local-preview.html and dist/validation-summary.json')
-console.log('validation posture: local-only source/build evidence from mini/; no real WeChat runtime coverage claimed')
+console.log('validation posture: source/build import-shell evidence only; no real WeChat runtime, upload, or live backend coverage claimed')

@@ -1,4 +1,4 @@
-const previewMeta = require('../../data/digest-cards.js')
+const previewMetaModule = require('../../data/digest-cards.js')
 const {
   DEFAULT_BASE_URL,
   createMiniAuthSessionBoundary,
@@ -6,11 +6,15 @@ const {
 } = require('../../lib/auth-session-boundary.js')
 const { buildBaseState, createMiniHomeController } = require('../../lib/home-controller.js')
 
+const previewMeta = previewMetaModule.createPreviewMeta()
+
 Page({
   data: buildBaseState(previewMeta),
 
   onLoad() {
     const app = typeof getApp === 'function' ? getApp() : null
+    const runtimeConfig = (app && app.globalData && app.globalData.runtimeConfig) || null
+    const previewMeta = previewMetaModule.createPreviewMeta(runtimeConfig)
     const baseUrl = (app && app.globalData && app.globalData.apiBaseUrl) || DEFAULT_BASE_URL
 
     this.controller = createMiniHomeController({

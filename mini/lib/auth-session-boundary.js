@@ -1,5 +1,5 @@
 const SESSION_STORAGE_KEY = 'tradingagents-mini.auth-session'
-const DEFAULT_BASE_URL = 'http://localhost:8001'
+const { DEFAULT_BASE_URL } = require('./runtime-config.js')
 
 function normalizeBaseUrl(baseUrl = DEFAULT_BASE_URL) {
   return String(baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '')

@@ -171,6 +171,8 @@ function buildBaseState(previewMeta = {}) {
   return {
     localOnlyDisclosure: previewMeta.localOnlyDisclosure || '',
     previewEvidenceLabel: previewMeta.previewEvidenceLabel || '',
+    brand: previewMeta.brand || {},
+    runtimeBoundary: previewMeta.runtimeBoundary || {},
     hero: previewMeta.hero || {
       eyebrow: 'Mini local preview',
       title: 'Mini auth/session boundary',

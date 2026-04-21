@@ -1,8 +1,14 @@
+const { getRuntimeConfig } = require('./lib/runtime-config.js')
+
+const runtimeConfig = getRuntimeConfig()
+
 App({
   globalData: {
-    apiBaseUrl: 'http://localhost:8001',
-    validationMode: 'local-source-build-only',
-    validationDisclosure:
-      'This mini/ application is validated only through local source/build evidence and does not claim real WeChat runtime, simulator, or device coverage.',
+    appId: runtimeConfig.appId,
+    apiBaseUrl: runtimeConfig.backend.baseUrl,
+    runtimeConfig,
+    runtimeMode: runtimeConfig.backend.mode,
+    validationMode: runtimeConfig.validation.evidenceMode,
+    validationDisclosure: runtimeConfig.validation.runtimeDisclosure,
   },
 })

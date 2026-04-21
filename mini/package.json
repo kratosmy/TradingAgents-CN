@@ -2,10 +2,10 @@
   "name": "tradingagents-mini",
   "version": "0.1.0",
   "private": true,
-  "description": "Local-only WeChat Mini Program scaffold for contract/source-build validation.",
+  "description": "Publish-facing WeChat Mini import shell with a placeholder-safe runtime boundary.",
   "scripts": {
     "build": "node ./scripts/build-local-preview.mjs",
-    "test": "node --test ./tests/auth-session-boundary.test.mjs ./tests/home-digest-rendering.test.mjs",
+    "test": "node --test ./tests/auth-session-boundary.test.mjs ./tests/home-digest-rendering.test.mjs ./tests/runtime-config-boundary.test.mjs",
     "validate": "node ./scripts/validate-mini.mjs"
   },
   "engines": {

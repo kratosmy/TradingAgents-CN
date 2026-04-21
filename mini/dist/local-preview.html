@@ -3,17 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TradingAgents Mini Local Validation Preview</title>
+    <title>TradingAgentsMiniImportShell Preview</title>
     <style>
       :root {
         color-scheme: light;
         font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-        background: #f7f8fa;
+        background: #eef2ff;
         color: #0f172a;
       }
       body {
         margin: 0;
-        background: linear-gradient(180deg, #f7f8fa 0%, #eef2ff 100%);
+        background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
       }
       main {
         max-width: 480px;
@@ -23,7 +23,8 @@
         flex-direction: column;
         gap: 16px;
       }
-      .panel, .digest-card {
+      .panel,
+      .digest-card {
         background: rgba(255, 255, 255, 0.94);
         border-radius: 24px;
         padding: 18px;
@@ -37,15 +38,31 @@
         background: #fffaf0;
         border: 1px solid rgba(245, 158, 11, 0.35);
       }
-      .badge-row, .stock-row, .card-header, .quote-row, .meta-row {
+      .runtime-panel {
+        background: rgba(240, 253, 250, 0.92);
+        border: 1px solid rgba(20, 184, 166, 0.24);
+      }
+      .badge-row,
+      .brand-row,
+      .stock-row,
+      .card-header,
+      .quote-row,
+      .meta-row {
         display: flex;
         align-items: center;
         gap: 8px;
       }
-      .card-header, .quote-row, .meta-row {
+      .brand-row,
+      .card-header,
+      .quote-row,
+      .meta-row {
         justify-content: space-between;
       }
-      .badge, .risk-pill, .change-pill, .checkpoint, .metric {
+      .badge,
+      .risk-pill,
+      .change-pill,
+      .checkpoint,
+      .metric {
         border-radius: 999px;
         padding: 6px 10px;
         font-size: 12px;
@@ -53,6 +70,30 @@
       }
       .badge.info { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; }
       .badge.warn { background: rgba(245, 158, 11, 0.16); color: #b45309; }
+      .badge.brand { background: rgba(20, 184, 166, 0.16); color: #0f766e; }
+      .brand-stack {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .brand-mark {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        flex-shrink: 0;
+      }
+      .brand-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .brand-meta strong {
+        font-size: 28px;
+      }
+      .brand-meta span {
+        color: #475569;
+        line-height: 1.5;
+      }
       .hero {
         background: linear-gradient(135deg, #2563eb, #4f46e5);
         color: #fff;
@@ -69,7 +110,13 @@
       .checkpoints { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .compact-fields { display: flex; flex-wrap: wrap; gap: 8px; }
       .checkpoint { background: rgba(148, 163, 184, 0.16); color: #0f172a; text-align: center; }
-      .stock-market, .summary-copy, .meta-row, .status-label, .panel p { color: #475569; }
+      .stock-market, .summary-copy, .meta-row, .status-label, .panel p, .runtime-list li, code { color: #475569; }
+      .runtime-list {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 8px;
+      }
       .current-price { font-size: 28px; font-weight: 700; }
       .risk-pill--positive, .change-pill--up { background: rgba(34, 197, 94, 0.12); color: #15803d; }
       .risk-pill--warning { background: rgba(245, 158, 11, 0.16); color: #b45309; }
@@ -87,26 +134,50 @@
     <main>
       <section class="panel panel--warning">
         <div class="badge-row">
-          <span class="badge info">mini/ preview</span>
-          <span class="badge warn">local-only validation</span>
+          <span class="badge info">import shell</span>
+          <span class="badge brand">placeholder-preview</span>
         </div>
-        <p>本地源码/构建验证：当前 mini/ 证据仅证明 Mini auth/session 边界与本地构建产物存在，不代表真实微信模拟器、真机或运行时验证。</p>
-        <p>Evidence source: mini/ local source-build validation output.</p>
-        <p>Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success.</p>
+        <div class="brand-row">
+          <div class="brand-stack">
+            <img class="brand-mark" src="../assets/tradingagents-mini-logo.svg" alt="TradingAgents Mini 品牌标识" />
+            <div class="brand-meta">
+              <strong>TradingAgents 盯盘助手</strong>
+              <span>TradingAgents Mini · TradingAgentsMiniImportShell</span>
+              <span>AppID wx1d02a932c4f9a4ae</span>
+            </div>
+          </div>
+        </div>
+        <p>当前证据仅覆盖已提交的 Mini 导入壳配置与本地源码/构建结果；默认运行时仍是占位预览目标，不代表真实微信运行时、真机、上传或线上后端验证。</p>
+        <p>当前 mini/ 仅验证可导入的壳层配置与本地源码/构建产物，不代表真实微信模拟器、真机、上传或线上运行时成功。</p>
+        <p>Evidence source: mini/ source-build import shell preview with a placeholder-safe runtime default.</p>
+        <p>Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, upload, or runtime success.</p>
       </section>
       <section class="panel hero">
-        <span>JWT 登录 + Bearer digest cards</span>
-        <h1>Mini home/watch digest surface</h1>
-        <p>此页面聚焦既有 `/api/auth/login` 与受保护 `/api/watch/digests` 契约的本地源码/构建验证，强调一股一张卡、等待态保留，以及仅消费共享紧凑字段的移动端映射。</p>
+        <span>TradingAgents Mini import shell</span>
+        <h1>TradingAgents 盯盘助手</h1>
+        <p>已提交的 Mini 导入壳围绕固定 AppID 与占位预览运行时构建；后续切换到真实 HTTPS 后端时只需替换本地私有配置，不需要修改页面或业务逻辑源码。</p>
         <div class="metrics">
+          <div class="metric"><span>runtimeMode</span><strong>placeholder-preview</strong></div>
           <div class="metric"><span>authState</span><strong>authenticated</strong></div>
           <div class="metric"><span>raw payload cards</span><strong>3</strong></div>
           <div class="metric"><span>visible cards</span><strong>2</strong></div>
-          <div class="metric"><span>placeholder cards</span><strong>1</strong></div>
         </div>
       </section>
+      <section class="panel runtime-panel">
+        <div class="badge-row">
+          <span class="badge info">runtime boundary</span>
+          <span class="badge warn">safe default</span>
+        </div>
+        <p>Checked-in baseUrl: <code>https://mini-runtime-placeholder.invalid</code></p>
+        <ul class="runtime-list">
+          <li>shared config: <code>mini/config/runtime.shared.js</code></li>
+          <li>local override: <code>mini/config/runtime.local.js</code></li>
+          <li>private DevTools config: <code>mini/project.private.config.json</code></li>
+        </ul>
+        <p>后续切换到真实 HTTPS 后端时，仅需提供本地私有运行时覆盖配置或 DevTools 私有项目配置，无需修改页面或业务逻辑源码。</p>
+      </section>
       <section class="checkpoints">
-        <div class="checkpoint">POST /api/auth/login contract</div><div class="checkpoint">persisted bearer session</div><div class="checkpoint">protected digest read path</div><div class="checkpoint">one card per stock_code</div><div class="checkpoint">placeholder cards preserved</div><div class="checkpoint">compact shared fields only</div><div class="checkpoint">local-only disclosure</div>
+        <div class="checkpoint">checked-in AppID wiring</div><div class="checkpoint">placeholder-safe runtime default</div><div class="checkpoint">config-driven runtime swap path</div><div class="checkpoint">operator-private overrides stay local</div><div class="checkpoint">POST /api/auth/login contract</div><div class="checkpoint">protected digest read path</div><div class="checkpoint">one card per stock_code</div><div class="checkpoint">placeholder cards preserved</div><div class="checkpoint">source-build honesty only</div>
       </section>
       <section class="panel">
         <div class="badge-row">

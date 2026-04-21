@@ -1,14 +1,31 @@
 {
-  "validationMode": "local-source-build-only",
+  "validationMode": "source-build-import-shell",
   "generatedArtifacts": [
     "dist/local-preview.html",
     "dist/validation-summary.json"
   ],
   "evidenceSource": "mini/",
   "disclaimers": [
-    "本地源码/构建验证：当前 mini/ 证据仅证明 Mini auth/session 边界与本地构建产物存在，不代表真实微信模拟器、真机或运行时验证。",
-    "Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, or runtime success."
+    "当前证据仅覆盖已提交的 Mini 导入壳配置与本地源码/构建结果；默认运行时仍是占位预览目标，不代表真实微信运行时、真机、上传或线上后端验证。",
+    "当前 mini/ 仅验证可导入的壳层配置与本地源码/构建产物，不代表真实微信模拟器、真机、上传或线上运行时成功。",
+    "Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, upload, or runtime success."
   ],
+  "runtimeBoundary": {
+    "appId": "wx1d02a932c4f9a4ae",
+    "mode": "placeholder-preview",
+    "baseUrl": "https://mini-runtime-placeholder.invalid",
+    "sharedConfigPath": "mini/config/runtime.shared.js",
+    "localOverridePath": "mini/config/runtime.local.js",
+    "privateProjectConfigPath": "mini/project.private.config.json",
+    "isLoopbackTarget": false
+  },
+  "shellMetadata": {
+    "productName": "TradingAgents Mini",
+    "entryName": "TradingAgents 盯盘助手",
+    "projectName": "TradingAgentsMiniImportShell",
+    "navigationBarTitle": "TradingAgents Mini",
+    "brandMarkPath": "/assets/tradingagents-mini-logo.png"
+  },
   "authStates": {
     "authRequired": "missing_or_invalid_session",
     "loginFailures": [
@@ -62,13 +79,18 @@
     "app.wxss",
     "project.config.json",
     "sitemap.json",
+    "config/runtime.shared.js",
+    "lib/runtime-config.js",
+    "lib/auth-session-boundary.js",
+    "lib/home-controller.js",
     "pages/home/index.js",
     "pages/home/index.wxml",
     "pages/home/index.wxss",
     "pages/home/index.json",
-    "lib/auth-session-boundary.js",
-    "lib/home-controller.js",
+    "assets/tradingagents-mini-logo.png",
+    "assets/tradingagents-mini-logo.svg",
     "tests/auth-session-boundary.test.mjs",
-    "tests/home-digest-rendering.test.mjs"
+    "tests/home-digest-rendering.test.mjs",
+    "tests/runtime-config-boundary.test.mjs"
   ]
 }
