@@ -24,6 +24,7 @@ function getLocalOnlyWeChatPaths(runtimeConfig = {}) {
     runtimeConfig.operatorOverrides?.localRuntimeConfigPath,
     runtimeConfig.operatorOverrides?.devtoolsPrivateConfigPath,
     runtimeConfig.operatorOverrides?.uploadSecretsDirectory,
+    runtimeConfig.operatorOverrides?.wechatCiPackageDirectory,
   ])
 }
 
@@ -132,9 +133,21 @@ function validateManualUploadReadiness(snapshot = loadCheckedInManualUploadSnaps
     'release metadata shape',
     isSemver(packageJson.version) &&
       packageJson.scripts?.preflight === 'node ./scripts/preflight-manual-upload.mjs' &&
+      packageJson.scripts?.['install:wechat-ci'] === 'node ./scripts/install-wechat-ci.mjs' &&
       packageJson.scripts?.['upload:wechat'] === 'node ./scripts/upload-wechat.mjs',
-    `mini/package.json version ${packageJson.version} is semver and the manual-upload preflight plus gated upload scaffold commands are exposed.`,
-    'mini/package.json must expose a semver version plus npm scripts preflight -> node ./scripts/preflight-manual-upload.mjs and upload:wechat -> node ./scripts/upload-wechat.mjs.',
+    `mini/package.json version ${packageJson.version} is semver and the manual-upload preflight, operator-only install helper, and gated upload scaffold commands are exposed.`,
+    'mini/package.json must expose a semver version plus npm scripts preflight -> node ./scripts/preflight-manual-upload.mjs, install:wechat-ci -> node ./scripts/install-wechat-ci.mjs, and upload:wechat -> node ./scripts/upload-wechat.mjs.',
+  )
+
+  const checkedInMiniprogramCiDependency = packageJson.dependencies?.['miniprogram-ci'] ||
+    packageJson.devDependencies?.['miniprogram-ci'] ||
+    packageJson.optionalDependencies?.['miniprogram-ci']
+
+  record(
+    'operator-only miniprogram-ci dependency boundary',
+    !checkedInMiniprogramCiDependency,
+    `Checked-in Mini dependencies stay free of ${runtimeConfig.operatorOverrides.wechatCiPackageSpec}; later activation uses ${runtimeConfig.operatorOverrides.wechatCiInstallCommand} in a local-only install directory.`,
+    `mini/package.json must keep ${runtimeConfig.operatorOverrides.wechatCiPackageSpec} out of checked-in dependencies so the upload-only dependency footprint stays operator-local.`,
   )
 
   const requiredGitignoreEntries = getLocalOnlyWeChatPaths(runtimeConfig)

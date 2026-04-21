@@ -46,6 +46,9 @@ function createPreviewMeta(runtimeConfig = getCheckedInRuntimeConfig()) {
       privateProjectConfigPath: DEVTOOLS_PRIVATE_CONFIG_RELATIVE_PATH,
       uploadSecretsDirectory: runtimeConfig.operatorOverrides.uploadSecretsDirectory,
       uploadPrivateKeyPath: runtimeConfig.operatorOverrides.uploadPrivateKeyPath,
+      wechatCiPackageDirectory: runtimeConfig.operatorOverrides.wechatCiPackageDirectory,
+      wechatCiPackageSpec: runtimeConfig.operatorOverrides.wechatCiPackageSpec,
+      wechatCiInstallCommand: runtimeConfig.operatorOverrides.wechatCiInstallCommand,
       swapSummary: runtimeConfig.operatorOverrides.swapSummary,
     },
     hero: {
@@ -65,6 +68,7 @@ function createPreviewMeta(runtimeConfig = getCheckedInRuntimeConfig()) {
       'checked-in runtime/upload handoff',
       'operator-private overrides stay local',
       'local-only upload secrets',
+      'operator-only miniprogram-ci install',
       'POST /api/auth/login contract',
       'protected digest read path',
       'one card per stock_code',

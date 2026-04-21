@@ -32,7 +32,9 @@ test('manual upload preflight command reports checked-in shell readiness while d
   assert.match(result.stdout, /mini\/config\/runtime\.local\.js/)
   assert.match(result.stdout, /mini\/project\.private\.config\.json/)
   assert.match(result.stdout, /mini\/upload-secrets\//)
+  assert.match(result.stdout, /mini\/\.operator-tools\/wechat-ci\//)
   assert.match(result.stdout, /upload:wechat -- --dry-run/)
+  assert.match(result.stdout, /install:wechat-ci/)
   assert.match(result.stdout, /does not prove real WeChat runtime|不证明真实微信运行时/)
 })
 
@@ -45,15 +47,17 @@ test('checked-in release handoff separates validated shell readiness from deferr
   assert.ok(handoff.validatedNow.some((item) => item.includes('placeholder-preview')))
   assert.ok(handoff.deferredOperatorSteps.some((item) => item.includes('WeChat DevTools')))
   assert.ok(
-    handoff.validatedNow.some((item) => item.includes('miniprogram-ci upload scaffold')),
+    handoff.validatedNow.some((item) => item.includes('keeps miniprogram-ci@2.1.32 out of checked-in Mini dependencies')),
   )
   assert.ok(handoff.localOnlyPaths.includes('mini/config/runtime.local.js'))
   assert.ok(handoff.localOnlyPaths.includes('mini/project.private.config.json'))
   assert.ok(handoff.localOnlyPaths.includes('mini/upload-secrets/'))
+  assert.ok(handoff.localOnlyPaths.includes('mini/.operator-tools/wechat-ci/'))
   assert.match(markdown, /## Validated in this repo/)
   assert.match(markdown, /## Deferred operator\/runtime\/upload steps/)
   assert.match(markdown, /## Keep local-only and untracked/)
   assert.match(markdown, /npm --prefix mini run upload:wechat -- --dry-run/)
+  assert.match(markdown, /npm --prefix mini run install:wechat-ci/)
   assert.match(markdown, /mini\/upload-secrets\/code-upload\.private\.key/)
 })
 

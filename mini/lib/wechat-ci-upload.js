@@ -1,12 +1,15 @@
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+const childProcess = require('node:child_process')
+const { createRequire } = require('node:module')
 
 const packageJson = require('../package.json')
 const { isSemver } = require('./manual-upload-preflight.js')
 const { getCheckedInRuntimeConfig } = require('./runtime-config.js')
 
 const UPLOAD_ENV_KEYS = Object.freeze({
+  packageDirectory: 'WECHAT_MINI_CI_PACKAGE_DIR',
   privateKeyPath: 'WECHAT_MINI_CI_PRIVATE_KEY_PATH',
   privateKeyValue: 'WECHAT_MINI_CI_PRIVATE_KEY',
   robotId: 'WECHAT_MINI_CI_ROBOT_ID',
@@ -42,6 +45,86 @@ function formatDisplayPath(targetPath, repoRoot) {
   }
 
   return targetPath
+}
+
+function createOperatorWechatCiInstallPlan({
+  env = process.env,
+  cwd = path.resolve(__dirname, '..'),
+  miniRoot = path.resolve(__dirname, '..'),
+  repoRoot = path.resolve(miniRoot, '..'),
+  runtimeConfig = getCheckedInRuntimeConfig(),
+} = {}) {
+  const rawOverrideDirectory = normalizeValue(env[UPLOAD_ENV_KEYS.packageDirectory])
+  const configuredPackageDirectory =
+    rawOverrideDirectory ||
+    runtimeConfig.operatorOverrides.wechatCiPackageDirectory
+  const resolvedPackageDirectory = rawOverrideDirectory
+    ? path.resolve(cwd, rawOverrideDirectory)
+    : path.resolve(repoRoot, configuredPackageDirectory)
+
+  return {
+    packageSpec: runtimeConfig.operatorOverrides.wechatCiPackageSpec,
+    installCommand: runtimeConfig.operatorOverrides.wechatCiInstallCommand,
+    packageDirectory: formatDisplayPath(resolvedPackageDirectory, repoRoot),
+    resolvedPackageDirectory,
+    packageDirectoryEnv: UPLOAD_ENV_KEYS.packageDirectory,
+  }
+}
+
+function ensureOperatorWechatCiManifest(installPlan) {
+  fs.mkdirSync(installPlan.resolvedPackageDirectory, { recursive: true })
+  const manifestPath = path.join(installPlan.resolvedPackageDirectory, 'package.json')
+
+  if (!fs.existsSync(manifestPath)) {
+    fs.writeFileSync(
+      manifestPath,
+      `${JSON.stringify({
+        name: 'tradingagents-mini-operator-wechat-ci',
+        private: true,
+        version: '0.0.0',
+        description: 'Local-only operator install surface for miniprogram-ci.',
+      }, null, 2)}\n`,
+      'utf8',
+    )
+  }
+
+  return manifestPath
+}
+
+function formatOperatorWechatCiInstallReport({ installed, installPlan }) {
+  const lines = [
+    `mini operator dependency: ${installed ? 'INSTALLED' : 'PLAN'} — reviewed miniprogram-ci stays outside checked-in Mini dependencies.`,
+    `Reviewed package: ${installPlan.packageSpec}`,
+    `Local install dir: ${installPlan.packageDirectory}`,
+    `Command: ${installPlan.installCommand}`,
+    '',
+    'Why this exists:',
+    '- The checked-in Mini shell keeps the later upload path, but no longer installs miniprogram-ci during normal repo setup.',
+    '- Operators can install the reviewed package only in a local-only directory right before live upload work.',
+    `- Override the install location with ${installPlan.packageDirectoryEnv} if the operator needs a different local path.`,
+  ]
+
+  if (!installed) {
+    lines.push('', 'Dry run only: no package was installed.')
+  }
+
+  return `${lines.join('\n')}\n`
+}
+
+function installOperatorWechatCiDependency(options = {}, { execFileSync = childProcess.execFileSync } = {}) {
+  const installPlan = createOperatorWechatCiInstallPlan(options)
+  ensureOperatorWechatCiManifest(installPlan)
+
+  execFileSync(
+    'npm',
+    ['install', '--no-save', '--no-package-lock', installPlan.packageSpec],
+    {
+      cwd: installPlan.resolvedPackageDirectory,
+      stdio: 'inherit',
+    },
+  )
+
+  return installPlan
 }
 
 function createUploadGuidance(runtimeConfig, { dryRun }) {
@@ -110,6 +193,13 @@ function resolveWechatCiUploadRequest({
   const dryRun = argv.includes('--dry-run')
   const liveUploadEnabled = normalizeValue(env[UPLOAD_ENV_KEYS.enableLiveUpload]) === '1'
   const errors = []
+  const operatorInstallPlan = createOperatorWechatCiInstallPlan({
+    env,
+    cwd,
+    miniRoot,
+    repoRoot,
+    runtimeConfig,
+  })
 
   const resolvedProjectPath = path.resolve(
     cwd,
@@ -154,6 +244,9 @@ function resolveWechatCiUploadRequest({
     robotId,
     version,
     description,
+    operatorPackageDirectory: operatorInstallPlan.packageDirectory,
+    operatorPackageSpec: operatorInstallPlan.packageSpec,
+    operatorInstallCommand: operatorInstallPlan.installCommand,
     privateKeySource: privateKey ? privateKey.displayValue : `${UPLOAD_ENV_KEYS.privateKeyPath} or ${UPLOAD_ENV_KEYS.privateKeyValue}`,
     uploadSettings: DEFAULT_UPLOAD_SETTINGS,
     enableLiveUploadEnv: `${UPLOAD_ENV_KEYS.enableLiveUpload}=1`,
@@ -169,6 +262,10 @@ function resolveWechatCiUploadRequest({
       plan,
       runtimeConfig,
       privateKey,
+      env,
+      cwd,
+      miniRoot,
+      repoRoot,
     }
   }
 
@@ -187,6 +284,10 @@ function resolveWechatCiUploadRequest({
       plan,
       runtimeConfig,
       privateKey,
+      env,
+      cwd,
+      miniRoot,
+      repoRoot,
     }
   }
 
@@ -206,6 +307,10 @@ function resolveWechatCiUploadRequest({
     plan,
     runtimeConfig,
     privateKey,
+    env,
+    cwd,
+    miniRoot,
+    repoRoot,
   }
 }
 
@@ -233,28 +338,43 @@ function materializePrivateKey(privateKey) {
   }
 }
 
-function loadMiniprogramCiDependency() {
-  return require('miniprogram-ci')
+function loadMiniprogramCiDependency(options = {}) {
+  const installPlan = createOperatorWechatCiInstallPlan(options)
+  const manifestPath = ensureOperatorWechatCiManifest(installPlan)
+  const operatorRequire = createRequire(manifestPath)
+
+  return operatorRequire('miniprogram-ci')
 }
 
 async function performLiveWechatCiUpload(
   request,
   {
-    loadMiniprogramCi = loadMiniprogramCiDependency,
+    loadMiniprogramCi,
   } = {},
 ) {
   let miniprogramCi
   try {
-    miniprogramCi = await Promise.resolve(loadMiniprogramCi())
+    miniprogramCi = await Promise.resolve(
+      loadMiniprogramCi
+        ? loadMiniprogramCi()
+        : loadMiniprogramCiDependency({
+            env: request.env,
+            cwd: request.cwd,
+            miniRoot: request.miniRoot,
+            repoRoot: request.repoRoot,
+            runtimeConfig: request.runtimeConfig,
+          }),
+    )
   } catch (error) {
     return {
       ...request,
       ok: false,
       outcome: 'refused_missing_dependency',
-      summary: 'Live upload was enabled, but miniprogram-ci is not installed in this environment.',
+      summary: 'Live upload was enabled, but the reviewed operator-only miniprogram-ci install is not available in this environment.',
       errors: [error instanceof Error ? error.message : String(error)],
       guidance: [
-        'Install miniprogram-ci in the operator environment before attempting a live upload.',
+        `Run ${request.plan.operatorInstallCommand} to install ${request.plan.operatorPackageSpec} under ${request.plan.operatorPackageDirectory} before attempting a live upload.`,
+        `If the operator keeps the package elsewhere, point ${UPLOAD_ENV_KEYS.packageDirectory} at that local-only install directory and retry.`,
         'Keep using --dry-run for source/build-first validation when the dependency or operator prerequisites are unavailable.',
       ],
     }
@@ -323,6 +443,9 @@ function formatWechatCiUploadReport(result) {
   const lines = [
     `mini upload: ${statusLabel} — ${result.summary}`,
     'Checked-in upload scaffold: miniprogram-ci path with runtime-only secret injection and no committed credentials.',
+    `Operator install dir: ${result.plan.operatorPackageDirectory}`,
+    `Reviewed package: ${result.plan.operatorPackageSpec}`,
+    `Install command: ${result.plan.operatorInstallCommand}`,
     `AppID: ${result.plan.appId}`,
     `Project path: ${result.plan.projectPath}`,
     `Private key source: ${result.plan.privateKeySource}`,
@@ -354,7 +477,10 @@ function formatWechatCiUploadReport(result) {
 module.exports = {
   DEFAULT_UPLOAD_SETTINGS,
   UPLOAD_ENV_KEYS,
+  createOperatorWechatCiInstallPlan,
+  formatOperatorWechatCiInstallReport,
   formatWechatCiUploadReport,
+  installOperatorWechatCiDependency,
   resolveWechatCiUploadRequest,
   runWechatCiUpload,
 }

@@ -6,6 +6,7 @@ function createLocalOnlyPaths(runtimeConfig) {
     runtimeConfig.operatorOverrides.devtoolsPrivateConfigPath,
     runtimeConfig.operatorOverrides.uploadSecretsDirectory,
     runtimeConfig.operatorOverrides.uploadPrivateKeyPath,
+    runtimeConfig.operatorOverrides.wechatCiPackageDirectory,
   ].filter(Boolean))]
 }
 
@@ -25,13 +26,14 @@ function createReleaseHandoff({
       `Checked-in AppID ${runtimeConfig.appId} remains wired through mini/project.config.json and mini/config/runtime.shared.js.`,
       'The delivered Home / Watch / Account shell is validated here through committed source, local tests, generated build proof, and offline preflight output.',
       `The checked-in runtime boundary stays in ${runtimeConfig.backend.mode} mode with a non-loopback HTTPS target (${runtimeConfig.backend.baseUrl}).`,
-      'A checked-in miniprogram-ci upload scaffold exists, but it refuses to proceed until operator-injected secrets and upload metadata are provided at runtime.',
+      `The upload scaffold keeps ${runtimeConfig.operatorOverrides.wechatCiPackageSpec} out of checked-in Mini dependencies; operators install it locally via ${runtimeConfig.operatorOverrides.wechatCiInstallCommand} only when a live upload attempt is actually needed.`,
       'Manual-upload readiness here means the import shell can be handed off for operator-controlled DevTools work without claiming live backend, runtime, upload, audit, or publish completion.',
     ],
     deferredOperatorSteps: [
       `Create ${runtimeConfig.operatorOverrides.localRuntimeConfigPath} with the real HTTPS backend target and keep it local-only.`,
       `Import mini/ into WeChat DevTools while signed in as the operator; keep ${runtimeConfig.operatorOverrides.devtoolsPrivateConfigPath} machine-local.`,
       `Place any upload private key or upload-secret material under ${runtimeConfig.operatorOverrides.uploadSecretsDirectory} (for example ${runtimeConfig.operatorOverrides.uploadPrivateKeyPath}) without committing it.`,
+      `Before any live upload attempt, run ${runtimeConfig.operatorOverrides.wechatCiInstallCommand} to place ${runtimeConfig.operatorOverrides.wechatCiPackageSpec} under ${runtimeConfig.operatorOverrides.wechatCiPackageDirectory} or point WECHAT_MINI_CI_PACKAGE_DIR at another local-only install directory.`,
       'Run real WeChat simulator/device verification against the chosen runtime and confirm live backend reachability outside this repository-only environment.',
       'Complete platform-side IP allowlisting, privacy/compliance setup, audit submission, and final publish actions after operator validation succeeds.',
     ],
@@ -39,6 +41,7 @@ function createReleaseHandoff({
     operatorHandoffSteps: [
       'Run npm --prefix mini run preflight to confirm the checked-in shell still fails closed on illegal repo-owned config.',
       'Run npm --prefix mini run upload:wechat -- --dry-run; without injected secrets it should refuse with actionable guidance, and with injected operator inputs it should print a no-upload plan.',
+      `Run ${runtimeConfig.operatorOverrides.wechatCiInstallCommand} only in the operator environment before any non-dry-run upload attempt so ${runtimeConfig.operatorOverrides.wechatCiPackageSpec} stays outside the default repo dependency footprint.`,
       'Review mini/dist/manual-upload-handoff.md alongside mini/dist/local-preview.html and mini/dist/validation-summary.json before handing the shell to the operator.',
       'Hand off only the checked-in mini/ shell plus instructions for local-only overrides and secrets; do not hand off committed credentials because none should exist.',
     ],

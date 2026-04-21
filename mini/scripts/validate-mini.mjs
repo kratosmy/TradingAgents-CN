@@ -74,6 +74,7 @@ const requiredFiles = [
   'pages/account/help/index.wxml',
   'pages/account/help/index.wxss',
   'scripts/build-local-preview.mjs',
+  'scripts/install-wechat-ci.mjs',
   'scripts/preflight-manual-upload.mjs',
   'scripts/upload-wechat.mjs',
   'tests/auth-session-boundary.test.mjs',
@@ -148,14 +149,18 @@ async function ensureConfigShape() {
     throw new Error('mini/package.json must expose upload:wechat -> node ./scripts/upload-wechat.mjs for the gated miniprogram-ci scaffold')
   }
 
-  const declaredMiniprogramCiRange = packageJson.dependencies?.['miniprogram-ci']
+  if (packageJson.scripts['install:wechat-ci'] !== 'node ./scripts/install-wechat-ci.mjs') {
+    throw new Error('mini/package.json must expose install:wechat-ci -> node ./scripts/install-wechat-ci.mjs for the operator-only miniprogram-ci helper')
+  }
+
   if (
-    typeof declaredMiniprogramCiRange !== 'string' ||
-    declaredMiniprogramCiRange.length === 0 ||
-    packageLock.packages?.['']?.dependencies?.['miniprogram-ci'] !== declaredMiniprogramCiRange ||
-    typeof packageLock.packages?.['node_modules/miniprogram-ci']?.version !== 'string'
+    typeof packageJson.dependencies?.['miniprogram-ci'] === 'string' ||
+    typeof packageJson.devDependencies?.['miniprogram-ci'] === 'string' ||
+    typeof packageJson.optionalDependencies?.['miniprogram-ci'] === 'string' ||
+    typeof packageLock.packages?.['']?.dependencies?.['miniprogram-ci'] === 'string' ||
+    typeof packageLock.packages?.['node_modules/miniprogram-ci']?.version === 'string'
   ) {
-    throw new Error('mini/package.json and package-lock.json must declare miniprogram-ci so a clean install can reach the live-enabled upload branch')
+    throw new Error('mini/package.json and package-lock.json must keep miniprogram-ci out of checked-in dependencies so the upload-only footprint stays operator-local')
   }
 
   if (
@@ -188,9 +193,10 @@ async function ensurePrivateOverridesStayLocal() {
   if (
     !gitignoreText.includes('mini/project.private.config.json') ||
     !gitignoreText.includes('mini/config/runtime.local.js') ||
-    !gitignoreText.includes('mini/upload-secrets/')
+    !gitignoreText.includes('mini/upload-secrets/') ||
+    !gitignoreText.includes('mini/.operator-tools/')
   ) {
-    throw new Error('repo .gitignore must keep Mini project.private.config.json, runtime.local.js, and mini/upload-secrets/ local-only')
+    throw new Error('repo .gitignore must keep Mini project.private.config.json, runtime.local.js, mini/upload-secrets/, and mini/.operator-tools/ local-only')
   }
 }
 
@@ -243,7 +249,8 @@ async function ensureShellSourceReuse() {
     !shellContentText.includes('Privacy') ||
     !shellContentText.includes('Help') ||
     !shellContentText.includes('manual-upload preflight') ||
-    !shellContentText.includes('mini/upload-secrets/')
+    !shellContentText.includes('mini/upload-secrets/') ||
+    !shellContentText.includes('mini/.operator-tools/wechat-ci/')
   ) {
     throw new Error('Account source must keep Settings / About / Privacy / Help as real in-app destinations')
   }
@@ -294,6 +301,8 @@ async function ensureBuildArtifacts() {
     !previewText.includes('mini/config/runtime.local.js') ||
     !previewText.includes('project.private.config.json') ||
     !previewText.includes('mini/upload-secrets/') ||
+    !previewText.includes('mini/.operator-tools/wechat-ci/') ||
+    !previewText.includes('install:wechat-ci') ||
     !previewText.includes('manual-upload shell readiness only') ||
     !previewText.includes('operator/runtime/upload steps') ||
     !previewText.includes('not evidence of real WeChat simulator, device, upload, or runtime success')
@@ -433,6 +442,6 @@ await ensurePrivateOverridesStayLocal()
 await ensureShellSourceReuse()
 await ensureBuildArtifacts()
 
-console.log('mini_validate passed: verified publish shell registration, dark-premium tokens, placeholder runtime boundary, manual-upload handoff artifacts, gated miniprogram-ci scaffold, and source/build evidence from mini/')
+console.log('mini_validate passed: verified publish shell registration, dark-premium tokens, placeholder runtime boundary, manual-upload handoff artifacts, operator-only miniprogram-ci activation path, and source/build evidence from mini/')
 console.log(`required files: ${requiredFiles.join(', ')}`)
 console.log('artifacts: dist/local-preview.html, dist/validation-summary.json, dist/manual-upload-handoff.json, dist/manual-upload-handoff.md')

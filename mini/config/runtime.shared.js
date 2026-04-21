@@ -36,6 +36,9 @@ module.exports = Object.freeze({
     devtoolsPrivateConfigPath: 'mini/project.private.config.json',
     uploadSecretsDirectory: 'mini/upload-secrets/',
     uploadPrivateKeyPath: 'mini/upload-secrets/code-upload.private.key',
+    wechatCiPackageDirectory: 'mini/.operator-tools/wechat-ci/',
+    wechatCiPackageSpec: 'miniprogram-ci@2.1.32',
+    wechatCiInstallCommand: 'npm --prefix mini run install:wechat-ci',
     swapSummary:
       '后续切换到真实 HTTPS 后端时，仅需提供本地私有运行时覆盖配置或 DevTools 私有项目配置，无需修改页面或业务逻辑源码。',
   }),

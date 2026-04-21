@@ -979,6 +979,7 @@ const summary = {
     'pages/account/help/index.wxml',
     'pages/account/help/index.wxss',
     'scripts/build-local-preview.mjs',
+    'scripts/install-wechat-ci.mjs',
     'scripts/upload-wechat.mjs',
     'tests/auth-session-boundary.test.mjs',
     'tests/home-digest-rendering.test.mjs',

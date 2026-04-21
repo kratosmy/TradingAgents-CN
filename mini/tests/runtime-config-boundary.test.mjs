@@ -33,6 +33,9 @@ test('checked-in runtime config preserves AppID and a non-loopback placeholder t
   assert.equal(runtimeConfigModule.isLoopbackUrl(runtimeConfig.backend.baseUrl), false)
   assert.match(runtimeConfig.backend.baseUrl, /^https:\/\//)
   assert.match(runtimeConfig.backend.baseUrl, /\.invalid(?:\/|$)/)
+  assert.equal(runtimeConfig.operatorOverrides.wechatCiPackageDirectory, 'mini/.operator-tools/wechat-ci/')
+  assert.equal(runtimeConfig.operatorOverrides.wechatCiPackageSpec, 'miniprogram-ci@2.1.32')
+  assert.equal(runtimeConfig.operatorOverrides.wechatCiInstallCommand, 'npm --prefix mini run install:wechat-ci')
 })
 
 test('operator overrides can swap runtime targets without changing shared shell metadata', () => {
@@ -129,6 +132,10 @@ test('operator-private runtime overrides stay outside versioned source', () => {
   assert.match(gitignore, /mini\/project\.private\.config\.json/)
   assert.match(gitignore, /mini\/config\/runtime\.local\.js/)
   assert.match(gitignore, /mini\/upload-secrets\//)
+  assert.match(gitignore, /mini\/\.operator-tools\//)
   assert.equal(previewMeta.runtimeBoundary.localOverridePath, 'mini/config/runtime.local.js')
   assert.equal(previewMeta.runtimeBoundary.uploadSecretsDirectory, 'mini/upload-secrets/')
+  assert.equal(previewMeta.runtimeBoundary.wechatCiPackageDirectory, 'mini/.operator-tools/wechat-ci/')
+  assert.equal(previewMeta.runtimeBoundary.wechatCiPackageSpec, 'miniprogram-ci@2.1.32')
+  assert.equal(previewMeta.runtimeBoundary.wechatCiInstallCommand, 'npm --prefix mini run install:wechat-ci')
 })
