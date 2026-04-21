@@ -41,3 +41,4 @@ Environment variables, external dependencies, and setup notes.
 - WeChat-specific login/bind delivery remains out of scope for this continuation.
 - The Mini client must remain thin and contract-first so the same backend payloads stay reusable for future mobile work.
 - Secrets must stay local-only and must never be committed.
+- The repo root `.gitignore` contains a broad `data/` ignore rule, so new checked-in Mini source/helpers should not be placed under `mini/data/` unless the ignore patterns are intentionally adjusted first.

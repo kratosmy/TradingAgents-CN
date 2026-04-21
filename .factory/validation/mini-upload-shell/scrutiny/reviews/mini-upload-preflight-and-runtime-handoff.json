@@ -1,0 +1,33 @@
+{
+  "featureId": "mini-upload-preflight-and-runtime-handoff",
+  "reviewedAt": "2026-04-21T08:54:24.131357Z",
+  "commitId": "0884179955a9f420e515bf89084cd650a6a38855",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The feature adds the requested offline preflight, generated handoff artifacts, and honest shell/build messaging, but the core hygiene validator does not actually detect committed private WeChat artifacts. That means the repo can contain illegal checked-in secrets/config and `npm --prefix mini run preflight` would still report PASS.",
+    "issues": [
+      {
+        "file": "mini/lib/manual-upload-preflight.js",
+        "line": 93,
+        "severity": "blocking",
+        "description": "The `local-only WeChat artifact hygiene` check only verifies that `.gitignore` contains the local-only paths. If `mini/project.private.config.json`, `mini/config/runtime.local.js`, or files under `mini/upload-secrets/` are already tracked, Git ignore rules no longer protect them, but this preflight still passes. That violates the feature requirement to fail closed on illegal checked-in private WeChat artifacts and upload material."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "services",
+      "observation": "The new release-preflight command is part of the feature's verification path, but `.factory/services.yaml` does not expose it. Future agents have to rediscover `npm --prefix mini run preflight` from package.json or handoffs instead of the shared command manifest.",
+      "evidence": "Feature handoff lines 31-33 record `npm --prefix mini run preflight` as a verification command, while `.factory/services.yaml:1-9` lists install/test/lint/typecheck/build/mini_upload_dry_run/mini_install/mini_validate only."
+    },
+    {
+      "area": "knowledge",
+      "observation": "The repo-wide `data/` ignore rule also ignores newly added files under `mini/data/`, which is easy to miss. The worker discovered this only after `mini/data/release-handoff.js` was ignored and then moved the helper into `mini/lib/`; that convention is not called out in mission shared-state docs.",
+      "evidence": "The worker transcript skeleton shows `git check-ignore -v \"mini/data/release-handoff.js\"` returning `.gitignore:78:data/ mini/data/release-handoff.js`, followed immediately by a command whose stated purpose was to move the helper module and update imports."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed commit `0884179955a9f420e515bf89084cd650a6a38855` for `mini-upload-preflight-and-runtime-handoff`. Status: fail. The feature mostly delivers the intended preflight and handoff scaffolding, but the main hygiene check only inspects `.gitignore` text and will not catch already-tracked private WeChat files or upload secrets."
+}

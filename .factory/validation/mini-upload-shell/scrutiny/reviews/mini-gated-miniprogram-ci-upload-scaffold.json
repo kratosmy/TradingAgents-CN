@@ -1,0 +1,22 @@
+{
+  "featureId": "mini-gated-miniprogram-ci-upload-scaffold",
+  "reviewedAt": "2026-04-21T16:59:00Z",
+  "commitId": "a6033c38a6523d7144503badf3a34a9742b7b8dd",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The secret-gated dry-run scaffold is wired through `mini/scripts/upload-wechat.mjs`, backed by focused regression tests, and the worker followed the Mini release-scaffold procedure. However, the checked-in live-activation path is incomplete: `mini/lib/wechat-ci-upload.js` only reaches real upload by `require('miniprogram-ci')`, but the Mini package manifest/lockfile never install that dependency, so a clean checkout still fails after all documented env vars are provided. That leaves the feature short of the promised later-activation path and makes the new handoff copy overstate what remains after secrets are injected.",
+    "issues": [
+      {
+        "file": "mini/lib/wechat-ci-upload.js",
+        "line": 239,
+        "severity": "blocking",
+        "description": "The checked-in live-upload path is not actually activatable on a clean checkout. `performLiveWechatCiUpload()` unconditionally `require`s `miniprogram-ci`, but `mini/package.json` has no dependency entry and `mini/package-lock.json` contains no `miniprogram-ci` record. Even after operators provide the documented private key, robot/version/description, and `WECHAT_MINI_CI_ENABLE_LIVE_UPLOAD=1`, the command still falls into `refused_missing_dependency` instead of reaching the promised later-activation path. This also conflicts with `mini/lib/release-handoff.js:28` and `:41`, which say the scaffold only waits on injected secrets/upload metadata."
+      }
+    ]
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": null,
+  "summary": "Fail. The dry-run secret gate and refusal messaging look correct, but the checked-in live path cannot be activated from a clean repo because `miniprogram-ci` is required at runtime without being declared in the Mini package manifest or lockfile."
+}
