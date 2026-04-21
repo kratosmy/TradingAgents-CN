@@ -84,10 +84,29 @@ function openAccountSecondaryPage(wxLike, pagePath) {
   return pagePath
 }
 
-function returnToAccountSurface(wxLike, fallbackPagePath = '/pages/account/index') {
-  if (wxLike && typeof wxLike.navigateBack === 'function') {
-    wxLike.navigateBack({ delta: 1 })
-    return { type: 'navigateBack', fallbackPagePath }
+function isPrimarySurfacePage(pagePath) {
+  return PRIMARY_SURFACES.some((surface) => surface.pagePath === pagePath)
+}
+
+function getCurrentPageStack(wxLike) {
+  const pageStackProvider =
+    (wxLike && typeof wxLike.getCurrentPages === 'function' && wxLike.getCurrentPages.bind(wxLike)) ||
+    (typeof globalThis !== 'undefined' &&
+      typeof globalThis.getCurrentPages === 'function' &&
+      globalThis.getCurrentPages.bind(globalThis))
+
+  if (!pageStackProvider) {
+    return null
+  }
+
+  const pages = pageStackProvider()
+  return Array.isArray(pages) ? pages : null
+}
+
+function navigateToFallbackSurface(wxLike, fallbackPagePath) {
+  if (isPrimarySurfacePage(fallbackPagePath) && wxLike && typeof wxLike.switchTab === 'function') {
+    wxLike.switchTab({ url: fallbackPagePath })
+    return { type: 'switchTab', fallbackPagePath }
   }
 
   if (wxLike && typeof wxLike.redirectTo === 'function') {
@@ -101,6 +120,36 @@ function returnToAccountSurface(wxLike, fallbackPagePath = '/pages/account/index
   }
 
   throw new Error('No supported WeChat navigation API was available to return to Account')
+}
+
+function returnToAccountSurface(wxLike, fallbackPagePath = '/pages/account/index') {
+  const currentPageStack = getCurrentPageStack(wxLike)
+  if (Array.isArray(currentPageStack) && currentPageStack.length <= 1) {
+    return navigateToFallbackSurface(wxLike, fallbackPagePath)
+  }
+
+  if (wxLike && typeof wxLike.navigateBack === 'function') {
+    let fallbackResult = null
+    const fallbackToAccount = () => {
+      if (!fallbackResult) {
+        fallbackResult = navigateToFallbackSurface(wxLike, fallbackPagePath)
+      }
+      return fallbackResult
+    }
+
+    try {
+      wxLike.navigateBack({
+        delta: 1,
+        fail: fallbackToAccount,
+      })
+    } catch (_error) {
+      return fallbackToAccount()
+    }
+
+    return fallbackResult || { type: 'navigateBack', fallbackPagePath }
+  }
+
+  return navigateToFallbackSurface(wxLike, fallbackPagePath)
 }
 
 function syncShellTabBar(pageInstance, pagePath) {

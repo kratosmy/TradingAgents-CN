@@ -17,6 +17,26 @@ function readText(relativePath) {
   return fs.readFileSync(path.join(miniRoot, relativePath), 'utf8')
 }
 
+function withCurrentPages(pages, callback) {
+  const originalGetCurrentPages = globalThis.getCurrentPages
+
+  if (pages) {
+    globalThis.getCurrentPages = () => pages
+  } else {
+    delete globalThis.getCurrentPages
+  }
+
+  try {
+    return callback()
+  } finally {
+    if (typeof originalGetCurrentPages === 'function') {
+      globalThis.getCurrentPages = originalGetCurrentPages
+    } else {
+      delete globalThis.getCurrentPages
+    }
+  }
+}
+
 test('publish shell registers real Home, Watch, and Account primary surfaces', () => {
   const appConfig = readJson('app.json')
 
@@ -73,11 +93,72 @@ test('shell navigation contract defines account secondary pages and round-trip h
   shellNavigation.openAccountSecondaryPage(wxLike, '/pages/account/privacy/index')
   shellNavigation.returnToAccountSurface(wxLike)
 
+  assert.equal(calls.length, 3)
+  assert.deepEqual(calls[0], ['switchTab', { url: '/pages/watch/index' }])
+  assert.deepEqual(calls[1], ['navigateTo', { url: '/pages/account/privacy/index' }])
+  assert.equal(calls[2][0], 'navigateBack')
+  assert.equal(calls[2][1].delta, 1)
+  assert.equal(typeof calls[2][1].fail, 'function')
+})
+
+test('returnToAccountSurface falls back to Account when the leaf page is the current stack root', () => {
+  const shellNavigation = require('../lib/shell-navigation.js')
+  const calls = []
+
+  const result = withCurrentPages([{ route: 'pages/account/settings/index' }], () =>
+    shellNavigation.returnToAccountSurface({
+      switchTab(options) {
+        calls.push(['switchTab', options])
+      },
+      navigateBack(options) {
+        calls.push(['navigateBack', options])
+      },
+      redirectTo(options) {
+        calls.push(['redirectTo', options])
+      },
+    }),
+  )
+
+  assert.deepEqual(calls, [['switchTab', { url: '/pages/account/index' }]])
+  assert.deepEqual(result, {
+    type: 'switchTab',
+    fallbackPagePath: '/pages/account/index',
+  })
+})
+
+test('returnToAccountSurface falls back to Account when navigateBack fails at runtime', () => {
+  const shellNavigation = require('../lib/shell-navigation.js')
+  const calls = []
+
+  const result = withCurrentPages(null, () =>
+    shellNavigation.returnToAccountSurface({
+      switchTab(options) {
+        calls.push(['switchTab', options])
+      },
+      navigateBack(options) {
+        calls.push([
+          'navigateBack',
+          {
+            delta: options.delta,
+            hasFailHandler: typeof options.fail === 'function',
+          },
+        ])
+        options.fail({ errMsg: 'navigateBack:fail can not navigate back at first page' })
+      },
+      redirectTo(options) {
+        calls.push(['redirectTo', options])
+      },
+    }),
+  )
+
   assert.deepEqual(calls, [
-    ['switchTab', { url: '/pages/watch/index' }],
-    ['navigateTo', { url: '/pages/account/privacy/index' }],
-    ['navigateBack', { delta: 1 }],
+    ['navigateBack', { delta: 1, hasFailHandler: true }],
+    ['switchTab', { url: '/pages/account/index' }],
   ])
+  assert.deepEqual(result, {
+    type: 'switchTab',
+    fallbackPagePath: '/pages/account/index',
+  })
 })
 
 test('primary shell surfaces reuse shared dark-premium tokens and branded chrome', () => {
