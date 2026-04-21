@@ -1,0 +1,22 @@
+{
+  "featureId": "mini-runtime-config-override-and-loopback-hardening",
+  "reviewedAt": "2026-04-21T15:13:00Z",
+  "commitId": "6ebf8fe1cd4c075bea670c11872f7cf07a2f24f3",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "Reviewed the original failed feature `mini-runtime-config-and-import-shell` and the follow-up fix `mini-runtime-config-override-and-loopback-hardening`. The fix does resolve the first blocker: `loadOperatorOverrides()` now distinguishes an actually missing `mini/config/runtime.local.js` from a broken override file, and the new regression at `mini/tests/runtime-config-boundary.test.mjs:54` proves nested dependency failures now surface instead of silently falling back to placeholder defaults. However, loopback hardening is still incomplete because the runtime helper only recognizes bare IPv6 loopback literals (`::1` and `0:0:0:0:0:0:0:1`).",
+    "issues": [
+      {
+        "file": "mini/lib/runtime-config.js",
+        "line": 87,
+        "severity": "blocking",
+        "description": "`isIPv6LoopbackHost()` only treats `::1` and `0:0:0:0:0:0:0:1` as loopback. Node normalizes `https://[::ffff:127.0.0.1]` to the IPv4-mapped IPv6 hostname `::ffff:7f00:1`, so `isLoopbackUrl('https://[::ffff:127.0.0.1]')` currently returns `false` (confirmed with a local Node probe). Because `mini/scripts/validate-mini.mjs:155` still relies on `isLoopbackUrl()` to enforce the checked-in runtime boundary, a loopback-only runtime target can still bypass VAL-PUBLISH-001 / VAL-PUBLISH-006 through an IPv4-mapped IPv6 spelling."
+      }
+    ]
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-publish-shell/scrutiny/reviews/mini-runtime-config-and-import-shell.json",
+  "summary": "Fail. The fix successfully stops swallowing broken `runtime.local.js` dependency/import failures, but loopback detection is still incomplete: IPv4-mapped IPv6 loopback targets such as `[::ffff:127.0.0.1]` are accepted as non-loopback, so the publish-shell validator can still green-light a loopback-only checked-in runtime target."
+}

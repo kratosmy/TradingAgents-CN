@@ -1,0 +1,15 @@
+{
+  "featureId": "mini-account-secondary-roundtrip-fallback",
+  "reviewedAt": "2026-04-21T06:49:15Z",
+  "commitId": "2e8ef954cf97b7f9f6b4abf7ee9787746ca085d0",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "Reviewed the original failing feature `mini-spotify-dark-navigation-shell` and the follow-up fix `mini-account-secondary-roundtrip-fallback`. The original bug in `mini/lib/shell-navigation.js` was real: `returnToAccountSurface()` always used `navigateBack`, so Account leaf pages could strand the user when opened as the current stack root or restored entrypoint. The fix now inspects the current page stack, falls back through primary-surface navigation when the stack depth is 1, and adds a `navigateBack` fail handler that routes back to `/pages/account/index` if runtime back navigation is unavailable. Updated regressions in `mini/tests/publish-shell-navigation.test.mjs` cover both stack-root fallback and runtime `navigateBack` failure, and `mini/lib/account-secondary-page.js` continues to route the secondary-page back actions through the repaired helper.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-publish-shell/scrutiny/reviews/mini-spotify-dark-navigation-shell.json",
+  "summary": "Pass. The prior blocking Account round-trip issue is resolved: Settings/About/Privacy/Help now return to Account via normal back navigation when available and fall back to Account when the leaf page is the stack root or a restored entrypoint. No remaining blocking correctness issues were found in the scoped navigation fix."
+}

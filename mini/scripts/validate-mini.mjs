@@ -229,6 +229,7 @@ async function ensureBuildArtifacts() {
     'node',
     [
       '--test',
+      '--test-concurrency=1',
       'tests/auth-session-boundary.test.mjs',
       'tests/home-digest-rendering.test.mjs',
       'tests/runtime-config-boundary.test.mjs',
