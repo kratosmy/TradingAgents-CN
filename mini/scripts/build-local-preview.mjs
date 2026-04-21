@@ -9,6 +9,8 @@ const distDir = path.join(miniRoot, 'dist')
 const require = createRequire(import.meta.url)
 const { createPreviewMeta } = require('../data/digest-cards.js')
 const { createShellContent } = require('../data/shell-content.js')
+const { createReleaseHandoff, renderReleaseHandoffMarkdown } = require('../lib/release-handoff.js')
+const packageJson = require('../package.json')
 const {
   createMemoryStorage,
   createMiniAuthSessionBoundary,
@@ -27,6 +29,10 @@ const { getCheckedInRuntimeConfig, isLoopbackUrl } = require('../lib/runtime-con
 const runtimeConfig = getCheckedInRuntimeConfig()
 const previewMeta = createPreviewMeta(runtimeConfig)
 const shellContent = createShellContent(runtimeConfig)
+const releaseHandoff = createReleaseHandoff({
+  runtimeConfig,
+  packageVersion: packageJson.version,
+})
 const previewSession = normalizeSessionEnvelope({
   success: true,
   data: previewMeta.previewSession,
@@ -336,6 +342,10 @@ function renderLeafPages(leafStates) {
       `,
     )
     .join('')
+}
+
+function renderListItems(items) {
+  return items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
 }
 
 const watchPreviewStates = await buildWatchPreviewStates()
@@ -745,6 +755,44 @@ const html = `<!DOCTYPE html>
 
       <section class="panel">
         <div class="row split">
+          <h2>Manual-upload handoff</h2>
+          <span class="badge badge--warn">${escapeHtml(releaseHandoff.truthBoundaryLabel)}</span>
+        </div>
+        <p style="margin-top: 12px;">${escapeHtml(releaseHandoff.truthBoundaryCopy)}</p>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--accent">validated now</span>
+            <span class="badge badge--info">checked-in shell evidence</span>
+          </div>
+          <ul class="bullet-list" style="margin-top: 12px;">
+            ${renderListItems(releaseHandoff.validatedNow)}
+          </ul>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">deferred work</span>
+            <span class="badge badge--info">operator/runtime/upload steps</span>
+          </div>
+          <ol class="bullet-list" style="margin-top: 12px; padding-left: 18px;">
+            ${renderListItems(releaseHandoff.deferredOperatorSteps)}
+          </ol>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--info">keep local-only</span>
+            <span class="badge badge--neutral">WeChat private artifacts</span>
+          </div>
+          <ul class="bullet-list" style="margin-top: 12px;">
+            ${renderListItems(releaseHandoff.localOnlyPaths)}
+          </ul>
+          <ol class="bullet-list" style="margin-top: 12px; padding-left: 18px;">
+            ${renderListItems(releaseHandoff.operatorHandoffSteps)}
+          </ol>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="row split">
           <h2>Dark premium visual system</h2>
           <span class="badge badge--accent">shared tokens</span>
         </div>
@@ -775,7 +823,12 @@ const html = `<!DOCTYPE html>
 
 const summary = {
   validationMode: runtimeConfig.validation.evidenceMode,
-  generatedArtifacts: ['dist/local-preview.html', 'dist/validation-summary.json'],
+  generatedArtifacts: [
+    'dist/local-preview.html',
+    'dist/validation-summary.json',
+    'dist/manual-upload-handoff.json',
+    'dist/manual-upload-handoff.md',
+  ],
   evidenceSource: 'mini/',
   disclaimers: [
     previewMeta.runtimeBoundary.disclosure,
@@ -789,6 +842,8 @@ const summary = {
     sharedConfigPath: previewMeta.runtimeBoundary.sharedConfigPath,
     localOverridePath: previewMeta.runtimeBoundary.localOverridePath,
     privateProjectConfigPath: previewMeta.runtimeBoundary.privateProjectConfigPath,
+    uploadSecretsDirectory: previewMeta.runtimeBoundary.uploadSecretsDirectory,
+    uploadPrivateKeyPath: previewMeta.runtimeBoundary.uploadPrivateKeyPath,
     isLoopbackTarget: isLoopbackUrl(runtimeConfig.backend.baseUrl),
   },
   shellMetadata: {
@@ -865,6 +920,7 @@ const summary = {
     compactFieldKeys: previewMeta.compactFieldKeys,
   },
   accountRoundTrips: accountLeafStates.map((state) => state.roundTripCopy),
+  releaseHandoff,
   entryFiles: [
     'app.js',
     'app.json',
@@ -884,11 +940,13 @@ const summary = {
     'components/shell-chrome/index.wxss',
     'data/digest-cards.js',
     'data/shell-content.js',
+    'lib/release-handoff.js',
     'lib/runtime-config.js',
     'lib/auth-session-boundary.js',
     'lib/home-controller.js',
     'lib/shell-navigation.js',
     'lib/shell-surface-state.js',
+    'lib/manual-upload-preflight.js',
     'lib/account-secondary-page.js',
     'styles/shell.wxss',
     'pages/home/index.js',
@@ -923,6 +981,7 @@ const summary = {
     'tests/home-digest-rendering.test.mjs',
     'tests/runtime-config-boundary.test.mjs',
     'tests/publish-shell-navigation.test.mjs',
+    'tests/release-preflight.test.mjs',
   ],
 }
 
@@ -933,6 +992,16 @@ await fs.writeFile(
   `${JSON.stringify(summary, null, 2)}\n`,
   'utf8',
 )
+await fs.writeFile(
+  path.join(distDir, 'manual-upload-handoff.json'),
+  `${JSON.stringify(releaseHandoff, null, 2)}\n`,
+  'utf8',
+)
+await fs.writeFile(
+  path.join(distDir, 'manual-upload-handoff.md'),
+  renderReleaseHandoffMarkdown(releaseHandoff),
+  'utf8',
+)
 
-console.log('mini build complete: wrote dist/local-preview.html and dist/validation-summary.json')
+console.log('mini build complete: wrote dist/local-preview.html, dist/validation-summary.json, dist/manual-upload-handoff.json, and dist/manual-upload-handoff.md')
 console.log('validation posture: source/build import-shell evidence only; no real WeChat runtime, upload, or live backend coverage claimed')

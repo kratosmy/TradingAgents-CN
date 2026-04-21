@@ -155,6 +155,7 @@
     <text class="shell-support-copy">shared config：{{runtimeBoundary.sharedConfigPath}}</text>
     <text class="shell-support-copy">local override：mini/config/runtime.local.js</text>
     <text class="shell-support-copy">private DevTools config：mini/project.private.config.json</text>
+    <text class="shell-support-copy">local upload secrets：mini/upload-secrets/</text>
     <text class="shell-support-copy">{{runtimeBoundarySupport}}</text>
     <text class="shell-support-copy">{{localOnlyDisclosure}}</text>
   </view>

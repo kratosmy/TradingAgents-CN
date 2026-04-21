@@ -27,10 +27,15 @@ module.exports = Object.freeze({
       '当前 mini/ 仅验证可导入的壳层配置与本地源码/构建产物，不代表真实微信模拟器、真机、上传或线上运行时成功。',
     previewEvidenceLabel:
       'Evidence source: mini/ source-build import shell preview with a placeholder-safe runtime default.',
+    manualUploadBoundaryLabel: 'manual-upload shell readiness only',
+    manualUploadDisclosure:
+      '离线 preflight 仅验证已提交的 Mini 身份、占位运行时边界、checked-in handoff 材料与本地私有文件卫生；它不证明真实微信运行时、线上后端可达性、代码上传、审核通过或最终发布完成。',
   }),
   operatorOverrides: Object.freeze({
     localRuntimeConfigPath: 'mini/config/runtime.local.js',
     devtoolsPrivateConfigPath: 'mini/project.private.config.json',
+    uploadSecretsDirectory: 'mini/upload-secrets/',
+    uploadPrivateKeyPath: 'mini/upload-secrets/code-upload.private.key',
     swapSummary:
       '后续切换到真实 HTTPS 后端时，仅需提供本地私有运行时覆盖配置或 DevTools 私有项目配置，无需修改页面或业务逻辑源码。',
   }),

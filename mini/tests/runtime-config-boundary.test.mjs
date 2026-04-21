@@ -128,5 +128,7 @@ test('operator-private runtime overrides stay outside versioned source', () => {
 
   assert.match(gitignore, /mini\/project\.private\.config\.json/)
   assert.match(gitignore, /mini\/config\/runtime\.local\.js/)
+  assert.match(gitignore, /mini\/upload-secrets\//)
   assert.equal(previewMeta.runtimeBoundary.localOverridePath, 'mini/config/runtime.local.js')
+  assert.equal(previewMeta.runtimeBoundary.uploadSecretsDirectory, 'mini/upload-secrets/')
 })

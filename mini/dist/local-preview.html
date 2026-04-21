@@ -365,7 +365,7 @@
         </div>
         <p style="margin-top: 12px;"><strong>Watch owns the protected read path</strong></p>
         <p>Watch is the only primary surface that handles sign-in, auth-required gating, and the full protected digest list.</p>
-        <p>Signed-out navigation remains usable on Home and Account while Watch keeps auth-required, loading, waiting, ready, and authenticated-empty states distinct.</p>
+        <p>Signed-out navigation remains usable on Home and Account while Watch keeps auth-required, loading, waiting, ready, and authenticated-empty states distinct and aligned with the manual-upload preflight truth boundary.</p>
         <div class="surface-grid" style="margin-top: 16px;">
           
         <article class="panel">
@@ -640,7 +640,7 @@
             <h3>Settings</h3>
             <span class="badge badge--info">返回 Account</span>
           </div>
-          <p>Settings collects lightweight preferences and boundary reminders without pretending that checked-in preview defaults are a live operator runtime.</p>
+          <p>Settings collects lightweight preferences and boundary reminders without pretending that checked-in preview defaults or offline preflight evidence are a live operator runtime.</p>
           <ul class="bullet-list">
             <li>Quick preference toggles stay inside the shell instead of leaving to external docs.</li><li>Checked-in defaults remain placeholder-safe until a private operator override exists.</li><li>Round-trip navigation returns directly to Account.</li>
           </ul>
@@ -652,7 +652,7 @@
             <h3>About</h3>
             <span class="badge badge--info">返回 Account</span>
           </div>
-          <p>About keeps the publish-facing product framing concise while still admitting that source/build proof is not the same as real WeChat runtime, upload, or live backend success.</p>
+          <p>About keeps the publish-facing product framing concise while still admitting that source/build proof and manual-upload preflight are not the same as real WeChat runtime, upload, or live backend success.</p>
           <ul class="bullet-list">
             <li>Home / Watch / Account responsibilities stay explicit.</li><li>The checked-in AppID and branding are preserved.</li><li>Deferred runtime and publish steps remain honest and operator-controlled.</li>
           </ul>
@@ -664,9 +664,9 @@
             <h3>Privacy</h3>
             <span class="badge badge--info">返回 Account</span>
           </div>
-          <p>Privacy focuses on the JWT login reuse path, local bearer-session storage, and the fact that the checked-in runtime target is still a placeholder preview endpoint.</p>
+          <p>Privacy focuses on the JWT login reuse path, local bearer-session storage, and the fact that the checked-in runtime target is still a placeholder preview endpoint until operator-local runtime and upload inputs exist.</p>
           <ul class="bullet-list">
-            <li>Protected watch content stays blocked when auth is missing or invalid.</li><li>Local-only runtime overrides and DevTools private config remain untracked.</li><li>No live upload or device-runtime privacy claim is made here.</li>
+            <li>Protected watch content stays blocked when auth is missing or invalid.</li><li>Local-only runtime overrides, DevTools private config, and upload private keys under mini/upload-secrets/ remain untracked.</li><li>No live upload or device-runtime privacy claim is made here.</li>
           </ul>
           <p class="muted">Round-trip path: Account → Privacy → Account.</p>
         </article>
@@ -676,13 +676,51 @@
             <h3>Help</h3>
             <span class="badge badge--info">返回 Account</span>
           </div>
-          <p>Help keeps the shell usable by routing sign-in questions toward Watch and release/runtime questions toward later operator-controlled steps.</p>
+          <p>Help keeps the shell usable by routing sign-in questions toward Watch and release/runtime questions toward the checked-in manual-upload handoff plus later operator-controlled steps.</p>
           <ul class="bullet-list">
-            <li>Watch is where sign-in and protected digest loading happen.</li><li>Account secondary pages remain in-app and return to Account cleanly.</li><li>Later upload/runtime work still needs operator prerequisites outside this environment.</li>
+            <li>Watch is where sign-in and protected digest loading happen.</li><li>Account secondary pages remain in-app and return to Account cleanly.</li><li>Run the manual-upload preflight first, then continue upload/runtime work with operator prerequisites outside this environment.</li>
           </ul>
           <p class="muted">Round-trip path: Account → Help → Account.</p>
         </article>
       
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="row split">
+          <h2>Manual-upload handoff</h2>
+          <span class="badge badge--warn">manual-upload shell readiness only</span>
+        </div>
+        <p style="margin-top: 12px;">离线 preflight 仅验证已提交的 Mini 身份、占位运行时边界、checked-in handoff 材料与本地私有文件卫生；它不证明真实微信运行时、线上后端可达性、代码上传、审核通过或最终发布完成。</p>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--accent">validated now</span>
+            <span class="badge badge--info">checked-in shell evidence</span>
+          </div>
+          <ul class="bullet-list" style="margin-top: 12px;">
+            <li>Checked-in AppID wx1d02a932c4f9a4ae remains wired through mini/project.config.json and mini/config/runtime.shared.js.</li><li>The delivered Home / Watch / Account shell is validated here through committed source, local tests, generated build proof, and offline preflight output.</li><li>The checked-in runtime boundary stays in placeholder-preview mode with a non-loopback HTTPS target (https://mini-runtime-placeholder.invalid).</li><li>Manual-upload readiness here means the import shell can be handed off for operator-controlled DevTools work without claiming live backend, runtime, upload, audit, or publish completion.</li>
+          </ul>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">deferred work</span>
+            <span class="badge badge--info">operator/runtime/upload steps</span>
+          </div>
+          <ol class="bullet-list" style="margin-top: 12px; padding-left: 18px;">
+            <li>Create mini/config/runtime.local.js with the real HTTPS backend target and keep it local-only.</li><li>Import mini/ into WeChat DevTools while signed in as the operator; keep mini/project.private.config.json machine-local.</li><li>Place any upload private key or upload-secret material under mini/upload-secrets/ (for example mini/upload-secrets/code-upload.private.key) without committing it.</li><li>Run real WeChat simulator/device verification against the chosen runtime and confirm live backend reachability outside this repository-only environment.</li><li>Complete platform-side IP allowlisting, privacy/compliance setup, audit submission, and final publish actions after operator validation succeeds.</li>
+          </ol>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--info">keep local-only</span>
+            <span class="badge badge--neutral">WeChat private artifacts</span>
+          </div>
+          <ul class="bullet-list" style="margin-top: 12px;">
+            <li>mini/config/runtime.local.js</li><li>mini/project.private.config.json</li><li>mini/upload-secrets/</li><li>mini/upload-secrets/code-upload.private.key</li>
+          </ul>
+          <ol class="bullet-list" style="margin-top: 12px; padding-left: 18px;">
+            <li>Run npm --prefix mini run preflight to confirm the checked-in shell still fails closed on illegal repo-owned config.</li><li>Review mini/dist/manual-upload-handoff.md alongside mini/dist/local-preview.html and mini/dist/validation-summary.json before handing the shell to the operator.</li><li>Hand off only the checked-in mini/ shell plus instructions for local-only overrides and secrets; do not hand off committed credentials because none should exist.</li>
+          </ol>
         </div>
       </section>
 

@@ -380,9 +380,8 @@ function buildWatchSurfaceState({
     waitingCount,
     runtimeBoundaryTitle: 'Placeholder runtime boundary',
     runtimeBoundaryCopy:
-      'The checked-in shell stays honest about its deferred runtime while leaving later HTTPS activation to local operator overrides.',
-    runtimeBoundarySupport:
-      previewMeta?.runtimeBoundary?.disclosure || runtimeConfig.validation.runtimeDisclosure,
+      'The checked-in shell can pass manual-upload shell preflight while leaving real backend, runtime, and upload work to later local operator steps.',
+    runtimeBoundarySupport: runtimeConfig.validation.manualUploadDisclosure,
   }
 }
 

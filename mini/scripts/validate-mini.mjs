@@ -10,6 +10,8 @@ const repoRoot = path.resolve(miniRoot, '..')
 const require = createRequire(import.meta.url)
 
 const { getCheckedInRuntimeConfig, isLoopbackUrl } = require('../lib/runtime-config.js')
+const { createReleaseHandoff, renderReleaseHandoffMarkdown } = require('../lib/release-handoff.js')
+const packageJson = require('../package.json')
 
 const requiredFiles = [
   'package.json',
@@ -23,6 +25,7 @@ const requiredFiles = [
   'config/runtime.shared.js',
   'data/digest-cards.js',
   'data/shell-content.js',
+  'lib/release-handoff.js',
   'custom-tab-bar/index.js',
   'custom-tab-bar/index.json',
   'custom-tab-bar/index.wxml',
@@ -32,6 +35,7 @@ const requiredFiles = [
   'components/shell-chrome/index.wxml',
   'components/shell-chrome/index.wxss',
   'lib/runtime-config.js',
+  'lib/manual-upload-preflight.js',
   'lib/auth-session-boundary.js',
   'lib/home-controller.js',
   'lib/shell-navigation.js',
@@ -67,10 +71,12 @@ const requiredFiles = [
   'pages/account/help/index.wxml',
   'pages/account/help/index.wxss',
   'scripts/build-local-preview.mjs',
+  'scripts/preflight-manual-upload.mjs',
   'tests/auth-session-boundary.test.mjs',
   'tests/home-digest-rendering.test.mjs',
   'tests/runtime-config-boundary.test.mjs',
   'tests/publish-shell-navigation.test.mjs',
+  'tests/release-preflight.test.mjs',
 ]
 
 async function ensureFilesExist() {
@@ -162,9 +168,10 @@ async function ensurePrivateOverridesStayLocal() {
 
   if (
     !gitignoreText.includes('mini/project.private.config.json') ||
-    !gitignoreText.includes('mini/config/runtime.local.js')
+    !gitignoreText.includes('mini/config/runtime.local.js') ||
+    !gitignoreText.includes('mini/upload-secrets/')
   ) {
-    throw new Error('repo .gitignore must keep Mini project.private.config.json and runtime.local.js local-only')
+    throw new Error('repo .gitignore must keep Mini project.private.config.json, runtime.local.js, and mini/upload-secrets/ local-only')
   }
 }
 
@@ -200,6 +207,7 @@ async function ensureShellSourceReuse() {
     !watchSourceText.includes('placeholder-preview') ||
     !watchSourceText.includes('mini/config/runtime.local.js') ||
     !watchSourceText.includes('project.private.config.json') ||
+    !watchSourceText.includes('mini/upload-secrets/') ||
     !watchSourceText.includes("watchState === 'loading'") ||
     !watchSourceText.includes("watchState === 'auth-required'") ||
     !watchSourceText.includes("watchState === 'authenticated-empty'") ||
@@ -214,7 +222,9 @@ async function ensureShellSourceReuse() {
     !shellContentText.includes('Settings') ||
     !shellContentText.includes('About') ||
     !shellContentText.includes('Privacy') ||
-    !shellContentText.includes('Help')
+    !shellContentText.includes('Help') ||
+    !shellContentText.includes('manual-upload preflight') ||
+    !shellContentText.includes('mini/upload-secrets/')
   ) {
     throw new Error('Account source must keep Settings / About / Privacy / Help as real in-app destinations')
   }
@@ -225,6 +235,8 @@ async function ensureShellSourceReuse() {
 }
 
 async function ensureBuildArtifacts() {
+  const runtimeConfig = getCheckedInRuntimeConfig()
+
   const testResult = spawnSync(
     'node',
     [
@@ -234,6 +246,7 @@ async function ensureBuildArtifacts() {
       'tests/home-digest-rendering.test.mjs',
       'tests/runtime-config-boundary.test.mjs',
       'tests/publish-shell-navigation.test.mjs',
+      'tests/release-preflight.test.mjs',
     ],
     {
       cwd: miniRoot,
@@ -260,6 +273,9 @@ async function ensureBuildArtifacts() {
     !previewText.includes('TradingAgentsMiniImportShell') ||
     !previewText.includes('mini/config/runtime.local.js') ||
     !previewText.includes('project.private.config.json') ||
+    !previewText.includes('mini/upload-secrets/') ||
+    !previewText.includes('manual-upload shell readiness only') ||
+    !previewText.includes('operator/runtime/upload steps') ||
     !previewText.includes('not evidence of real WeChat simulator, device, upload, or runtime success')
   ) {
     throw new Error('dist/local-preview.html must disclose the placeholder runtime boundary, local-only override paths, and runtime honesty limits')
@@ -306,13 +322,18 @@ async function ensureBuildArtifacts() {
   }
 
   const summary = JSON.parse(await fs.readFile(path.join(miniRoot, 'dist/validation-summary.json'), 'utf8'))
+  const handoffJson = JSON.parse(await fs.readFile(path.join(miniRoot, 'dist/manual-upload-handoff.json'), 'utf8'))
+  const handoffMarkdown = await fs.readFile(path.join(miniRoot, 'dist/manual-upload-handoff.md'), 'utf8')
+  const expectedReleaseHandoff = createReleaseHandoff({ runtimeConfig, packageVersion: packageJson.version })
   if (
     summary.validationMode !== 'source-build-import-shell' ||
     !summary.runtimeBoundary ||
     summary.runtimeBoundary.appId !== 'wx1d02a932c4f9a4ae' ||
     summary.runtimeBoundary.isLoopbackTarget !== false ||
     summary.runtimeBoundary.localOverridePath !== 'mini/config/runtime.local.js' ||
-    summary.runtimeBoundary.privateProjectConfigPath !== 'mini/project.private.config.json'
+    summary.runtimeBoundary.privateProjectConfigPath !== 'mini/project.private.config.json' ||
+    summary.runtimeBoundary.uploadSecretsDirectory !== 'mini/upload-secrets/' ||
+    summary.runtimeBoundary.uploadPrivateKeyPath !== 'mini/upload-secrets/code-upload.private.key'
   ) {
     throw new Error('dist/validation-summary.json must capture the checked-in runtime boundary and local-only override paths')
   }
@@ -329,6 +350,22 @@ async function ensureBuildArtifacts() {
   }
 
   if (
+    JSON.stringify(summary.generatedArtifacts) !==
+      JSON.stringify([
+        'dist/local-preview.html',
+        'dist/validation-summary.json',
+        'dist/manual-upload-handoff.json',
+        'dist/manual-upload-handoff.md',
+      ]) ||
+    JSON.stringify(handoffJson) !== JSON.stringify(expectedReleaseHandoff) ||
+    handoffMarkdown !== renderReleaseHandoffMarkdown(expectedReleaseHandoff) ||
+    !summary.releaseHandoff ||
+    summary.releaseHandoff.truthBoundaryLabel !== 'manual-upload shell readiness only' ||
+    !Array.isArray(summary.releaseHandoff.localOnlyPaths) ||
+    !summary.releaseHandoff.localOnlyPaths.includes('mini/upload-secrets/') ||
+    !Array.isArray(summary.releaseHandoff.deferredOperatorSteps) ||
+    summary.releaseHandoff.deferredOperatorSteps.length < 4 ||
+    !String(summary.releaseHandoff.truthBoundaryCopy || '').includes('不证明真实微信运行时') ||
     !summary.visualSystem ||
     summary.visualSystem.sharedStylesheet !== 'styles/shell.wxss' ||
     summary.visualSystem.rootBackground !== '#05070B' ||
@@ -376,6 +413,6 @@ await ensurePrivateOverridesStayLocal()
 await ensureShellSourceReuse()
 await ensureBuildArtifacts()
 
-console.log('mini_validate passed: verified publish shell registration, dark-premium tokens, placeholder runtime boundary, and source/build evidence from mini/')
+console.log('mini_validate passed: verified publish shell registration, dark-premium tokens, placeholder runtime boundary, manual-upload handoff artifacts, and source/build evidence from mini/')
 console.log(`required files: ${requiredFiles.join(', ')}`)
-console.log('artifacts: dist/local-preview.html, dist/validation-summary.json')
+console.log('artifacts: dist/local-preview.html, dist/validation-summary.json, dist/manual-upload-handoff.json, dist/manual-upload-handoff.md')
