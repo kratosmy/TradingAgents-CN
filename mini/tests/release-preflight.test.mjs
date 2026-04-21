@@ -16,6 +16,10 @@ const {
   validateManualUploadReadiness,
 } = require('../lib/manual-upload-preflight.js')
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 test('manual upload preflight command reports checked-in shell readiness while deferring runtime and upload work', () => {
   const result = spawnSync('node', ['scripts/preflight-manual-upload.mjs'], {
     cwd: miniRoot,
@@ -88,3 +92,27 @@ test('manual upload preflight fails closed on illegal checked-in config', () => 
   assert.match(brokenResult.errors.join('\n'), /semver version/)
   assert.match(brokenResult.errors.join('\n'), /local-only and untracked/)
 })
+
+for (const artifactPath of [
+  'mini/project.private.config.json',
+  'mini/config/runtime.local.js',
+  'mini/upload-secrets/code-upload.private.key',
+]) {
+  test(`manual upload preflight fails closed when ${artifactPath} is already tracked or staged`, () => {
+    const snapshot = loadCheckedInManualUploadSnapshot()
+    const brokenResult = validateManualUploadReadiness({
+      ...snapshot,
+      trackedLocalOnlyArtifacts: [artifactPath],
+    })
+
+    const trackedArtifactCheck = brokenResult.checks.find(
+      (check) => check.name === 'tracked/staged local-only WeChat artifacts',
+    )
+
+    assert.equal(brokenResult.ok, false)
+    assert.equal(trackedArtifactCheck?.ok, false)
+    assert.match(trackedArtifactCheck?.detail || '', new RegExp(escapeRegExp(artifactPath)))
+    assert.match(brokenResult.errors.join('\n'), /Tracked\/staged operator-private WeChat artifacts/)
+    assert.match(brokenResult.errors.join('\n'), new RegExp(escapeRegExp(artifactPath)))
+  })
+}

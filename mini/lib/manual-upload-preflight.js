@@ -1,5 +1,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const childProcess = require('node:child_process')
 
 const { getCheckedInRuntimeConfig, isLoopbackUrl } = require('./runtime-config.js')
 const { createReleaseHandoff } = require('../lib/release-handoff.js')
@@ -12,6 +13,49 @@ function isSemver(value) {
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'))
+}
+
+function normalizePathList(values) {
+  return [...new Set([].concat(values || []).map((value) => String(value || '').trim()).filter(Boolean))]
+}
+
+function getLocalOnlyWeChatPaths(runtimeConfig = {}) {
+  return normalizePathList([
+    runtimeConfig.operatorOverrides?.localRuntimeConfigPath,
+    runtimeConfig.operatorOverrides?.devtoolsPrivateConfigPath,
+    runtimeConfig.operatorOverrides?.uploadSecretsDirectory,
+  ])
+}
+
+function inspectTrackedLocalOnlyArtifacts({ repoRoot, localOnlyPaths }) {
+  const normalizedPaths = normalizePathList(localOnlyPaths)
+
+  if (normalizedPaths.length === 0) {
+    return { paths: [], error: null }
+  }
+
+  try {
+    const output = childProcess.execFileSync(
+      'git',
+      ['-C', repoRoot, 'ls-files', '--cached', '--', ...normalizedPaths],
+      {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    )
+
+    return {
+      paths: normalizePathList(output.split(/\r?\n/g)),
+      error: null,
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+
+    return {
+      paths: [],
+      error: `Unable to inspect tracked/staged local-only WeChat artifacts via git ls-files: ${message}`,
+    }
+  }
 }
 
 function loadCheckedInManualUploadSnapshot({
@@ -39,6 +83,7 @@ function validateManualUploadReadiness(snapshot = loadCheckedInManualUploadSnaps
     runtimeConfig,
     packageVersion: packageJson.version || '0.1.0',
   })
+  const repoRoot = snapshot.repoRoot || path.resolve(__dirname, '..', '..')
 
   const checks = []
   const errors = []
@@ -92,17 +137,33 @@ function validateManualUploadReadiness(snapshot = loadCheckedInManualUploadSnaps
     'mini/package.json must expose a semver version plus npm scripts preflight -> node ./scripts/preflight-manual-upload.mjs and upload:wechat -> node ./scripts/upload-wechat.mjs.',
   )
 
-  const requiredGitignoreEntries = [
-    runtimeConfig.operatorOverrides.localRuntimeConfigPath,
-    runtimeConfig.operatorOverrides.devtoolsPrivateConfigPath,
-    runtimeConfig.operatorOverrides.uploadSecretsDirectory,
-  ].filter(Boolean)
+  const requiredGitignoreEntries = getLocalOnlyWeChatPaths(runtimeConfig)
+  const trackedArtifactInspection =
+    Array.isArray(snapshot.trackedLocalOnlyArtifacts) || snapshot.trackedLocalOnlyArtifactsError
+      ? {
+          paths: normalizePathList(snapshot.trackedLocalOnlyArtifacts),
+          error: snapshot.trackedLocalOnlyArtifactsError
+            ? String(snapshot.trackedLocalOnlyArtifactsError)
+            : null,
+        }
+      : inspectTrackedLocalOnlyArtifacts({
+          repoRoot,
+          localOnlyPaths: requiredGitignoreEntries,
+        })
 
   record(
-    'local-only WeChat artifact hygiene',
+    'local-only WeChat ignore rules',
     requiredGitignoreEntries.every((entry) => gitignoreText.includes(entry)),
     `Repo hygiene keeps ${requiredGitignoreEntries.join(', ')} local-only and untracked.`,
     `Repo .gitignore must keep ${requiredGitignoreEntries.join(', ')} local-only and untracked.`,
+  )
+
+  record(
+    'tracked/staged local-only WeChat artifacts',
+    trackedArtifactInspection.error == null && trackedArtifactInspection.paths.length === 0,
+    'Git index inspection found no tracked/staged operator-private WeChat artifacts in versioned Mini paths.',
+    trackedArtifactInspection.error ||
+      `Tracked/staged operator-private WeChat artifacts must not be committed or staged: ${trackedArtifactInspection.paths.join(', ')}.`,
   )
 
   const handoffLocalOnlyPaths = new Set(Array.isArray(handoff.localOnlyPaths) ? handoff.localOnlyPaths : [])
