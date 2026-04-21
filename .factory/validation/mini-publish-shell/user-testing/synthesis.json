@@ -1,0 +1,29 @@
+{
+  "milestone": "mini-publish-shell",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-CROSS-003",
+    "VAL-MINI-002",
+    "VAL-MINI-003",
+    "VAL-MINI-004",
+    "VAL-PUBLISH-001",
+    "VAL-PUBLISH-002",
+    "VAL-PUBLISH-003",
+    "VAL-PUBLISH-004",
+    "VAL-PUBLISH-005",
+    "VAL-PUBLISH-006",
+    "VAL-PUBLISH-007",
+    "VAL-PUBLISH-008"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": null
+}

@@ -1,0 +1,318 @@
+{
+  "groupId": "runtime-boundary-contract",
+  "milestone": "mini-publish-shell",
+  "testedAt": "2026-04-21T08:06:29.426154Z",
+  "isolation": {
+    "repoRoot": "/home/kratos/projects/TradingAgents-CN",
+    "missionDir": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4",
+    "guidanceSection": "Flow Validator Guidance: Mini shell source/build surface",
+    "workspace": "Shared repo workspace only",
+    "inspectionMode": "Read-only source and generated-artifact inspection plus copying shared evidence into the assigned evidence directory.",
+    "constraints": [
+      "Did not rerun write-heavy mini build or validate scripts.",
+      "No browser automation used.",
+      "No WeChat runtime, device, upload, or live backend claims made."
+    ],
+    "sharedInputs": {
+      "validatorLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-publish-shell/shared/npm-test-build-validate.txt",
+      "previewArtifact": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-publish-shell/shared/local-preview.html",
+      "summaryArtifact": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-publish-shell/shared/validation-summary.json"
+    },
+    "repoArtifacts": {
+      "previewArtifact": "/home/kratos/projects/TradingAgents-CN/mini/dist/local-preview.html",
+      "summaryArtifact": "/home/kratos/projects/TradingAgents-CN/mini/dist/validation-summary.json"
+    }
+  },
+  "toolsUsed": [
+    "Read",
+    "Grep",
+    "LS",
+    "python3"
+  ],
+  "assertionsTested": [
+    "VAL-PUBLISH-001",
+    "VAL-PUBLISH-006",
+    "VAL-MINI-002",
+    "VAL-MINI-003",
+    "VAL-MINI-004",
+    "VAL-CROSS-003"
+  ],
+  "passedAssertions": [
+    "VAL-PUBLISH-001",
+    "VAL-PUBLISH-006",
+    "VAL-MINI-002",
+    "VAL-MINI-003",
+    "VAL-MINI-004",
+    "VAL-CROSS-003"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "commandsRun": [
+    "Read/Grep inspection of mission guidance, validation contract, mini source files, repo artifacts, and shared validator evidence.",
+    "python3 copy of shared local-preview.html, validation-summary.json, and npm-test-build-validate.txt into the assigned mission evidence directory.",
+    "python3 write of .factory/validation/mini-publish-shell/user-testing/flows/runtime-boundary-contract.json."
+  ],
+  "assertions": [
+    {
+      "id": "VAL-PUBLISH-001",
+      "title": "The checked-in Mini project preserves import-shell source configuration with AppID wiring and non-local runtime targets",
+      "status": "pass",
+      "proofSummary": "The checked-in mini project keeps AppID wx1d02a932c4f9a4ae, compileType=miniprogram, and a non-loopback placeholder-preview backend target. The shared validator log confirms the runtime boundary passed source/build validation without claiming real runtime success.",
+      "sourceReferences": [
+        {
+          "path": "mini/project.config.json",
+          "lines": "2-5",
+          "note": "Preserves the shared AppID, miniprogram compileType, and publish-facing project name TradingAgentsMiniImportShell."
+        },
+        {
+          "path": "mini/config/runtime.shared.js",
+          "lines": "4,6-10",
+          "note": "Defines the checked-in AppID plus placeholder-preview mode and non-loopback baseUrl https://mini-runtime-placeholder.invalid."
+        },
+        {
+          "path": "mini/app.json",
+          "lines": "3-5,19-34",
+          "note": "Registers the real Home, Watch, and Account shell surfaces under the top-level mini app."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/validation-summary.json",
+          "lines": "15-19,25-49",
+          "note": "Copied summary artifact shows placeholder-preview runtime boundary and the three primary shell surfaces."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/npm-test-build-validate.txt",
+          "lines": "81-82,97",
+          "note": "Shared validator output confirms the checked-in runtime config preserves the AppID/non-loopback target and that mini_validate passed."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-PUBLISH-006",
+      "title": "The checked-in Mini shell keeps a configurable placeholder-to-runtime backend boundary",
+      "status": "pass",
+      "proofSummary": "The shipped shell defaults to placeholder-preview mode, loads operator-private overrides from mini/config/runtime.local.js or mini/project.private.config.json, and wires apiBaseUrl from getRuntimeConfig() so later HTTPS runtime swaps happen through configuration rather than page or business-logic edits.",
+      "sourceReferences": [
+        {
+          "path": "mini/config/runtime.shared.js",
+          "lines": "6-10,24-34",
+          "note": "Defines the default placeholder-preview runtime plus local/private override paths and the no-source-edit swap summary."
+        },
+        {
+          "path": "mini/lib/runtime-config.js",
+          "lines": "5-6,96,160-170",
+          "note": "Keeps override paths under versioned config, validates loopback targets, and exposes checked-in versus operator-overridden runtime getters."
+        },
+        {
+          "path": "mini/app.js",
+          "lines": "1,3,6-11",
+          "note": "Initializes globalData.apiBaseUrl, runtimeMode, and validation metadata from getRuntimeConfig()."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/local-preview.html",
+          "lines": "160-162",
+          "note": "Copied preview artifact calls out the shared config, local override, and private DevTools config paths."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/validation-summary.json",
+          "lines": "15-19",
+          "note": "Copied summary artifact records placeholder-preview mode, non-loopback baseUrl, and the local/private override paths."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/npm-test-build-validate.txt",
+          "lines": "82,97",
+          "note": "Shared validator output confirms operator overrides can swap runtime targets without changing shared shell metadata and that the runtime boundary proof passed."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-MINI-002",
+      "title": "The local Mini surface stays explicit about non-runtime validation",
+      "status": "pass",
+      "proofSummary": "The checked-in preview and generated summary explicitly label the evidence as source/build import-shell validation with a placeholder-safe runtime default, and they disclaim any real WeChat simulator, device, upload, or live backend success.",
+      "sourceReferences": [
+        {
+          "path": "mini/config/runtime.shared.js",
+          "lines": "24-28",
+          "note": "Ships runtimeDisclosure, previewDisclosure, and previewEvidenceLabel copy that keeps the local Mini proof honest."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/local-preview.html",
+          "lines": "157-163",
+          "note": "Copied preview artifact labels the shell as local-only source/build proof and explicitly says it is not evidence of real WeChat runtime success."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/validation-summary.json",
+          "lines": "2-19",
+          "note": "Copied summary artifact records validationMode=source-build-import-shell plus matching runtime disclaimers."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/npm-test-build-validate.txt",
+          "lines": "50,96",
+          "note": "Shared validator/build log repeats the source/build-only validation posture and the absence of runtime/upload/live-backend claims."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-MINI-003",
+      "title": "The Mini protected digest surface renders one authenticated payload-backed card per canonical stock_code",
+      "status": "pass",
+      "proofSummary": "The Watch surface authenticates through the shared bearer-session boundary, dedupes payload rows down to one rendered card per canonical stock_code, maps only compact digest fields for rendering, and preserves waiting/placeholder cards when no ready digest exists.",
+      "sourceReferences": [
+        {
+          "path": "mini/lib/auth-session-boundary.js",
+          "lines": "295-308,348-370",
+          "note": "Uses POST /api/auth/login and GET /api/watch/digests with the bearer session the Mini surface persists."
+        },
+        {
+          "path": "mini/lib/home-controller.js",
+          "lines": "146-177,191-205,293-314",
+          "note": "selectCompactDigestCards dedupes by stock_code and mapDigestCard projects only compact shared fields into the rendered Watch model."
+        },
+        {
+          "path": "mini/pages/watch/index.wxml",
+          "lines": "71-97",
+          "note": "Watch distinguishes waiting versus ready, reports rendered stock_code values, and states that it consumes only shared compact fields."
+        },
+        {
+          "path": "mini/data/digest-cards.js",
+          "lines": "7-29,101-154",
+          "note": "Preview data defines the compact field contract, includes duplicate 600519 rows, keeps a waiting 000001 card, and includes extra browser/report fields that the boundary must ignore."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/local-preview.html",
+          "lines": "406-471",
+          "note": "Copied preview artifact shows waiting and ready Watch states, one-card-per-stock_code proof, and compact shared field messaging."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/validation-summary.json",
+          "lines": "161-172",
+          "note": "Copied summary artifact records 3 raw payload rows rendered as 2 cards with 1 placeholder retained and lists the compact field keys."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/npm-test-build-validate.txt",
+          "lines": "6,18,68",
+          "note": "Shared test/build log confirms bearer token reuse on the protected read path and the one-card-per-stock_code/non-compact-field stripping behavior."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-MINI-004",
+      "title": "Auth failures do not fall through to stale, mock, or empty-success watch cards",
+      "status": "pass",
+      "proofSummary": "Missing or invalid bearer sessions return authRequired with empty cards, controller auth-required transitions clear any rendered protected content, and the Watch copy explicitly says it will not show mock, stale, or fake-success empty cards.",
+      "sourceReferences": [
+        {
+          "path": "mini/lib/auth-session-boundary.js",
+          "lines": "341-370,379",
+          "note": "No session or HTTP 401 produces authRequired=true with cards=[] and clears the persisted session."
+        },
+        {
+          "path": "mini/lib/home-controller.js",
+          "lines": "273-285,331-383",
+          "note": "applyAuthRequiredState clears cards, renderedStockCodes, and counts whenever auth is missing or digest auth fails."
+        },
+        {
+          "path": "mini/pages/watch/index.wxml",
+          "lines": "56-68",
+          "note": "Watch source says no stale cards are reused during loading and no mock/stale/fake-success cards appear in auth-required state."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/local-preview.html",
+          "lines": "384-401",
+          "note": "Copied preview artifact shows distinct auth-required and authenticated-empty states instead of a fake successful empty watch surface."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/validation-summary.json",
+          "lines": "100,117-120,136-137",
+          "note": "Copied summary artifact records the authRequired code and keeps authenticated-empty separate from auth-required."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/npm-test-build-validate.txt",
+          "lines": "17,20,67,70",
+          "note": "Shared test/build log confirms auth failures clear protected cards and that Watch keeps loading/auth-required/authenticated-empty/waiting/ready states distinct."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-003",
+      "title": "The Mini boundary stays contract-first and presentation-neutral",
+      "status": "pass",
+      "proofSummary": "The Mini boundary remains thin: it defines and consumes only the compact shared digest-card fields needed for mobile rendering, strips preview-only browser/report extras, and renders from mapped mobile-safe data without route-context or real-runtime dependencies.",
+      "sourceReferences": [
+        {
+          "path": "mini/data/digest-cards.js",
+          "lines": "7-29,116-118,153-154",
+          "note": "Defines compactFieldKeys and includes non-contract extras such as symbol, route_name, report_body, report_html, and browser_route_context in preview payloads."
+        },
+        {
+          "path": "mini/lib/home-controller.js",
+          "lines": "146-177,191-205",
+          "note": "Copies only compact contract fields into the normalized card model the Mini surface renders."
+        },
+        {
+          "path": "mini/pages/watch/index.wxml",
+          "lines": "95-97,100-131",
+          "note": "Watch surfaces stock identity, quote, summary, and status fields from the mapped compact card model only."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/local-preview.html",
+          "lines": "462-471",
+          "note": "Copied preview artifact calls out one-card-per-stock_code behavior and compact shared field consumption."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/validation-summary.json",
+          "lines": "161-172",
+          "note": "Copied summary artifact records renderedStockCodes and the compact field keys used by the Mini boundary."
+        },
+        {
+          "path": "mini-publish-shell/runtime-boundary-contract/npm-test-build-validate.txt",
+          "lines": "18,68",
+          "note": "Shared validator output confirms the stock_code dedupe and non-compact field stripping behavior."
+        }
+      ],
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "evidence": {
+    "pathsRelativeToMissionEvidenceRoot": true,
+    "evidenceDirectory": "mini-publish-shell/runtime-boundary-contract",
+    "copiedSharedArtifacts": [
+      {
+        "path": "mini-publish-shell/runtime-boundary-contract/local-preview.html",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-publish-shell/shared/local-preview.html"
+      },
+      {
+        "path": "mini-publish-shell/runtime-boundary-contract/validation-summary.json",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-publish-shell/shared/validation-summary.json"
+      },
+      {
+        "path": "mini-publish-shell/runtime-boundary-contract/npm-test-build-validate.txt",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-publish-shell/shared/npm-test-build-validate.txt"
+      }
+    ],
+    "inspectedRepoArtifacts": [
+      "mini/dist/local-preview.html",
+      "mini/dist/validation-summary.json"
+    ]
+  },
+  "summary": "Tested 6 assigned source/build runtime-boundary assertions: 6 passed, 0 failed, 0 blocked. Evidence stays limited to checked-in mini source/build proof and explicitly defers real WeChat runtime, device, upload, and live backend validation."
+}

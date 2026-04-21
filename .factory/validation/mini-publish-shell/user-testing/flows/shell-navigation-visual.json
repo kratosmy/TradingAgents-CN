@@ -1,0 +1,202 @@
+{
+  "groupId": "shell-navigation-visual",
+  "milestone": "mini-publish-shell",
+  "testedAt": "2026-04-21T08:05:15.877975+00:00",
+  "isolation": {
+    "workspace": "/home/kratos/projects/TradingAgents-CN",
+    "missionDir": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4",
+    "guidanceSection": "Flow Validator Guidance: Mini shell source/build surface",
+    "scope": "Read-only inspection of delivered mini/ source, repo build artifacts, and shared validator evidence; no browser automation and no rerun of mini build/validate scripts.",
+    "sharedValidatorLog": "mini-publish-shell/shared/npm-test-build-validate.txt",
+    "sharedArtifacts": [
+      "mini-publish-shell/shared/local-preview.html",
+      "mini-publish-shell/shared/validation-summary.json"
+    ]
+  },
+  "toolsUsed": [
+    "Read",
+    "Grep",
+    "LS",
+    "Execute"
+  ],
+  "assertionsTested": [
+    "VAL-PUBLISH-002",
+    "VAL-PUBLISH-003",
+    "VAL-PUBLISH-004",
+    "VAL-PUBLISH-005",
+    "VAL-PUBLISH-007",
+    "VAL-PUBLISH-008"
+  ],
+  "passedAssertions": [
+    "VAL-PUBLISH-002",
+    "VAL-PUBLISH-003",
+    "VAL-PUBLISH-004",
+    "VAL-PUBLISH-005",
+    "VAL-PUBLISH-007",
+    "VAL-PUBLISH-008"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "commandsRun": [
+    "Read/Grep repo guidance, mission contract, mini source files, mini/dist artifacts, and shared validator evidence.",
+    "python3: copied shared local-preview.html, validation-summary.json, and npm-test-build-validate.txt into mission evidence/mini-publish-shell/shell-navigation-visual/ and wrote .factory/validation/mini-publish-shell/user-testing/flows/shell-navigation-visual.json."
+  ],
+  "assertions": [
+    {
+      "id": "VAL-PUBLISH-002",
+      "title": "Home, Watch, and Account have distinct user-facing responsibilities in the polish shell",
+      "status": "pass",
+      "proofSummary": "Primary shell registration, navigation metadata, page copy, and generated preview/summary all keep Home overview-first, Watch as the protected digest surface, and Account as the identity/help hub instead of collapsing the tabs into interchangeable content.",
+      "sourceReferences": [
+        "mini/app.json:2-35",
+        "mini/lib/shell-navigation.js:1-23",
+        "mini/pages/home/index.wxml:1-47",
+        "mini/pages/watch/index.wxml:1-8,53-95",
+        "mini/pages/account/index.wxml:1-45"
+      ],
+      "artifactReferences": [
+        "mini/dist/local-preview.html:168-207",
+        "mini/dist/local-preview.html:363-368",
+        "mini/dist/local-preview.html:566-579",
+        "mini/dist/validation-summary.json:29-50",
+        "mini-publish-shell/shell-navigation-visual/local-preview.html",
+        "mini-publish-shell/shell-navigation-visual/validation-summary.json",
+        "mini-publish-shell/shell-navigation-visual/npm-test-build-validate.txt"
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-PUBLISH-003",
+      "title": "Surface-specific state copy stays honest without debug copy taking over",
+      "status": "pass",
+      "proofSummary": "Home keeps signed-out, authenticated-loading, authenticated-empty, authenticated-error, and highlight states distinct; Watch keeps loading/auth-required/authenticated-empty/waiting/ready distinct; Account copy stays honest about signed-in versus signed-out posture, while runtime-boundary honesty stays secondary instead of replacing primary-surface messaging.",
+      "sourceReferences": [
+        "mini/lib/shell-surface-state.js:84-133",
+        "mini/lib/shell-surface-state.js:175-200",
+        "mini/lib/shell-surface-state.js:413-426",
+        "mini/pages/home/index.wxml:4-45",
+        "mini/pages/watch/index.wxml:11-80,101-103,151-159",
+        "mini/pages/account/index.wxml:8-23,49-53"
+      ],
+      "artifactReferences": [
+        "mini/dist/local-preview.html:213-291",
+        "mini/dist/local-preview.html:366-422",
+        "mini/dist/local-preview.html:571-579,586-587",
+        "mini/dist/validation-summary.json:117-139",
+        "mini-publish-shell/shell-navigation-visual/local-preview.html",
+        "mini-publish-shell/shell-navigation-visual/validation-summary.json",
+        "mini-publish-shell/shell-navigation-visual/npm-test-build-validate.txt"
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-PUBLISH-004",
+      "title": "Signed-out users can navigate the shell while protected Watch content stays gated",
+      "status": "pass",
+      "proofSummary": "The custom tab bar and primary-surface navigation helpers keep Home and Account reachable, while Watch explicitly renders an auth-required gate and withholds protected digest cards until a valid bearer session exists.",
+      "sourceReferences": [
+        "mini/custom-tab-bar/index.js:1-23",
+        "mini/custom-tab-bar/index.wxml:1-18",
+        "mini/pages/home/index.js:73-78",
+        "mini/pages/account/index.js:51-65",
+        "mini/lib/shell-surface-state.js:86-88,177-180,413-416",
+        "mini/pages/watch/index.wxml:59-62"
+      ],
+      "artifactReferences": [
+        "mini/dist/local-preview.html:203-215",
+        "mini/dist/local-preview.html:366-390",
+        "mini/dist/local-preview.html:566-579",
+        "mini-publish-shell/shell-navigation-visual/local-preview.html",
+        "mini-publish-shell/shell-navigation-visual/npm-test-build-validate.txt"
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-PUBLISH-005",
+      "title": "Account secondary pages support usable round-trip navigation",
+      "status": "pass",
+      "proofSummary": "Account exposes Settings/About/Privacy/Help as real secondary routes, the shared secondary-page factory wires back and return actions, and returnToAccountSurface falls back safely when navigateBack cannot complete, so each leaf has a usable round trip to Account.",
+      "sourceReferences": [
+        "mini/app.json:2-9",
+        "mini/lib/shell-navigation.js:26-53,78-80,125-153",
+        "mini/lib/account-secondary-page.js:3-40",
+        "mini/pages/account/index.js:51-57",
+        "mini/pages/account/index.wxml:27-45",
+        "mini/pages/account/settings/index.wxml:2-26",
+        "mini/pages/account/about/index.wxml:2-26",
+        "mini/pages/account/privacy/index.wxml:2-26",
+        "mini/pages/account/help/index.wxml:2-26",
+        "mini/components/shell-chrome/index.js:7-20",
+        "mini/components/shell-chrome/index.wxml:11"
+      ],
+      "artifactReferences": [
+        "mini/dist/local-preview.html:591-683",
+        "mini/dist/validation-summary.json:52-84,190-193",
+        "mini-publish-shell/shell-navigation-visual/local-preview.html",
+        "mini-publish-shell/shell-navigation-visual/validation-summary.json",
+        "mini-publish-shell/shell-navigation-visual/npm-test-build-validate.txt"
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-PUBLISH-007",
+      "title": "Authenticated Watch empty state stays distinct from auth-required and loading states",
+      "status": "pass",
+      "proofSummary": "Watch state derivation maps authenticated users with no cards to authenticated-empty, renders dedicated authenticated-empty copy and a separate “No protected cards yet” card, and keeps that state separate from auth-required, loading, waiting, and ready both in source and generated proof.",
+      "sourceReferences": [
+        "mini/lib/shell-surface-state.js:175-200,322-378",
+        "mini/pages/watch/index.wxml:65-80,99-103",
+        "mini/pages/watch/index.js:80-88"
+      ],
+      "artifactReferences": [
+        "mini/dist/local-preview.html:393-401",
+        "mini/dist/local-preview.html:482-484",
+        "mini/dist/validation-summary.json:117-123",
+        "mini/dist/validation-summary.json:133-139",
+        "mini-publish-shell/shell-navigation-visual/local-preview.html",
+        "mini-publish-shell/shell-navigation-visual/validation-summary.json",
+        "mini-publish-shell/shell-navigation-visual/npm-test-build-validate.txt"
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-PUBLISH-008",
+      "title": "The shell visual system keeps objective dark-premium cues across primary surfaces",
+      "status": "pass",
+      "proofSummary": "The shared shell stylesheet defines the dark root canvas, elevated cards, restrained green accent usage for primary actions/active navigation, and shared typography/spacing tokens, and Home/Watch/Account all import that stylesheet; the generated proof and validation summary restate the same objective visual tokens.",
+      "sourceReferences": [
+        "mini/app.json:11-23",
+        "mini/styles/shell.wxss:1-15,54-70,144-155,267-279",
+        "mini/pages/home/index.wxss:1",
+        "mini/pages/watch/index.wxss:1",
+        "mini/pages/account/index.wxss:1",
+        "mini/components/shell-chrome/index.wxss:1"
+      ],
+      "artifactReferences": [
+        "mini/dist/local-preview.html:9-28",
+        "mini/dist/local-preview.html:691-712",
+        "mini/dist/validation-summary.json:86-94",
+        "mini-publish-shell/shell-navigation-visual/local-preview.html",
+        "mini-publish-shell/shell-navigation-visual/validation-summary.json",
+        "mini-publish-shell/shell-navigation-visual/npm-test-build-validate.txt"
+      ],
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "evidence": {
+    "directory": "mini-publish-shell/shell-navigation-visual",
+    "files": [
+      "mini-publish-shell/shell-navigation-visual/local-preview.html",
+      "mini-publish-shell/shell-navigation-visual/validation-summary.json",
+      "mini-publish-shell/shell-navigation-visual/npm-test-build-validate.txt"
+    ],
+    "repoArtifacts": [
+      "mini/dist/local-preview.html",
+      "mini/dist/validation-summary.json"
+    ],
+    "sharedValidatorLog": "mini-publish-shell/shell-navigation-visual/npm-test-build-validate.txt"
+  },
+  "summary": "Validated 6 assigned shell navigation/state/visual assertions from committed mini/ source plus generated proof: 6 passed, 0 failed, 0 blocked."
+}
