@@ -1,0 +1,22 @@
+{
+  "milestone": "mini-upload-shell",
+  "round": 1,
+  "status": "pass",
+  "assertionsSummary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "blocked": 0
+  },
+  "passedAssertions": [
+    "VAL-CROSS-004",
+    "VAL-RELEASE-001",
+    "VAL-RELEASE-002",
+    "VAL-RELEASE-003",
+    "VAL-RELEASE-004"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "appliedUpdates": [],
+  "previousRound": null
+}

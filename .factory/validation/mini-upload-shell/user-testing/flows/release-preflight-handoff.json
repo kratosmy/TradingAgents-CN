@@ -1,0 +1,349 @@
+{
+  "groupId": "release-preflight-handoff",
+  "milestone": "mini-upload-shell",
+  "testedAt": "2026-04-21T09:43:37.324141Z",
+  "isolation": {
+    "repoRoot": "/home/kratos/projects/TradingAgents-CN",
+    "missionDir": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4",
+    "guidanceSection": "Flow Validator Guidance: Release-preflight surface",
+    "workspace": "Shared repo workspace only",
+    "inspectionMode": "Read-only source/build/preflight and checked-in handoff inspection plus copying shared evidence into the assigned evidence directory.",
+    "constraints": [
+      "Did not rerun write-heavy mini build, validate, or preflight scripts.",
+      "No browser automation used.",
+      "No WeChat runtime, live upload, device, or live backend claims made.",
+      "Used shared logs/artifacts plus read-only git proof only."
+    ],
+    "sharedInputs": {
+      "sharedEvidenceIndex": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/shared-evidence-index.json",
+      "testLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-test.txt",
+      "buildLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-build.txt",
+      "validateLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-validate.txt",
+      "preflightLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-preflight.txt",
+      "uploadDryRunLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-upload-dry-run.txt",
+      "uploadDryRunReadyLog": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-upload-dry-run-ready.txt",
+      "previewArtifact": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/local-preview.html",
+      "summaryArtifact": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/validation-summary.json",
+      "handoffMarkdown": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/manual-upload-handoff.md",
+      "handoffJson": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/manual-upload-handoff.json"
+    },
+    "repoArtifacts": {
+      "previewArtifact": "/home/kratos/projects/TradingAgents-CN/mini/dist/local-preview.html",
+      "summaryArtifact": "/home/kratos/projects/TradingAgents-CN/mini/dist/validation-summary.json",
+      "handoffMarkdown": "/home/kratos/projects/TradingAgents-CN/mini/dist/manual-upload-handoff.md"
+    }
+  },
+  "toolsUsed": [
+    "Read",
+    "Grep",
+    "LS",
+    "Execute",
+    "python3",
+    "git"
+  ],
+  "assertionsTested": [
+    "VAL-RELEASE-001",
+    "VAL-RELEASE-003",
+    "VAL-RELEASE-004",
+    "VAL-CROSS-004"
+  ],
+  "passedAssertions": [
+    "VAL-RELEASE-001",
+    "VAL-RELEASE-003",
+    "VAL-RELEASE-004",
+    "VAL-CROSS-004"
+  ],
+  "failedAssertions": [],
+  "blockedAssertions": [],
+  "commandsRun": [
+    "Read/Grep inspection of README, mission guidance, validation contract, mini source files, repo artifacts, and shared release-preflight evidence.",
+    "git -C \"/home/kratos/projects/TradingAgents-CN\" status --porcelain",
+    "git -C \"/home/kratos/projects/TradingAgents-CN\" ls-files --cached -- \"mini/project.private.config.json\" \"mini/config/runtime.local.js\" \"mini/upload-secrets\" \"mini/upload-secrets/*\"",
+    "python3 copy of shared mini-upload-shell evidence into the assigned mission evidence directory plus git-proof.txt creation.",
+    "python3 write of .factory/validation/mini-upload-shell/user-testing/flows/release-preflight-handoff.json."
+  ],
+  "assertions": [
+    {
+      "id": "VAL-RELEASE-001",
+      "title": "Offline preflight validates repo-owned release config and fails closed on illegal checked-in config",
+      "status": "pass",
+      "proofSummary": "The copied preflight log passes against the checked-in shell, while the checked-in preflight source rejects bad AppID/runtime/project metadata and tracked local-only WeChat artifacts. Focused release-preflight regressions also cover loopback/illegal-config and tracked-artifact failure paths, so repo-owned release preflight fails closed instead of green-lighting a bad shell.",
+      "sourceReferences": [
+        {
+          "path": "mini/project.config.json",
+          "lines": "2-18",
+          "note": "Checked-in Mini project config preserves AppID, compileType=miniprogram, root=\".\", and ignoreUploadUnusedFiles=true for import-shell upload readiness."
+        },
+        {
+          "path": "mini/package.json",
+          "lines": "3,10-11,18",
+          "note": "Release metadata stays semver and exposes the named preflight/upload scaffold commands with miniprogram-ci declared in the checked-in Mini package manifest."
+        },
+        {
+          "path": "mini/config/runtime.shared.js",
+          "lines": "4-7,30-38",
+          "note": "Checked-in runtime stays placeholder-preview on a non-loopback HTTPS target and defines the manual-upload truth boundary plus local-only paths."
+        },
+        {
+          "path": "mini/lib/manual-upload-preflight.js",
+          "lines": "24-57,103-167,171-173,213",
+          "note": "Preflight inspects git-tracked local-only paths via git ls-files, requires the shared AppID/runtime/project/script shape, and refuses illegal checked-in config or tracked operator-private artifacts."
+        },
+        {
+          "path": "mini/tests/release-preflight.test.mjs",
+          "lines": "60-89,96-115",
+          "note": "Regression tests simulate illegal checked-in AppID/compile/runtime values and tracked private artifacts to confirm the preflight fails closed."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-preflight.txt",
+          "lines": "7-45",
+          "note": "Copied shared preflight output passes the checked-in shell and enumerates the AppID/runtime/project metadata, local-only hygiene, and deferred live runtime/upload scope."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-validate.txt",
+          "lines": "35-38",
+          "note": "Copied validation log shows the illegal-config and tracked-artifact release-preflight regressions passed."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-RELEASE-003",
+      "title": "Release evidence stays source/build-first and hands runtime publish work off through checked-in docs",
+      "status": "pass",
+      "proofSummary": "The copied build, validation-summary, preflight, and checked-in handoff artifacts all limit the claim to source/build/preflight/manual-upload-shell readiness. They explicitly defer DevTools login, local/private keys, runtime/backend verification, IP allowlisting, audit, and publish work instead of implying live release success.",
+      "sourceReferences": [
+        {
+          "path": "mini/config/runtime.shared.js",
+          "lines": "22-32",
+          "note": "Shared validation copy defines source-build evidence posture and the manual-upload disclosure that denies real runtime/upload success."
+        },
+        {
+          "path": "mini/lib/release-handoff.js",
+          "lines": "22-41,53",
+          "note": "Checked-in handoff source separates truth boundary, validated-now items, deferred operator/runtime/upload steps, local-only secret paths, and the operator checklist."
+        },
+        {
+          "path": "mini/lib/manual-upload-preflight.js",
+          "lines": "171-173,191-213",
+          "note": "Preflight output is explicitly tied to the handoff truth boundary and ends by deferring live backend/runtime/upload/publish verification."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-build.txt",
+          "lines": "7-8",
+          "note": "Copied build log says the generated artifacts are source/build evidence only and make no real runtime/upload/live-backend claim."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/validation-summary.json",
+          "lines": "2-13,203-228",
+          "note": "Copied generated summary repeats the disclaimers and stores the same deferred operator/runtime/upload steps and local-only secret paths."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/manual-upload-handoff.md",
+          "lines": "6-34",
+          "note": "Copied handoff markdown explicitly separates validated shell readiness from deferred operator/runtime/upload work and local-only secret handling."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-preflight.txt",
+          "lines": "7-45",
+          "note": "Copied preflight output reiterates the same truth boundary and deferred operator checklist."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-RELEASE-004",
+      "title": "Local/private WeChat artifacts and upload keys stay local and untracked",
+      "status": "pass",
+      "proofSummary": "Local-only WeChat paths are declared in checked-in runtime config and .gitignore, the preflight inspects the git index to reject tracked/staged operator-private artifacts, and current git proof shows none are tracked. The upload scaffold only accepts runtime-injected secret env vars or local gitignored key files and explicitly says no private key or token material belongs in versioned source.",
+      "sourceReferences": [
+        {
+          "path": ".gitignore",
+          "lines": "240-244",
+          "note": "Repo ignore rules explicitly keep mini/project.private.config.json, mini/config/runtime.local.js, mini/config/runtime.local.json, and mini/upload-secrets/ out of versioned source."
+        },
+        {
+          "path": "mini/config/runtime.shared.js",
+          "lines": "35-38",
+          "note": "Checked-in runtime config names the local-only runtime override, private DevTools config, upload-secrets directory, and local upload private-key path."
+        },
+        {
+          "path": "mini/lib/manual-upload-preflight.js",
+          "lines": "24-57,154-167",
+          "note": "Preflight derives the local-only paths, requires matching .gitignore entries, and fails if git ls-files finds tracked/staged operator-private artifacts."
+        },
+        {
+          "path": "mini/lib/wechat-ci-upload.js",
+          "lines": "9-16,53-56,325",
+          "note": "Upload scaffold expects runtime-injected env vars, keeps keys under the gitignored upload-secrets directory or environment injection only, and states no committed credentials are used."
+        },
+        {
+          "path": "mini/tests/release-preflight.test.mjs",
+          "lines": "96-115",
+          "note": "Tracked private-config/key regressions prove the preflight fails closed if local-only WeChat artifacts are already staged or committed."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/git-proof.txt",
+          "lines": "1-5",
+          "note": "Read-only repo proof shows both git status and git ls-files are empty for the local-only WeChat paths checked by this flow."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-preflight.txt",
+          "lines": "24-43",
+          "note": "Copied preflight output keeps the local-only/untracked paths explicit and reports both ignore-rule and tracked-artifact checks as pass."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-upload-dry-run.txt",
+          "lines": "7-36",
+          "note": "Copied refusal log demands runtime-injected upload secrets, says keys belong under mini/upload-secrets/ or env vars, and states dry-run never performs a live upload."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-upload-dry-run-ready.txt",
+          "lines": "8-27",
+          "note": "Copied ready dry-run log shows the scaffold can proceed with env-injected secret material while still keeping the run dry-run only and local-only."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-validate.txt",
+          "lines": "36-38,44-50",
+          "note": "Copied validation log shows tracked private-artifact regressions and upload-scaffold secret-gate regressions passed."
+        }
+      ],
+      "issues": null
+    },
+    {
+      "id": "VAL-CROSS-004",
+      "title": "Upload-shell readiness and deferred runtime/backend validation stay true at the same time",
+      "status": "pass",
+      "proofSummary": "Product copy in the delivered preview, the checked-in runtime config, the preflight output, the validation summary, and the checked-in handoff doc all tell the same truth: the shell is ready for manual-upload handoff, but real WeChat runtime/device validation, live backend verification, upload, audit, and publish are still deferred.",
+      "sourceReferences": [
+        {
+          "path": "mini/config/runtime.shared.js",
+          "lines": "22-38",
+          "note": "Shared config sets the preview/runtime disclosures, manual-upload truth boundary, and local-only operator override paths used throughout the product and release surfaces."
+        },
+        {
+          "path": "mini/lib/release-handoff.js",
+          "lines": "22-41,53",
+          "note": "Checked-in handoff source keeps validated-now claims separate from deferred operator/runtime/upload steps and renders that split verbatim into markdown."
+        },
+        {
+          "path": "mini/lib/shell-surface-state.js",
+          "lines": "381-384",
+          "note": "Surface-state copy says the checked-in shell can pass manual-upload preflight while leaving real backend, runtime, and upload work to later local operator steps."
+        },
+        {
+          "path": "mini/pages/watch/index.wxml",
+          "lines": "151-160",
+          "note": "Delivered Watch copy exposes the placeholder-preview runtime boundary, private DevTools config, local upload secrets, and local-only disclosure through the real shell surface."
+        }
+      ],
+      "artifactReferences": [
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/local-preview.html",
+          "lines": "161-163,692-701",
+          "note": "Copied preview artifact both disclaims real runtime/upload success and labels the handoff section as manual-upload shell readiness only with deferred live work."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/validation-summary.json",
+          "lines": "10-13,203-228",
+          "note": "Copied summary artifact stores the same non-runtime disclaimers, truth-boundary label, local-only paths, and deferred operator checklist."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/manual-upload-handoff.md",
+          "lines": "6-34",
+          "note": "Copied handoff markdown repeats the exact truth boundary, deferred runtime/upload steps, and no-committed-credentials handoff rule."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-preflight.txt",
+          "lines": "7-45",
+          "note": "Copied preflight output says PASS for manual-upload shell readiness while still deferring live backend/runtime/upload/publish verification."
+        },
+        {
+          "path": "mini-upload-shell/release-preflight-handoff/npm-build.txt",
+          "lines": "7-8",
+          "note": "Copied build log keeps the generated proof source/build-only and avoids any live runtime/upload claim."
+        }
+      ],
+      "issues": null
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "evidence": {
+    "copiedArtifacts": [
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/local-preview.html",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/local-preview.html"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/validation-summary.json",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/validation-summary.json"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/manual-upload-handoff.json",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/manual-upload-handoff.json"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/manual-upload-handoff.md",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/manual-upload-handoff.md"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/npm-test.txt",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-test.txt"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/npm-build.txt",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-build.txt"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/npm-validate.txt",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-validate.txt"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/npm-preflight.txt",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-preflight.txt"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/npm-upload-dry-run.txt",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-upload-dry-run.txt"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/npm-upload-dry-run-ready.txt",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/npm-upload-dry-run-ready.txt"
+      },
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/shared-evidence-index.json",
+        "copiedFrom": "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/evidence/mini-upload-shell/shared/shared-evidence-index.json"
+      }
+    ],
+    "generatedArtifacts": [
+      {
+        "path": "mini-upload-shell/release-preflight-handoff/git-proof.txt",
+        "createdFrom": "git status --porcelain and git ls-files --cached read-only repo proof for local-only WeChat paths."
+      }
+    ],
+    "inspectedRepoArtifacts": [
+      ".gitignore",
+      "mini/project.config.json",
+      "mini/package.json",
+      "mini/config/runtime.shared.js",
+      "mini/lib/manual-upload-preflight.js",
+      "mini/lib/release-handoff.js",
+      "mini/lib/wechat-ci-upload.js",
+      "mini/lib/shell-surface-state.js",
+      "mini/pages/watch/index.wxml",
+      "mini/tests/release-preflight.test.mjs",
+      "mini/dist/local-preview.html",
+      "mini/dist/manual-upload-handoff.md",
+      "mini/dist/validation-summary.json"
+    ],
+    "reportPath": ".factory/validation/mini-upload-shell/user-testing/flows/release-preflight-handoff.json"
+  },
+  "summary": "Tested 4 assigned release-preflight/runtime-handoff assertions: 4 passed, 0 failed, 0 blocked. Shared source/build/preflight evidence, product copy, and checked-in handoff artifacts consistently prove manual-upload shell readiness only while keeping live runtime/backend/upload validation deferred and local/private WeChat material untracked."
+}
