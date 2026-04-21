@@ -1,0 +1,15 @@
+{
+  "featureId": "mini-preflight-fails-on-tracked-private-artifacts",
+  "reviewedAt": "2026-04-21T09:27:09.353882Z",
+  "commitId": "8885c72affae2b839b16a05f9f3bedb9bed141eb",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix directly addresses the prior blocker. `mini/lib/manual-upload-preflight.js` now derives the local-only WeChat paths from the checked-in runtime boundary, inspects the git index with `git ls-files --cached`, and reports tracked/staged private-artifact failures separately from ignore-rule checks; `mini/tests/release-preflight.test.mjs` adds regressions for `mini/project.private.config.json`, `mini/config/runtime.local.js`, and `mini/upload-secrets/code-upload.private.key`. I did not find any new blocking problems in the touched preflight path.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-upload-shell/scrutiny/reviews/mini-upload-preflight-and-runtime-handoff.json",
+  "summary": "Pass. The original failure is resolved: manual-upload preflight now fails closed when operator-private WeChat artifacts are already tracked or staged, while preserving the prior handoff and release-honesty behavior. No new blocking issues were identified in the fix diff or transcript skeleton."
+}

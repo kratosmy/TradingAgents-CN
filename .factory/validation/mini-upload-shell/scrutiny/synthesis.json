@@ -1,11 +1,11 @@
 {
   "milestone": "mini-upload-shell",
-  "round": 1,
-  "status": "fail",
+  "round": 2,
+  "status": "pass",
   "validatorsRun": {
     "test": {
       "passed": true,
-      "command": "cd \"/home/kratos/projects/TradingAgents-CN\" && .venv-mission/bin/python -m pytest tests/services/test_watch_api_baseline.py tests/services/test_watch_digest_service.py tests/services/test_mini_auth_session_boundary.py -v && npm --prefix mini run test",
+      "command": ".venv-mission/bin/python -m pytest \"/home/kratos/projects/TradingAgents-CN/tests/services/test_watch_api_baseline.py\" \"/home/kratos/projects/TradingAgents-CN/tests/services/test_watch_digest_service.py\" \"/home/kratos/projects/TradingAgents-CN/tests/services/test_mini_auth_session_boundary.py\" -v && npm --prefix \"/home/kratos/projects/TradingAgents-CN/mini\" run test",
       "exitCode": 0
     },
     "typecheck": {
@@ -17,42 +17,22 @@
       "passed": true,
       "command": "npm --prefix \"/home/kratos/projects/TradingAgents-CN/mini\" run validate",
       "exitCode": 0
+    },
+    "build": {
+      "passed": true,
+      "command": "npm --prefix \"/home/kratos/projects/TradingAgents-CN/mini\" run build",
+      "exitCode": 0
     }
   },
   "reviewsSummary": {
     "total": 2,
-    "passed": 0,
-    "failed": 2,
-    "failedFeatures": [
-      "mini-upload-preflight-and-runtime-handoff",
-      "mini-gated-miniprogram-ci-upload-scaffold"
-    ]
+    "passed": 2,
+    "failed": 0,
+    "failedFeatures": []
   },
-  "blockingIssues": [
-    {
-      "featureId": "mini-upload-preflight-and-runtime-handoff",
-      "severity": "blocking",
-      "description": "mini/lib/manual-upload-preflight.js only verifies that .gitignore mentions local-only WeChat paths, so preflight still passes if private artifacts like mini/project.private.config.json, mini/config/runtime.local.js, or mini/upload-secrets/* are already tracked."
-    },
-    {
-      "featureId": "mini-gated-miniprogram-ci-upload-scaffold",
-      "severity": "blocking",
-      "description": "mini/lib/wechat-ci-upload.js requires miniprogram-ci for the live path, but mini/package.json and mini/package-lock.json do not declare that dependency, so the scaffold cannot become activatable on a clean checkout even after operators inject the documented secrets and metadata."
-    }
-  ],
-  "appliedUpdates": [
-    {
-      "target": "services.yaml",
-      "description": "Added the repo-owned `mini_preflight` command so future workers can discover the manual upload preflight from .factory/services.yaml.",
-      "sourceFeature": "mini-upload-preflight-and-runtime-handoff"
-    },
-    {
-      "target": "library",
-      "description": "Documented that the repo-wide `data/` ignore rule also matches `mini/data/*`, so checked-in Mini source/helpers should live elsewhere unless ignore patterns are adjusted intentionally.",
-      "sourceFeature": "mini-upload-preflight-and-runtime-handoff"
-    }
-  ],
+  "blockingIssues": [],
+  "appliedUpdates": [],
   "suggestedGuidanceUpdates": [],
   "rejectedObservations": [],
-  "previousRound": null
+  "previousRound": ".factory/validation/mini-upload-shell/scrutiny/synthesis.round1.json"
 }

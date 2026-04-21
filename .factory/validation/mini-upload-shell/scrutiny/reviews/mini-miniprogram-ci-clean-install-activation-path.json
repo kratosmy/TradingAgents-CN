@@ -1,0 +1,15 @@
+{
+  "featureId": "mini-miniprogram-ci-clean-install-activation-path",
+  "reviewedAt": "2026-04-21T09:26:15.702984Z",
+  "commitId": "53b442fbcd76ab3662c1ddc1e780428f87c985a7",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The fix resolves the prior clean-checkout blocker without regressing the secret gate. `mini/package.json` and `mini/package-lock.json` now declare `miniprogram-ci`, `mini/scripts/validate-mini.mjs` enforces that clean-install contract, `mini/tests/wechat-ci-upload-scaffold.test.mjs` adds regressions for both dependency declaration and the live-enabled upload branch, and `mini/lib/wechat-ci-upload.js` now exposes the dependency load path in a way the new regression can exercise. That closes the original gap from `mini-gated-miniprogram-ci-upload-scaffold`, where the live-enabled branch could only fall into `refused_missing_dependency` on a clean checkout.",
+    "issues": []
+  },
+  "sharedStateObservations": [],
+  "addressesFailureFrom": "/home/kratos/projects/TradingAgents-CN/.factory/validation/mini-upload-shell/scrutiny/reviews/mini-gated-miniprogram-ci-upload-scaffold.json",
+  "summary": "Pass. The original missing-dependency failure is resolved: the checked-in Mini manifest and lockfile now ship `miniprogram-ci`, the validator guards that invariant, and the focused upload-scaffold regressions now cover both clean-install availability and the live-enabled branch while keeping the refusal paths intact. I did not find any new blocking issues in the fix."
+}
