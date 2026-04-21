@@ -1,6 +1,6 @@
 ---
 name: mobile-contract-worker
-description: Build the Mini skeleton and shared mobile contract boundary without overstating runtime validation.
+description: Build the Mini publish shell, mobile contract boundary, and honest release scaffolding without overstating runtime validation.
 ---
 
 # mobile-contract-worker
@@ -9,7 +9,7 @@ NOTE: Startup and cleanup are handled by `worker-base`. This skill defines the W
 
 ## When to Use This Skill
 
-Use for Mini Program skeleton work, shared mobile-facing contract adapters, and platform-neutral client boundary tasks intended to keep future iOS reuse clean.
+Use for Mini Program shell work, shared mobile-facing contract adapters, runtime configuration boundaries, release-preflight scaffolding, and platform-neutral client tasks intended to keep future iOS reuse clean.
 
 ## Required Skills
 
@@ -17,30 +17,46 @@ None.
 
 ## Work Procedure
 
-1. Read `mission.md`, `AGENTS.md`, `.factory/library/architecture.md`, `.factory/library/contracts.md`, and the assigned feature.
-2. Confirm exactly what can be honestly validated in this environment. Do not assume WeChat runtime, device, or simulator support unless it is explicitly present and working.
-3. Add or update build/static validation first for the client surface you are creating, and make sure the final evidence comes from `mini/` rather than the existing reference demos.
-4. When the Mini scaffold includes fixture or preview data under paths like `mini/data/*`, verify those files are actually tracked by git; broad root ignore rules can hide intentional Mini deliverables.
-5. Implement a thin client boundary that consumes canonical watchlist contracts without introducing Mini-only backend semantics.
-6. Treat auth as a real contract boundary: the client should reuse `POST /api/auth/login`, persist the returned bearer session, and fail closed on missing or invalid auth instead of showing mock or stale watch cards.
-7. Render placeholder/waiting-state digest cards from backend payload fields when no completed digest exists yet; do not drop watched stocks just because analysis is pending.
-8. Run the named validation/build command for the Mini/client surface and any affected shared frontend commands.
-9. When modifying shared API shapes, identifier mappings, or ownership semantics, do an explicit self-review before handoff to confirm the shared mobile contract still matches `mission.md`, `AGENTS.md`, and `.factory/library/contracts.md`.
-10. In the handoff, explicitly separate source/build evidence from runtime evidence and call out any remaining blocked validation honestly.
+1. Read `mission.md`, `AGENTS.md`, `.factory/library/architecture.md`, `.factory/library/contracts.md`, `.factory/library/environment.md`, `.factory/library/user-testing.md`, and the assigned feature.
+2. Confirm exactly what can be honestly validated in this environment. Do not assume WeChat runtime, device, DevTools upload, or live backend support unless the evidence is actually available.
+3. Add or extend Mini source/build validation first for the surface you are changing. For shell work, this means failing checks or preview/static proof for page registration, navigation, state handling, or preflight behavior before implementation.
+4. When working on shell structure, preserve the agreed responsibilities: `Home` is overview, `Watch` is the primary protected detailed digest surface, and `Account` owns identity/legal/help entry points.
+5. Keep runtime configuration repo-owned and explicit. Checked-in defaults must stay non-loopback and placeholder-safe; local/private operator overrides and upload secrets must stay untracked.
+6. Treat auth as a real contract boundary: reuse `POST /api/auth/login`, persist the bearer session, and fail closed on missing or invalid auth instead of showing mock or stale watch cards.
+7. Preserve placeholder/waiting-state digest behavior and distinguish signed-out, authenticated-empty, loading, waiting, ready, and preview/deferred-runtime states honestly.
+8. Reuse a shared dark-premium visual system across primary shell surfaces rather than styling pages independently.
+9. For release-tooling work, implement offline preflight and secret-gated upload scaffolding that fail closed with actionable output; never fake a successful upload path when secrets or platform prerequisites are missing.
+10. Run the affected Mini scripts (`test`, `build`, `validate`, and any new preflight/upload dry-run command you add) plus any relevant focused backend checks if the shared contract boundary changed.
+11. In the handoff, explicitly separate source/build/preflight evidence from runtime evidence and call out deferred operator/runtime steps honestly.
 
 ## Example Handoff
 
 ```json
 {
-  "salientSummary": "Added an in-repo Mini watchlist skeleton wired to canonical digest contracts and verified its named build command. Kept the client thin and did not claim device/runtime success because WeChat tooling is still absent.",
-  "whatWasImplemented": "Created the Mini client entry files, auth/session boundary, watchlist home structure, and API wiring to the canonical watchlist/digest contracts. The delivered evidence comes from the new `mini/` surface rather than the older Vue demo, and the home view renders placeholder waiting-state cards from the shared digest payload.",
-  "whatWasLeftUndone": "No simulator or device validation was possible because WeChat runtime tooling is not present in this environment.",
+  "salientSummary": "Expanded the Mini app into a publish-facing shell with distinct Home/Watch/Account surfaces, added a non-loopback placeholder runtime config boundary, and scaffolded a gated release preflight path. Verified only source/build/preflight evidence; no DevTools runtime or live upload claim was made.",
+  "whatWasImplemented": "Added checked-in Mini shell configuration, shared dark-premium tokens, page registration/navigation, and release scaffolding that keeps operator-private files local-only. Watch remains the primary protected digest surface, Account links to settings/about/privacy/help, and the release path now fails closed without injected secrets.",
+  "whatWasLeftUndone": "Real WeChat runtime, live backend verification, DevTools login, IP allowlisting, and final publish execution still require operator-controlled setup outside this environment.",
   "verification": {
     "commandsRun": [
       {
-        "command": "<named mini build command>",
+        "command": "npm --prefix mini run test",
         "exitCode": 0,
-        "observation": "Mini skeleton source and API wiring passed the available static validation path."
+        "observation": "Mini source-level contract and state regressions passed."
+      },
+      {
+        "command": "npm --prefix mini run build",
+        "exitCode": 0,
+        "observation": "Generated updated local proof for the shipped shell."
+      },
+      {
+        "command": "npm --prefix mini run preflight",
+        "exitCode": 0,
+        "observation": "Offline release preflight passed for checked-in config and documented deferred operator steps."
+      },
+      {
+        "command": "npm --prefix mini run upload:wechat -- --dry-run",
+        "exitCode": 1,
+        "observation": "Expected failure without injected upload secrets; secret gate is working."
       }
     ],
     "interactiveChecks": []
@@ -48,15 +64,15 @@ None.
   "tests": {
     "added": [
       {
-        "file": "<mini-client-path>",
+        "file": "mini/tests/publish-shell.test.mjs",
         "cases": [
           {
-            "name": "watch home consumes canonical digest shape",
-            "verifies": "the thin mobile client maps the shared watchlist contract without Mini-only backend fields"
+            "name": "watch stays auth-gated while shell remains navigable",
+            "verifies": "signed-out users can navigate Home and Account while Watch blocks protected digest content"
           },
           {
-            "name": "auth failure clears protected watch cards",
-            "verifies": "missing or invalid bearer auth does not fall through to mock or stale card content"
+            "name": "release preflight fails on loopback runtime defaults",
+            "verifies": "checked-in release config cannot pass with localhost or missing required identity/runtime fields"
           }
         ]
       }
@@ -68,6 +84,7 @@ None.
 
 ## When to Return to Orchestrator
 
-- The requested feature would require claiming WeChat runtime/device success without actual tooling.
-- The backend contract is still unstable enough that the mobile boundary would be guesswork.
-- The feature requires a product decision about Mini-first vs shared-contract behavior that is not reflected in the mission artifacts.
+- The requested feature would require claiming WeChat runtime/device/upload success without actual tooling or credentials.
+- The backend contract is unstable enough that the mobile boundary would be guesswork.
+- The feature requires secrets, DevTools access, IP allowlisting, or platform-side publish actions that are not available in this session.
+- The requested shell behavior conflicts with the agreed Home / Watch / Account responsibilities or other mission artifacts.

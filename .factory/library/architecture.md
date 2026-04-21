@@ -2,190 +2,124 @@
 
 ## What belongs here
 
-This document captures the high-level architecture for the watchlist mission: the system components, their responsibilities, the main data flows between them, the canonical watchlist domain model, and the cross-client boundaries that must stay stable for web, WeChat Mini Program, and a future iOS client. It intentionally does not include an implementation checklist.
+This document captures the high-level architecture for the watchlist mission: the shared watch domain, the Mini client boundary, the publish-shell composition, and the release/readiness scaffolding that workers must preserve. It is intentionally architectural rather than task-by-task.
 
 ## Mission-scope callout
 
-For the current Mini MVP mission, the delivered auth path is the existing JWT/bearer login contract plus authenticated reads from `GET /api/watch/digests`. Real WeChat runtime validation and WeChat-specific bind delivery are out of scope for this mission, so workers must treat the Mini client as a thin local-contract consumer only.
+The first Mini milestone is already complete: the repo has a real top-level `mini/` app, JWT login reuse, and a protected digest read path. The current continuation upgrades that thin MVP into a publish-facing shell while keeping the same contract-first backend boundary and staying honest about deferred runtime/upload validation.
 
 ## Components
 
 ### Canonical watchlist domain
 
-The core domain is a single user-scoped watchlist. Each watchlist item represents a user’s intent to follow one stock and carries the stock identity plus lightweight user metadata such as tags, notes, and alert thresholds. This canonical watchlist is the source of truth for membership across all clients and downstream watch features.
-
-The domain must expose one stable stock identifier shape, one stable user ownership model, and presentation-neutral fields that can be rendered by different clients without client-specific reinterpretation.
+The core domain remains one user-scoped watchlist keyed by stable stock identity and one stable internal user account. Membership, rule state, and digest summaries stay backend-owned and presentation-neutral.
 
 ### Watchlist API surface
 
-The watchlist API is the contract layer over the canonical watchlist domain. It is responsible for:
+The watchlist API remains the contract layer over the canonical domain. It owns membership, projection shape, and user isolation. Clients consume it; they do not reinterpret ownership rules locally.
 
-- listing the caller’s watchlist entries
-- adding, updating, checking, and removing watchlist membership
-- returning compact quote and market context fields needed by thin clients
-- preserving caller-supplied metadata
+### Digest projection boundary
 
-This layer replaces any client assumption that "favorites" and "watchlist" are separate stores. Compatibility can exist during migration, but the exposed contract should behave as one watchlist system.
+The digest read path remains a compact projection over canonical watch membership plus digest/rule/task enrichment. This boundary still exposes canonical `stock_code`, compact quote context, summary, risk, and status fields suitable for thin mobile rendering.
 
-### Quote and market enrichment
+### Auth/session boundary
 
-Quote and market enrichment supplies compact snapshot data for each watched stock, such as current price, change percentage, board, and exchange. It enriches canonical watchlist items for home-screen style consumption while remaining non-authoritative for membership itself.
+The Mini shell still reuses the existing JWT login contract. Authentication yields a bearer session, and protected digest reads consume that bearer session. Auth failures clear or block protected watch content rather than falling through to mock or stale cards.
 
-Its responsibility is to attach current market context to watchlist items without creating or removing watchlist state.
+### Mini runtime configuration boundary
 
-### Watch rule domain
+The checked-in Mini app now needs a repo-owned runtime/configuration boundary instead of hardcoded local URLs. That boundary should:
 
-Watch rules define whether and how a watched stock should produce digest updates. A rule is user-scoped and keyed to a canonical watched stock. It carries schedule semantics, status, and any scheduler-facing configuration required to trigger digest work.
+- preserve shared AppID / project identity in checked-in config
+- keep a safe placeholder or preview-mode default under versioned source
+- allow later operator/runtime override through configuration rather than page/business-logic edits
+- separate checked-in shared config from local/private operator artifacts
 
-Rules are configuration layered on top of watchlist membership, not a separate ownership system.
+### Mini publish shell
 
-### Digest domain
+The polish shell is organized around distinct user-facing responsibilities:
 
-The digest domain stores lightweight, user-scoped analysis summaries for watched stocks. A digest is the compact monitoring view of analysis output: summary, recommendation, risk level, timestamps, and task/report linkage where available.
+- **Home**: product entry and overview, with optional highlight-level watch summary
+- **Watch**: the primary protected detailed digest/watch surface
+- **Account**: identity state plus entry into settings, about, privacy, and help
 
-Digests are derived state. They should never become the source of truth for watchlist membership. The digest list is therefore a projection over the canonical watchlist plus the latest digest/rule state.
+Secondary pages (`Settings`, `About`, `Privacy`, `Help`) are part of the publish shell, not dead links or out-of-app documentation placeholders.
 
-### Analysis and task execution
+### Visual system
 
-Analysis execution is the asynchronous worker path that creates or refreshes digest content. It receives a request to analyze one watched stock or many watched stocks, creates durable task-oriented work, and later writes digest/report-linked outputs back to the digest domain.
+The shell adopts an objective dark-premium design system rather than ad hoc page styling. Workers should think in reusable surface rules:
 
-This component is responsible for long-running analysis and report generation, not for immediate client rendering logic.
+- dark root canvas/backgrounds
+- restrained accent usage for active navigation and primary actions
+- elevated cards/containers for content grouping
+- shared spacing and typography tokens across primary surfaces
 
-### Scheduler
+### Release/readiness scaffolding
 
-The scheduler turns active watch rules into timed refresh events. It binds schedule configuration to task creation and ensures digest generation can happen without direct client interaction.
+The repo now also needs a release boundary that stays honest:
 
-Its responsibility is operational orchestration of active rules; it must not own business identity or watchlist membership.
+- offline manual-upload preflight for repo-owned config only
+- checked-in runtime/release handoff guidance for later operator steps
+- secret-gated `miniprogram-ci` scaffold that refuses to run without injected credentials
+- local/private WeChat artifacts kept outside versioned source
 
-### Auth and bind identity layer
-
-The auth layer issues application sessions and resolves the caller’s stable internal user identity. The bind model adds an external Mini Program identity to that same internal account rather than creating a parallel watchlist owner model.
-
-The key responsibility here is preserving one stable internal `user_id` across:
-
-- existing web login
-- WeChat Mini Program login
-- later iOS login/bind variants
-
-External identities are bindings onto an internal account, not replacements for it.
-
-### Web client
-
-The web client has two primary watch surfaces over the same canonical membership domain:
-
-- canonical watchlist management (`favorites`)
-- digest-oriented monitoring dashboard (`watch`)
-
-The web client is responsible for rendering and mutating canonical watchlist state through backend contracts, not for embedding alternate watchlist logic in the UI.
-
-### Mini skeleton / mobile contract boundary
-
-The Mini Program client is intentionally thin. Its home view is optimized around compact watchlist snapshot cards and digest summaries with minimal round trips. The mobile boundary should depend on aggregated, platform-neutral backend payloads instead of recreating business rules in client code.
-
-The same boundary should remain reusable for a future iOS client, so the backend contract must avoid web-only assumptions such as route context, HTML fragments, or UI-coupled field shapes.
+This layer validates import-shell and release-shell readiness without claiming live upload, audit approval, or runtime success.
 
 ## Data Flows
 
-### 1. Watchlist membership flow
+### 1. Login to protected digest flow
 
-1. An authenticated user calls the canonical watchlist API.
-2. The API resolves the stable internal `user_id`.
-3. The watchlist domain creates, updates, checks, lists, or removes user-scoped watchlist items.
-4. The response returns canonical watchlist fields plus compact enrichment fields when available.
+1. The user signs in through the existing JWT login endpoint.
+2. The Mini session boundary normalizes and persists the bearer session.
+3. The protected digest surface uses that bearer token on `GET /api/watch/digests`.
+4. Auth failure clears or blocks protected cards and returns the user to an auth-required state.
 
-This flow establishes the membership source of truth used by all other watch features.
+### 2. Home / Watch shell flow
 
-### 2. Watchlist snapshot flow
+1. Home loads first as the product entry surface.
+2. Watch owns the primary protected digest-reading experience and its detailed card states.
+3. Home may summarize or highlight watch state, but it does not replace Watch as the main protected digest destination.
+4. Account exposes signed-in/signed-out identity state and links to secondary product/legal/help pages.
 
-1. The caller requests the watchlist list or digest list.
-2. The backend loads canonical watchlist membership first.
-3. Quote and market enrichment attach current snapshot fields.
-4. The backend returns compact, presentation-neutral payloads suitable for web cards and Mini home views.
+### 3. Placeholder-to-runtime configuration flow
 
-The enrichment step may degrade gracefully, but membership still returns.
+1. The checked-in app boots in a safe placeholder/preview configuration.
+2. Shared runtime settings determine the visible backend/runtime posture.
+3. Later operator/runtime activation swaps config inputs, not page/business logic.
+4. Release/preflight surfaces describe the deferred operator work explicitly.
 
-### 3. Rule configuration flow
+### 4. Release readiness flow
 
-1. A caller configures or updates a watch rule for a watched stock.
-2. The backend associates the rule with the same `user_id` and canonical stock identity used by the watchlist.
-3. The scheduler reads active rule state and turns it into executable jobs.
-
-Rule state augments canonical membership; it does not create hidden membership.
-
-### 4. Digest refresh flow
-
-1. A caller or scheduler requests a digest refresh for one stock or for the full current watchlist.
-2. The backend creates durable task-oriented analysis work.
-3. The analysis pipeline produces report-linked results asynchronously.
-4. The digest domain stores the latest compact summary for that user and stock.
-5. The digest list projects canonical watchlist membership plus latest digest plus current rule status.
-
-This keeps heavy analysis asynchronous while the read path remains compact.
-
-### 5. Cross-login identity flow
-
-1. A user authenticates through web login or WeChat Mini Program login.
-2. The auth layer resolves or binds the external identity onto one internal account.
-3. Protected watchlist, rule, and digest APIs authorize against that stable internal `user_id`.
-4. The same watchlist state remains visible regardless of login entry point.
-
-This flow ensures account binding changes the authentication path, not the owned watchlist state.
-
-### 6. Web and Mini consumption flow
-
-1. The web client consumes canonical watchlist management and digest APIs for full management and dashboard views.
-2. The Mini client consumes compact aggregated contracts for mobile-first watchlist home rendering.
-3. A future iOS client reuses the same backend contracts and identity model.
-
-Backend contracts therefore serve as the system boundary between shared watchlist behavior and client-specific presentation.
+1. The repo validates checked-in Mini identity/runtime/release config offline.
+2. Preflight refuses illegal repo-owned config such as loopback runtime targets or malformed release metadata.
+3. If optional `miniprogram-ci` scripts are invoked without injected secrets, they fail closed with actionable guidance.
+4. Checked-in handoff material documents what still requires operator login, private keys, IP allowlisting, HTTPS domains, and platform-side approval.
 
 ## Invariants
 
-- There is one canonical watchlist membership domain per internal user account.
-- Watchlist membership is user-scoped and must never leak across users.
-- One stable internal `user_id` is the owner of watchlist items, rules, and digests.
-- External identities such as WeChat are bindings to the internal account, not separate owners.
-- Watch rules are attached to canonical watchlist items and do not silently create hidden watchlist membership.
-- Digest cards are derived from the canonical watchlist and latest digest/rule state; they are not an independent source of membership.
-- The stock identifier shape exposed to clients stays stable across create, read, update, delete, rule, and digest contracts.
-- Snapshot enrichment may be partial or stale, but absent enrichment must not drop otherwise valid watchlist membership.
-- Mobile and web clients consume presentation-neutral fields; backend payloads must not require browser-only context or Mini-only custom semantics.
-- The Mini Program and future iOS clients share the same backend ownership and contract model even if their UI composition differs.
-- For the current Mini MVP, authenticated digest reads must yield exactly one card per watched canonical `stock_code`, including placeholder waiting-state cards when digest content is not ready yet.
+- There is one canonical user-scoped watchlist domain behind all clients.
+- The Mini client remains thin and contract-first.
+- `Watch` is the primary protected detailed digest surface in the publish shell.
+- `Home` can summarize watch state but must remain distinct from `Watch`.
+- Checked-in shared runtime config must not point at loopback-only targets.
+- Placeholder/preview posture must stay explicit across product UI, preflight output, and release handoff docs.
+- Upload keys, operator-private project files, and similar secrets must stay local-only and untracked.
+- Release tooling may claim source/build/preflight readiness only; it must not imply live runtime or completed publish validation.
 
 ## Validation-relevant boundaries
 
-### Canonical domain boundary
+### Shared contract boundary
 
-Validation should prove that list, add, update, check, and delete operations all act on the same canonical watchlist membership and keep user isolation intact.
+Validation should prove the Mini shell still consumes compact shared digest-card fields without browser-only or Mini-only backend semantics.
 
-### Digest and rule boundary
+### Shell responsibility boundary
 
-Validation should prove that:
+Validation should prove Home, Watch, and Account are distinct surfaces with appropriate navigation and state behavior.
 
-- rules are user-scoped and stock-scoped
-- digest cards are derived from current canonical watchlist membership
-- add/remove mutations are reflected consistently across favorites and digest surfaces
+### Runtime configuration boundary
 
-### Auth and bind boundary
+Validation should prove the checked-in app defaults to a safe placeholder/preview mode, avoids loopback-only targets, and preserves a later config-driven swap path.
 
-Validation should prove that:
+### Release honesty boundary
 
-- protected watch endpoints authorize through one stable internal `user_id`
-- WeChat login/bind preserves account identity rather than splitting ownership
-- watchlist, rule, and digest state survive bind and cross-login transitions
-
-### Web contract boundary
-
-Validation should treat the web client as a consumer of canonical watchlist and digest contracts. The web `favorites` and `watch` surfaces must remain consistent with backend membership, rule, and digest state.
-
-### Mini/mobile boundary
-
-Validation should treat the Mini client as a thin consumer of compact aggregated contracts. Build/source verification can confirm the boundary exists, but runtime claims must remain limited to the tooling actually available. The same contract shape should remain suitable for future iOS reuse.
-
-
-## Current Mini MVP boundary
-
-For this mission, the concrete delivery target is a new top-level `mini/` application rather than the existing Vue demo references. The Mini client is a thin local-contract MVP: it reuses the existing JWT login contract, reads compact digest cards from `GET /api/watch/digests`, and renders placeholder waiting-state cards when analysis is not ready yet.
-
-This mission does **not** deliver real WeChat runtime validation or WeChat-specific identity binding. The Mini boundary must therefore stay source/build-verifiable, explicit about local-only validation, and free of browser-only assumptions so the same contract can remain reusable for future mobile clients.
+Validation should prove preflight/CI scaffolding, product copy, and checked-in handoff docs tell the same truth about what is ready now versus what is deferred.
