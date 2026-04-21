@@ -6,72 +6,49 @@
     <title>TradingAgentsMiniImportShell Preview</title>
     <style>
       :root {
-        color-scheme: light;
+        color-scheme: dark;
         font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-        background: #eef2ff;
-        color: #0f172a;
+        background: #05070b;
+        color: #f5f7fb;
       }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
-        background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+        background: radial-gradient(circle at top, rgba(30, 215, 96, 0.12), transparent 28%), #05070b;
       }
       main {
-        max-width: 480px;
+        max-width: 520px;
         margin: 0 auto;
-        padding: 24px 16px 48px;
+        padding: 24px 16px 112px;
         display: flex;
         flex-direction: column;
         gap: 16px;
       }
-      .panel,
-      .digest-card {
-        background: rgba(255, 255, 255, 0.94);
+      .panel {
         border-radius: 24px;
-        padding: 18px;
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        padding: 20px;
+        background: rgba(13, 18, 26, 0.96);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 24px 56px rgba(0, 0, 0, 0.32);
       }
-      .panel-grid {
-        display: grid;
-        gap: 16px;
+      .hero {
+        background: linear-gradient(160deg, rgba(14, 21, 31, 0.98), rgba(5, 7, 11, 0.98));
       }
-      .panel--warning {
-        background: #fffaf0;
-        border: 1px solid rgba(245, 158, 11, 0.35);
-      }
-      .runtime-panel {
-        background: rgba(240, 253, 250, 0.92);
-        border: 1px solid rgba(20, 184, 166, 0.24);
-      }
-      .badge-row,
-      .brand-row,
-      .stock-row,
-      .card-header,
-      .quote-row,
-      .meta-row {
+      .row {
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap;
       }
-      .brand-row,
-      .card-header,
-      .quote-row,
-      .meta-row {
+      .split {
         justify-content: space-between;
       }
-      .badge,
-      .risk-pill,
-      .change-pill,
-      .checkpoint,
-      .metric {
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-size: 12px;
-        font-weight: 700;
-      }
-      .badge.info { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; }
-      .badge.warn { background: rgba(245, 158, 11, 0.16); color: #b45309; }
-      .badge.brand { background: rgba(20, 184, 166, 0.16); color: #0f766e; }
-      .brand-stack {
+      h1, h2, h3, h4, p { margin: 0; }
+      h1 { font-size: 30px; margin-top: 8px; }
+      h2, h3, h4 { color: #ffffff; }
+      p, li, code, .muted { color: #a6b1c2; line-height: 1.7; }
+      .muted { font-size: 13px; }
+      .brand-row {
         display: flex;
         align-items: center;
         gap: 16px;
@@ -80,209 +57,455 @@
         width: 72px;
         height: 72px;
         border-radius: 20px;
-        flex-shrink: 0;
       }
-      .brand-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+      .eyebrow {
+        font-size: 12px;
+        color: #8d97a8;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
-      .brand-meta strong {
-        font-size: 28px;
+      .badge {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
       }
-      .brand-meta span {
-        color: #475569;
-        line-height: 1.5;
-      }
-      .hero {
-        background: linear-gradient(135deg, #2563eb, #4f46e5);
-        color: #fff;
-      }
-      .hero h1 { margin: 10px 0 0; font-size: 28px; }
-      .hero p { line-height: 1.7; color: rgba(255,255,255,0.88); }
-      .metrics, .checkpoints, .status-grid {
+      .badge--accent { color: #7ff5aa; background: rgba(30, 215, 96, 0.16); border: 1px solid rgba(30, 215, 96, 0.22); }
+      .badge--warn { color: #ffd089; background: rgba(245, 158, 11, 0.16); border: 1px solid rgba(245, 158, 11, 0.22); }
+      .badge--info { color: #c8d4ff; background: rgba(99, 102, 241, 0.18); border: 1px solid rgba(99, 102, 241, 0.24); }
+      .badge--neutral { color: #d5dbe5; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.08); }
+      .surface-grid, .metrics, .status-grid, .leaf-grid, .failure-grid {
         display: grid;
         gap: 12px;
       }
-      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 18px; }
-      .metric { background: rgba(255,255,255,0.14); color: #fff; display: flex; flex-direction: column; }
-      .metric strong { font-size: 24px; margin-top: 4px; }
-      .checkpoints { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .compact-fields { display: flex; flex-wrap: wrap; gap: 8px; }
-      .checkpoint { background: rgba(148, 163, 184, 0.16); color: #0f172a; text-align: center; }
-      .stock-market, .summary-copy, .meta-row, .status-label, .panel p, .runtime-list li, code { color: #475569; }
-      .runtime-list {
-        margin: 0;
-        padding-left: 18px;
+      .metrics, .status-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .surface-grid, .leaf-grid, .failure-grid {
+        grid-template-columns: 1fr;
+      }
+      .metric-card, .status-card, .menu-item {
+        border-radius: 18px;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .metric-card strong, .status-card strong, .price {
+        display: block;
+        margin-top: 6px;
+        font-size: 28px;
+        color: #ffffff;
+      }
+      .digest-card { display: flex; flex-direction: column; gap: 14px; }
+      .status-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .menu-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .chevron { color: #1ed760; font-size: 28px; }
+      .bullet-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+      .nav-rail {
+        position: sticky;
+        bottom: 0;
         display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .nav-pill {
+        border-radius: 18px;
+        padding: 14px 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .nav-pill.active {
+        background: rgba(30, 215, 96, 0.14);
+        border-color: rgba(30, 215, 96, 0.28);
+      }
+      .visual-system {
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
       }
-      .current-price { font-size: 28px; font-weight: 700; }
-      .risk-pill--positive, .change-pill--up { background: rgba(34, 197, 94, 0.12); color: #15803d; }
-      .risk-pill--warning { background: rgba(245, 158, 11, 0.16); color: #b45309; }
-      .risk-pill--neutral { background: rgba(148, 163, 184, 0.16); color: #475569; }
-      .change-pill--down { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
-      .summary-copy { line-height: 1.7; }
-      .status-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; }
-      .status-item { background: rgba(148, 163, 184, 0.08); border-radius: 16px; padding: 12px; }
-      .status-item strong { display: block; margin-top: 6px; }
-      .meta-row { font-size: 12px; margin-top: 14px; }
-      .auth-state { border: 1px dashed rgba(245, 158, 11, 0.4); }
+      .visual-chip {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #d5dbe5;
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
     <main>
-      <section class="panel panel--warning">
-        <div class="badge-row">
-          <span class="badge info">import shell</span>
-          <span class="badge brand">placeholder-preview</span>
+      <section class="panel hero">
+        <div class="row">
+          <span class="badge badge--info">import shell</span>
+          <span class="badge badge--warn">placeholder-preview</span>
+          <span class="badge badge--accent">Home / Watch / Account</span>
         </div>
-        <div class="brand-row">
-          <div class="brand-stack">
-            <img class="brand-mark" src="../assets/tradingagents-mini-logo.svg" alt="TradingAgents Mini 品牌标识" />
-            <div class="brand-meta">
-              <strong>TradingAgents 盯盘助手</strong>
-              <span>TradingAgents Mini · TradingAgentsMiniImportShell</span>
-              <span>AppID wx1d02a932c4f9a4ae</span>
-            </div>
+        <div class="brand-row" style="margin-top: 16px;">
+          <img class="brand-mark" src="../assets/tradingagents-mini-logo.svg" alt="TradingAgents Mini 品牌标识" />
+          <div>
+            <div class="eyebrow">TradingAgents Mini</div>
+            <h1>TradingAgents 盯盘助手</h1>
+            <p>AppID wx1d02a932c4f9a4ae · TradingAgentsMiniImportShell</p>
           </div>
         </div>
-        <p>当前证据仅覆盖已提交的 Mini 导入壳配置与本地源码/构建结果；默认运行时仍是占位预览目标，不代表真实微信运行时、真机、上传或线上后端验证。</p>
+        <p style="margin-top: 16px;">当前证据仅覆盖已提交的 Mini 导入壳配置与本地源码/构建结果；默认运行时仍是占位预览目标，不代表真实微信运行时、真机、上传或线上后端验证。</p>
         <p>当前 mini/ 仅验证可导入的壳层配置与本地源码/构建产物，不代表真实微信模拟器、真机、上传或线上运行时成功。</p>
         <p>Evidence source: mini/ source-build import shell preview with a placeholder-safe runtime default.</p>
+        <p>shared config: <code>mini/config/runtime.shared.js</code></p>
+        <p>local override: <code>mini/config/runtime.local.js</code></p>
+        <p>private DevTools config: <code>mini/project.private.config.json</code></p>
         <p>Generated from the committed mini/ source tree. This is not evidence of real WeChat simulator, device, upload, or runtime success.</p>
       </section>
-      <section class="panel hero">
-        <span>TradingAgents Mini import shell</span>
-        <h1>TradingAgents 盯盘助手</h1>
-        <p>已提交的 Mini 导入壳围绕固定 AppID 与占位预览运行时构建；后续切换到真实 HTTPS 后端时只需替换本地私有配置，不需要修改页面或业务逻辑源码。</p>
-        <div class="metrics">
-          <div class="metric"><span>runtimeMode</span><strong>placeholder-preview</strong></div>
-          <div class="metric"><span>authState</span><strong>authenticated</strong></div>
-          <div class="metric"><span>raw payload cards</span><strong>3</strong></div>
-          <div class="metric"><span>visible cards</span><strong>2</strong></div>
-        </div>
-      </section>
-      <section class="panel runtime-panel">
-        <div class="badge-row">
-          <span class="badge info">runtime boundary</span>
-          <span class="badge warn">safe default</span>
-        </div>
-        <p>Checked-in baseUrl: <code>https://mini-runtime-placeholder.invalid</code></p>
-        <ul class="runtime-list">
-          <li>shared config: <code>mini/config/runtime.shared.js</code></li>
-          <li>local override: <code>mini/config/runtime.local.js</code></li>
-          <li>private DevTools config: <code>mini/project.private.config.json</code></li>
-        </ul>
-        <p>后续切换到真实 HTTPS 后端时，仅需提供本地私有运行时覆盖配置或 DevTools 私有项目配置，无需修改页面或业务逻辑源码。</p>
-      </section>
-      <section class="checkpoints">
-        <div class="checkpoint">checked-in AppID wiring</div><div class="checkpoint">placeholder-safe runtime default</div><div class="checkpoint">config-driven runtime swap path</div><div class="checkpoint">operator-private overrides stay local</div><div class="checkpoint">POST /api/auth/login contract</div><div class="checkpoint">protected digest read path</div><div class="checkpoint">one card per stock_code</div><div class="checkpoint">placeholder cards preserved</div><div class="checkpoint">source-build honesty only</div>
-      </section>
+
       <section class="panel">
-        <div class="badge-row">
-          <span class="badge info">one-card-per-stock_code</span>
-          <span class="badge warn">deduped 1</span>
+        <div class="row split">
+          <h2>Primary shell responsibilities</h2>
+          <span class="badge badge--accent">distinct surfaces</span>
         </div>
-        <p>Authenticated preview payload contained 3 digest rows and rendered 2 visible cards for canonical stock_code values: 600519, 000001.</p>
-        <p>Ready digest content wins over duplicate placeholder rows for the same canonical stock_code, even when the placeholder row is newer by timestamp.</p>
-        <p>Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists, so pending watched stocks are not dropped from the Mini home surface.</p>
+        <p style="margin-top: 12px;">Home stays overview-first, Watch owns the protected read path, and Account owns identity and support navigation.</p>
+        <div class="surface-grid" style="margin-top: 16px;">
+          
+      <article class="panel">
+        <div class="row split">
+          <h3>Home</h3>
+          <span class="badge badge--accent">Overview</span>
+        </div>
+        <p>Product overview, highlight-level watch summary, and runtime posture.</p>
+      </article>
+    
+      <article class="panel">
+        <div class="row split">
+          <h3>Watch</h3>
+          <span class="badge badge--accent">Protected digests</span>
+        </div>
+        <p>Primary protected digest surface for login, loading, waiting, and ready cards.</p>
+      </article>
+    
+      <article class="panel">
+        <div class="row split">
+          <h3>Account</h3>
+          <span class="badge badge--accent">Identity hub</span>
+        </div>
+        <p>Identity state plus entry to Settings, About, Privacy, and Help.</p>
+      </article>
+    
+        </div>
       </section>
+
       <section class="panel">
-        <div class="badge-row">
-          <span class="badge info">compact shared fields</span>
-          <span class="badge warn">presentation-neutral</span>
+        <div class="row split">
+          <h2>Home</h2>
+          <span class="badge badge--warn">placeholder-preview</span><span class="badge badge--accent">overview only</span><span class="badge badge--info">distinct from Watch</span>
         </div>
-        <p>The Mini mapping consumes only compact digest-card fields and does not require report bodies, browser routes, or runtime-specific context.</p>
-        <div class="compact-fields"><span class="checkpoint">stock_code</span><span class="checkpoint">stock_name</span><span class="checkpoint">market</span><span class="checkpoint">board</span><span class="checkpoint">exchange</span><span class="checkpoint">current_price</span><span class="checkpoint">change_percent</span><span class="checkpoint">digest_status</span><span class="checkpoint">summary</span><span class="checkpoint">risk_level</span><span class="checkpoint">rule_status</span><span class="checkpoint">task_status</span><span class="checkpoint">task_id</span><span class="checkpoint">updated_at</span><span class="checkpoint">task_updated_at</span></div>
-      </section>
-      <section class="panel auth-state">
-        <div class="badge-row">
-          <span class="badge warn">auth-required</span>
-          <span class="badge info">missing_or_invalid_session</span>
+        <p style="margin-top: 12px;"><strong>Home stays overview-first</strong></p>
+        <p>Home frames the Mini product, preview posture, and a single highlight-level summary. Full protected digest detail stays in Watch.</p>
+        <p>Signed in as mini-preview</p>
+        <p>Home shows a concise watch summary and one highlight, while Watch continues to own the full protected digest experience.</p>
+        <div class="metrics" style="margin-top: 16px;">
+          
+        <div class="metric-card">
+          <span>Tracked</span>
+          <strong>2</strong>
         </div>
-        <h3>需要重新登录后才能查看受保护盯盘内容</h3>
-        <p>当前未检测到可用 Bearer 会话，页面已阻止显示任何受保护盯盘卡片。</p>
-      </section>
-      <section class="panel-grid">
-        
-        <article class="panel">
-          <div class="badge-row">
-            <span class="badge warn">login failure</span>
-            <span class="badge info">HTTP 400</span>
+      
+        <div class="metric-card">
+          <span>Ready</span>
+          <strong>1</strong>
+        </div>
+      
+        <div class="metric-card">
+          <span>Waiting</span>
+          <strong>1</strong>
+        </div>
+      
+        <div class="metric-card">
+          <span>Rules</span>
+          <strong>1</strong>
+        </div>
+      
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row split">
+            <h3>Home highlight</h3>
+            <span class="badge badge--accent">ready highlight</span>
           </div>
-          <h3>空白凭证</h3>
+          <p style="margin-top: 8px;">Home keeps this highlight concise so the detailed protected card stack stays in Watch.</p>
+          
+                <p style="margin-top: 8px;"><strong>贵州茅台 · 600519</strong></p>
+                <p>认证成功后的本地预览卡片：即便存在更新更晚的等待态重复行，也优先显示 ready digest 内容。</p>
+                <p class="muted">A股 · 主板 · SSE</p>
+              
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="row split">
+          <h2>Watch</h2>
+          <span class="badge badge--accent">protected digest surface</span>
+        </div>
+        <p style="margin-top: 12px;"><strong>Watch owns the protected read path</strong></p>
+        <p>Watch is the only primary surface that handles login, auth-required gating, and the full protected digest list.</p>
+        <p>If auth is missing or invalid, Watch blocks protected cards and keeps the rest of the shell navigable.</p>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">auth-required</span>
+            <span class="badge badge--info">missing_or_invalid_session</span>
+          </div>
+          <h3 style="margin-top: 10px;">需要重新登录后才能查看受保护盯盘内容</h3>
+          <p>当前未检测到可用 Bearer 会话，页面已阻止显示任何受保护盯盘卡片。</p>
+        </div>
+        <div class="failure-grid" style="margin-top: 16px;">
+          
+        <article class="panel">
+          <div class="row">
+            <span class="badge badge--warn">login failure</span>
+            <span class="badge badge--info">HTTP 400</span>
+          </div>
+          <h4>空白凭证</h4>
           <p><strong>blank_credentials</strong></p>
           <p>用户名和密码不能为空</p>
         </article>
       
-
         <article class="panel">
-          <div class="badge-row">
-            <span class="badge warn">login failure</span>
-            <span class="badge info">HTTP 401</span>
+          <div class="row">
+            <span class="badge badge--warn">login failure</span>
+            <span class="badge badge--info">HTTP 401</span>
           </div>
-          <h3>错误凭证</h3>
+          <h4>错误凭证</h4>
           <p><strong>invalid_credentials</strong></p>
           <p>用户名或密码错误</p>
         </article>
       
-
         <article class="panel">
-          <div class="badge-row">
-            <span class="badge warn">login failure</span>
-            <span class="badge info">HTTP 422</span>
+          <div class="row">
+            <span class="badge badge--warn">login failure</span>
+            <span class="badge badge--info">HTTP 422</span>
           </div>
-          <h3>缺失字段</h3>
+          <h4>缺失字段</h4>
           <p><strong>missing_fields</strong></p>
           <p>body.username: Field required</p>
         </article>
       
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--info">one-card-per-stock_code</span>
+            <span class="badge badge--warn">deduped 1</span>
+          </div>
+          <p style="margin-top: 10px;">Authenticated preview payload contained 3 digest rows and rendered 2 visible cards for canonical stock_code values: 600519, 000001.</p>
+          <p>Ready digest content wins over duplicate placeholder rows for the same canonical stock_code, even when the placeholder row is newer by timestamp.</p>
+          <p>Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists, so pending watched stocks are not dropped from Watch.</p>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--info">compact shared fields</span>
+            <span class="badge badge--neutral">presentation-neutral</span>
+          </div>
+          <p style="margin-top: 10px;">The Watch mapping consumes only compact digest-card fields and does not require report bodies, browser routes, or runtime-specific context.</p>
+          <div class="visual-system" style="margin-top: 12px;">
+            <span class="visual-chip">stock_code</span><span class="visual-chip">stock_name</span><span class="visual-chip">market</span><span class="visual-chip">board</span><span class="visual-chip">exchange</span><span class="visual-chip">current_price</span><span class="visual-chip">change_percent</span><span class="visual-chip">digest_status</span><span class="visual-chip">summary</span><span class="visual-chip">risk_level</span><span class="visual-chip">rule_status</span><span class="visual-chip">task_status</span><span class="visual-chip">task_id</span><span class="visual-chip">updated_at</span><span class="visual-chip">task_updated_at</span>
+          </div>
+        </div>
+        <div class="failure-grid" style="margin-top: 16px;">
+          
+        <article class="panel digest-card">
+          <div class="row split">
+            <div>
+              <h4>贵州茅台 · 600519</h4>
+              <p class="muted">A股 · 主板 · SSE</p>
+            </div>
+            <span class="badge badge--accent">低风险</span>
+          </div>
+          <div class="row split">
+            <div class="price">¥1688.50</div>
+            <span class="badge badge--accent">+1.82%</span>
+          </div>
+          <p>认证成功后的本地预览卡片：即便存在更新更晚的等待态重复行，也优先显示 ready digest 内容。</p>
+          <div class="status-grid">
+            <div class="status-card"><span>digest_status</span><strong>ready</strong></div>
+            <div class="status-card"><span>rule_status</span><strong>active</strong></div>
+            <div class="status-card"><span>task_status</span><strong>completed</strong></div>
+          </div>
+          <div class="row split meta">
+            <span>任务 task-preview-1</span>
+            <span>2026-04-20T15:45:00+08:00</span>
+          </div>
+        </article>
+      
+        <article class="panel digest-card">
+          <div class="row split">
+            <div>
+              <h4>平安银行 · 000001</h4>
+              <p class="muted">A股 · 主板 · SZSE</p>
+            </div>
+            <span class="badge badge--neutral">等待解读</span>
+          </div>
+          <div class="row split">
+            <div class="price">¥11.28</div>
+            <span class="badge badge--accent">+0.43%</span>
+          </div>
+          <p>等待态仍来自受保护 digest 读取结果，而不是未认证时的假成功空列表。</p>
+          <div class="status-grid">
+            <div class="status-card"><span>digest_status</span><strong>pending</strong></div>
+            <div class="status-card"><span>rule_status</span><strong>pending</strong></div>
+            <div class="status-card"><span>task_status</span><strong>waiting</strong></div>
+          </div>
+          <div class="row split meta">
+            <span>任务 task-preview-2</span>
+            <span>2026-04-20T15:40:00+08:00</span>
+          </div>
+        </article>
+      
+        </div>
       </section>
-      
-        <article class="digest-card">
-          <div class="card-header">
-            <div>
-              <div class="stock-row"><strong>贵州茅台</strong><span>600519</span></div>
-              <p class="stock-market">A股 · 主板 · SSE</p>
-            </div>
-            <span class="risk-pill risk-pill--positive">低风险</span>
-          </div>
-          <div class="quote-row">
-            <div class="current-price">¥1688.50</div>
-            <div class="change-pill change-pill--up">+1.82%</div>
-          </div>
-          <p class="summary-copy">认证成功后的本地预览卡片：即便存在更新更晚的等待态重复行，也优先显示 ready digest 内容。</p>
-          <div class="status-grid">
-            <div class="status-item"><span class="status-label">digest_status</span><strong>ready</strong></div>
-            <div class="status-item"><span class="status-label">rule_status</span><strong>active</strong></div>
-            <div class="status-item"><span class="status-label">task_status</span><strong>completed</strong></div>
-          </div>
-          <div class="meta-row"><span>任务 task-preview-1</span><span>2026-04-20T15:45:00+08:00</span></div>
-        </article>
-      
 
-        <article class="digest-card">
-          <div class="card-header">
-            <div>
-              <div class="stock-row"><strong>平安银行</strong><span>000001</span></div>
-              <p class="stock-market">A股 · 主板 · SZSE</p>
-            </div>
-            <span class="risk-pill risk-pill--neutral">等待解读</span>
+      <section class="panel">
+        <div class="row split">
+          <h2>Account</h2>
+          <span class="badge badge--accent">identity + help</span><span class="badge badge--warn">placeholder-preview</span><span class="badge badge--info">round-trip pages</span>
+        </div>
+        <p style="margin-top: 12px;"><strong>Account owns identity and support navigation</strong></p>
+        <p>Account shows session state and routes into Settings, About, Privacy, and Help without trapping users on a dead leaf page.</p>
+        <p>Account session is ready · mini-preview · user-preview-1</p>
+        <div style="margin-top: 16px;">
+          
+        <article class="menu-item">
+          <div>
+            <h4>Settings</h4>
+            <p>Shell preferences, notification posture, and runtime-boundary reminders.</p>
+            <p class="muted">Account → Settings → Account</p>
           </div>
-          <div class="quote-row">
-            <div class="current-price">¥11.28</div>
-            <div class="change-pill change-pill--up">+0.43%</div>
-          </div>
-          <p class="summary-copy">等待态仍来自受保护 digest 读取结果，而不是未认证时的假成功空列表。</p>
-          <div class="status-grid">
-            <div class="status-item"><span class="status-label">digest_status</span><strong>pending</strong></div>
-            <div class="status-item"><span class="status-label">rule_status</span><strong>pending</strong></div>
-            <div class="status-item"><span class="status-label">task_status</span><strong>waiting</strong></div>
-          </div>
-          <div class="meta-row"><span>任务 task-preview-2</span><span>2026-04-20T15:40:00+08:00</span></div>
+          <span class="chevron">›</span>
         </article>
       
+        <article class="menu-item">
+          <div>
+            <h4>About</h4>
+            <p>Mini product positioning, shell responsibilities, and delivery scope.</p>
+            <p class="muted">Account → About → Account</p>
+          </div>
+          <span class="chevron">›</span>
+        </article>
+      
+        <article class="menu-item">
+          <div>
+            <h4>Privacy</h4>
+            <p>Privacy posture for bearer-session auth and deferred runtime boundaries.</p>
+            <p class="muted">Account → Privacy → Account</p>
+          </div>
+          <span class="chevron">›</span>
+        </article>
+      
+        <article class="menu-item">
+          <div>
+            <h4>Help</h4>
+            <p>Support paths, sign-in guidance, and deferred operator/runtime next steps.</p>
+            <p class="muted">Account → Help → Account</p>
+          </div>
+          <span class="chevron">›</span>
+        </article>
+      
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="row split">
+          <h2>Account secondary pages</h2>
+          <span class="badge badge--accent">round-trip in-app</span>
+        </div>
+        <p style="margin-top: 12px;">Each page supports a usable in-app round trip such as Account → Settings → Account.</p>
+        <div class="leaf-grid" style="margin-top: 16px;">
+          
+        <article class="panel">
+          <div class="row split">
+            <h3>Settings</h3>
+            <span class="badge badge--info">返回 Account</span>
+          </div>
+          <p>Settings collects lightweight preferences and boundary reminders without pretending that checked-in preview defaults are a live operator runtime.</p>
+          <ul class="bullet-list">
+            <li>Quick preference toggles stay inside the shell instead of leaving to external docs.</li><li>Checked-in defaults remain placeholder-safe until a private operator override exists.</li><li>Round-trip navigation returns directly to Account.</li>
+          </ul>
+          <p class="muted">Round-trip path: Account → Settings → Account.</p>
+        </article>
+      
+        <article class="panel">
+          <div class="row split">
+            <h3>About</h3>
+            <span class="badge badge--info">返回 Account</span>
+          </div>
+          <p>About keeps the publish-facing product framing concise while still admitting that source/build proof is not the same as real WeChat runtime, upload, or live backend success.</p>
+          <ul class="bullet-list">
+            <li>Home / Watch / Account responsibilities stay explicit.</li><li>The checked-in AppID and branding are preserved.</li><li>Deferred runtime and publish steps remain honest and operator-controlled.</li>
+          </ul>
+          <p class="muted">Round-trip path: Account → About → Account.</p>
+        </article>
+      
+        <article class="panel">
+          <div class="row split">
+            <h3>Privacy</h3>
+            <span class="badge badge--info">返回 Account</span>
+          </div>
+          <p>Privacy focuses on the JWT login reuse path, local bearer-session storage, and the fact that the checked-in runtime target is still a placeholder preview endpoint.</p>
+          <ul class="bullet-list">
+            <li>Protected watch content stays blocked when auth is missing or invalid.</li><li>Local-only runtime overrides and DevTools private config remain untracked.</li><li>No live upload or device-runtime privacy claim is made here.</li>
+          </ul>
+          <p class="muted">Round-trip path: Account → Privacy → Account.</p>
+        </article>
+      
+        <article class="panel">
+          <div class="row split">
+            <h3>Help</h3>
+            <span class="badge badge--info">返回 Account</span>
+          </div>
+          <p>Help keeps the shell usable by routing sign-in questions toward Watch and release/runtime questions toward later operator-controlled steps.</p>
+          <ul class="bullet-list">
+            <li>Watch is where sign-in and protected digest loading happen.</li><li>Account secondary pages remain in-app and return to Account cleanly.</li><li>Later upload/runtime work still needs operator prerequisites outside this environment.</li>
+          </ul>
+          <p class="muted">Round-trip path: Account → Help → Account.</p>
+        </article>
+      
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="row split">
+          <h2>Dark premium visual system</h2>
+          <span class="badge badge--accent">shared tokens</span>
+        </div>
+        <p style="margin-top: 12px;">The shell visual system keeps objective dark-premium cues across primary surfaces: dark root backgrounds, restrained green accents for active navigation and primary actions, elevated cards, and consistent spacing/typography.</p>
+        <div class="visual-system" style="margin-top: 12px;">
+          <span class="visual-chip">root background #05070B</span>
+          <span class="visual-chip">accent #1ED760</span>
+          <span class="visual-chip">shell-surface-card</span>
+          <span class="visual-chip">shell-primary-action</span>
+          <span class="visual-chip">24rpx surface gaps with 28rpx card padding</span>
+        </div>
+      </section>
+
+      <section class="nav-rail">
+        
+            <article class="nav-pill ">
+              <strong>Home</strong>
+              <p class="muted">Overview</p>
+            </article>
+          
+            <article class="nav-pill active">
+              <strong>Watch</strong>
+              <p class="muted">Protected digests</p>
+            </article>
+          
+            <article class="nav-pill ">
+              <strong>Account</strong>
+              <p class="muted">Identity hub</p>
+            </article>
+          
+      </section>
     </main>
   </body>
 </html>

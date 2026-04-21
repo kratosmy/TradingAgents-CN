@@ -1,11 +1,40 @@
 {
-  "pages": ["pages/home/index"],
+  "pages": [
+    "pages/home/index",
+    "pages/watch/index",
+    "pages/account/index",
+    "pages/account/settings/index",
+    "pages/account/about/index",
+    "pages/account/privacy/index",
+    "pages/account/help/index"
+  ],
   "window": {
     "navigationBarTitleText": "TradingAgents Mini",
-    "navigationBarBackgroundColor": "#0f172a",
+    "navigationBarBackgroundColor": "#05070B",
     "navigationBarTextStyle": "white",
-    "backgroundColor": "#eef2ff",
+    "backgroundColor": "#05070B",
     "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#758195",
+    "selectedColor": "#1ED760",
+    "backgroundColor": "#05070B",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "Home"
+      },
+      {
+        "pagePath": "pages/watch/index",
+        "text": "Watch"
+      },
+      {
+        "pagePath": "pages/account/index",
+        "text": "Account"
+      }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

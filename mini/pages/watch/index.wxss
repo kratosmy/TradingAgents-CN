@@ -1,0 +1,47 @@
+@import "../../styles/shell.wxss";
+
+.watch-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.watch-auth-card,
+.watch-digest-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.watch-auth-input {
+  width: 100%;
+  border-radius: 22rpx;
+  padding: 20rpx 22rpx;
+  font-size: 26rpx;
+  color: #f5f7fb;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2rpx solid rgba(255, 255, 255, 0.08);
+}
+
+.watch-quote-row {
+  margin-top: 8rpx;
+}
+
+.watch-price {
+  font-size: 40rpx;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.watch-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.watch-status-card {
+  border-radius: 20rpx;
+  padding: 18rpx;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2rpx solid rgba(255, 255, 255, 0.08);
+}

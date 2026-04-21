@@ -1,0 +1,55 @@
+<view class="shell-page">
+  <shell-chrome chrome="{{chrome}}" />
+
+  <view class="shell-surface-card">
+    <text class="shell-section-heading">{{roleTitle}}</text>
+    <text class="shell-copy">{{roleCopy}}</text>
+  </view>
+
+  <view class="shell-surface-card">
+    <view class="shell-card-header">
+      <view class="shell-link-copy">
+        <text class="shell-section-heading">{{identityTitle}}</text>
+        <text class="shell-copy">{{identityCopy}}</text>
+      </view>
+      <text class="shell-badge shell-badge--{{identityTone}}">{{identityBadge}}</text>
+    </view>
+
+    <text class="shell-support-copy">{{sessionUserLabel}}</text>
+
+    <view class="shell-action-row">
+      <button class="shell-primary-action" bindtap="onOpenWatch">{{primaryActionLabel}}</button>
+      <button wx:if="{{showLogout}}" class="shell-secondary-action" bindtap="onLogout">Clear session</button>
+      <button wx:else class="shell-secondary-action" bindtap="onOpenHome">{{secondaryActionLabel}}</button>
+    </view>
+  </view>
+
+  <view class="shell-surface-card">
+    <text class="shell-section-heading">Account pages</text>
+    <text class="shell-copy">{{accountIntro}}</text>
+
+    <view class="shell-link-list">
+      <button
+        wx:for="{{menuItems}}"
+        wx:key="key"
+        class="shell-link-row"
+        data-page-path="{{item.pagePath}}"
+        bindtap="onOpenMenu"
+      >
+        <view class="shell-link-copy">
+          <text class="shell-link-title">{{item.label}}</text>
+          <text class="shell-copy">{{item.description}}</text>
+          <text class="shell-link-note">{{item.roundTripLabel}}</text>
+        </view>
+        <text class="shell-chevron">›</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="shell-surface-card">
+    <text class="shell-section-heading">Runtime honesty</text>
+    <text class="shell-copy">checked-in mode：{{runtimeBoundary.mode}}</text>
+    <text class="shell-copy">checked-in baseUrl：{{runtimeBoundary.baseUrl}}</text>
+    <text class="shell-support-copy">{{runtimeBoundary.disclosure}}</text>
+  </view>
+</view>

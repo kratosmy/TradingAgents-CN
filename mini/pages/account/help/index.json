@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "Home",
+  "navigationBarTitleText": "Help",
   "usingComponents": {
     "shell-chrome": "/components/shell-chrome/index"
   }

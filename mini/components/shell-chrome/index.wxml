@@ -1,0 +1,25 @@
+<view class="shell-surface-card shell-hero-card">
+  <view class="shell-hero-top">
+    <view class="shell-brand-row">
+      <image class="shell-brand-mark" src="{{chrome.brandMarkPath}}" mode="aspectFit" />
+      <view class="shell-brand-copy">
+        <text class="shell-overline">{{chrome.brandOverline}}</text>
+        <text class="shell-title">{{chrome.title}}</text>
+        <text class="shell-subtitle">{{chrome.subtitle}}</text>
+      </view>
+    </view>
+    <button wx:if="{{showBack}}" class="shell-secondary-action" bindtap="onBack">{{backLabel}}</button>
+  </view>
+
+  <text wx:if="{{chrome.eyebrow}}" class="shell-eyebrow">{{chrome.eyebrow}}</text>
+
+  <view wx:if="{{chrome.badges && chrome.badges.length}}" class="shell-badge-row">
+    <text
+      wx:for="{{chrome.badges}}"
+      wx:key="label"
+      class="shell-badge shell-badge--{{item.tone || 'neutral'}}"
+    >
+      {{item.label}}
+    </text>
+  </view>
+</view>

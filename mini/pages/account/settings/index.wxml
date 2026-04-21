@@ -1,0 +1,29 @@
+<view class="shell-page">
+  <shell-chrome
+    chrome="{{chrome}}"
+    showBack="{{true}}"
+    backLabel="返回 Account"
+    bind:back="onChromeBack"
+  />
+
+  <view class="shell-surface-card">
+    <text class="shell-section-heading">{{summaryTitle}}</text>
+    <text class="shell-copy">{{summaryCopy}}</text>
+  </view>
+
+  <view class="shell-surface-card">
+    <text class="shell-section-heading">What this page covers</text>
+    <view class="shell-bullet-list">
+      <text wx:for="{{points}}" wx:key="*this" class="shell-bullet-item">• {{item}}</text>
+    </view>
+  </view>
+
+  <view class="shell-surface-card">
+    <text class="shell-section-heading">Round-trip navigation</text>
+    <text class="shell-copy">{{roundTripCopy}}</text>
+    <view class="shell-action-row">
+      <button class="shell-primary-action" bindtap="onReturnToAccount">返回 Account</button>
+      <button class="shell-secondary-action" bindtap="onOpenWatch">Open Watch</button>
+    </view>
+  </view>
+</view>

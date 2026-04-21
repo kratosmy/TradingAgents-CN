@@ -1,0 +1,22 @@
+<view class="shell-tabbar">
+  <view class="shell-tabbar-brand">
+    <image class="shell-tabbar-mark" src="/assets/tradingagents-mini-logo.png" mode="aspectFit" />
+    <view>
+      <text class="shell-tabbar-title">TradingAgents Mini</text>
+      <text class="shell-tabbar-caption">Spotify-dark navigation shell</text>
+    </view>
+  </view>
+
+  <view class="shell-nav-rail">
+    <view
+      wx:for="{{items}}"
+      wx:key="pagePath"
+      class="shell-nav-item {{selectedPath === item.pagePath ? 'shell-nav-item--active' : ''}}"
+      data-page-path="{{item.pagePath}}"
+      bindtap="onSwitchTab"
+    >
+      <text class="shell-nav-label">{{item.label}}</text>
+      <text class="shell-nav-hint">{{item.navHint}}</text>
+    </view>
+  </view>
+</view>

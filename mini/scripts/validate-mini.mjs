@@ -22,17 +22,55 @@ const requiredFiles = [
   'assets/tradingagents-mini-logo.svg',
   'config/runtime.shared.js',
   'data/digest-cards.js',
+  'data/shell-content.js',
+  'custom-tab-bar/index.js',
+  'custom-tab-bar/index.json',
+  'custom-tab-bar/index.wxml',
+  'custom-tab-bar/index.wxss',
+  'components/shell-chrome/index.js',
+  'components/shell-chrome/index.json',
+  'components/shell-chrome/index.wxml',
+  'components/shell-chrome/index.wxss',
   'lib/runtime-config.js',
   'lib/auth-session-boundary.js',
   'lib/home-controller.js',
+  'lib/shell-navigation.js',
+  'lib/shell-surface-state.js',
+  'lib/account-secondary-page.js',
+  'styles/shell.wxss',
   'pages/home/index.js',
   'pages/home/index.json',
   'pages/home/index.wxml',
   'pages/home/index.wxss',
+  'pages/watch/index.js',
+  'pages/watch/index.json',
+  'pages/watch/index.wxml',
+  'pages/watch/index.wxss',
+  'pages/account/index.js',
+  'pages/account/index.json',
+  'pages/account/index.wxml',
+  'pages/account/index.wxss',
+  'pages/account/settings/index.js',
+  'pages/account/settings/index.json',
+  'pages/account/settings/index.wxml',
+  'pages/account/settings/index.wxss',
+  'pages/account/about/index.js',
+  'pages/account/about/index.json',
+  'pages/account/about/index.wxml',
+  'pages/account/about/index.wxss',
+  'pages/account/privacy/index.js',
+  'pages/account/privacy/index.json',
+  'pages/account/privacy/index.wxml',
+  'pages/account/privacy/index.wxss',
+  'pages/account/help/index.js',
+  'pages/account/help/index.json',
+  'pages/account/help/index.wxml',
+  'pages/account/help/index.wxss',
   'scripts/build-local-preview.mjs',
   'tests/auth-session-boundary.test.mjs',
   'tests/home-digest-rendering.test.mjs',
   'tests/runtime-config-boundary.test.mjs',
+  'tests/publish-shell-navigation.test.mjs',
 ]
 
 async function ensureFilesExist() {
@@ -50,12 +88,37 @@ async function ensureConfigShape() {
   const runtimeConfig = getCheckedInRuntimeConfig()
   const appConfig = JSON.parse(await fs.readFile(path.join(miniRoot, 'app.json'), 'utf8'))
   const projectConfig = JSON.parse(await fs.readFile(path.join(miniRoot, 'project.config.json'), 'utf8'))
-  const pageConfig = JSON.parse(
+  const homePageConfig = JSON.parse(
     await fs.readFile(path.join(miniRoot, 'pages/home/index.json'), 'utf8'),
   )
+  const watchPageConfig = JSON.parse(
+    await fs.readFile(path.join(miniRoot, 'pages/watch/index.json'), 'utf8'),
+  )
+  const accountPageConfig = JSON.parse(
+    await fs.readFile(path.join(miniRoot, 'pages/account/index.json'), 'utf8'),
+  )
 
-  if (!Array.isArray(appConfig.pages) || !appConfig.pages.includes('pages/home/index')) {
-    throw new Error('app.json must declare pages/home/index as a real Mini entry page')
+  const expectedPages = [
+    'pages/home/index',
+    'pages/watch/index',
+    'pages/account/index',
+    'pages/account/settings/index',
+    'pages/account/about/index',
+    'pages/account/privacy/index',
+    'pages/account/help/index',
+  ]
+
+  if (JSON.stringify(appConfig.pages) !== JSON.stringify(expectedPages)) {
+    throw new Error('app.json must register real Home / Watch / Account surfaces plus Account secondary pages')
+  }
+
+  if (
+    !appConfig.tabBar ||
+    appConfig.tabBar.custom !== true ||
+    JSON.stringify(appConfig.tabBar.list.map((item) => item.pagePath)) !==
+      JSON.stringify(['pages/home/index', 'pages/watch/index', 'pages/account/index'])
+  ) {
+    throw new Error('app.json must expose Home / Watch / Account as primary shell surfaces in a custom tab bar')
   }
 
   if (projectConfig.compileType !== 'miniprogram') {
@@ -70,8 +133,19 @@ async function ensureConfigShape() {
     throw new Error('project.config.json must use publish-facing import-shell metadata instead of local-validation naming')
   }
 
-  if (pageConfig.navigationBarTitleText.includes('本地验证')) {
-    throw new Error('pages/home/index.json must use publish-facing entry naming instead of local-validation framing')
+  if (
+    homePageConfig.navigationBarTitleText !== 'Home' ||
+    watchPageConfig.navigationBarTitleText !== 'Watch' ||
+    accountPageConfig.navigationBarTitleText !== 'Account'
+  ) {
+    throw new Error('primary shell page titles must be Home, Watch, and Account')
+  }
+
+  if (
+    appConfig.window.navigationBarBackgroundColor !== '#05070B' ||
+    appConfig.window.backgroundColor !== '#05070B'
+  ) {
+    throw new Error('the shared Mini shell window must use the dark premium root background')
   }
 
   if (runtimeConfig.backend.mode !== 'placeholder-preview') {
@@ -94,24 +168,59 @@ async function ensurePrivateOverridesStayLocal() {
   }
 }
 
-async function ensureDisclosures() {
-  const sourceText = await fs.readFile(path.join(miniRoot, 'pages/home/index.wxml'), 'utf8')
-  if (!sourceText.includes('placeholder-preview')) {
-    throw new Error('pages/home/index.wxml must visibly disclose the checked-in placeholder-preview runtime mode')
+async function ensureShellSourceReuse() {
+  const sharedStylesText = await fs.readFile(path.join(miniRoot, 'styles/shell.wxss'), 'utf8')
+  const watchSourceText = await fs.readFile(path.join(miniRoot, 'pages/watch/index.wxml'), 'utf8')
+  const accountPageText = await fs.readFile(path.join(miniRoot, 'pages/account/index.wxml'), 'utf8')
+  const shellContentText = await fs.readFile(path.join(miniRoot, 'data/shell-content.js'), 'utf8')
+  const customTabBarText = await fs.readFile(path.join(miniRoot, 'custom-tab-bar/index.wxml'), 'utf8')
+
+  if (
+    !sharedStylesText.includes('.shell-page') ||
+    !sharedStylesText.includes('.shell-surface-card') ||
+    !sharedStylesText.includes('.shell-primary-action') ||
+    !sharedStylesText.includes('#05070b') ||
+    !sharedStylesText.includes('#1ED760')
+  ) {
+    throw new Error('styles/shell.wxss must define reusable dark-premium shell tokens and shared elevated-card/action styles')
   }
 
-  if (!sourceText.includes('mini/config/runtime.local.js')) {
-    throw new Error('pages/home/index.wxml must surface the local runtime override path')
+  for (const relativePath of [
+    'pages/home/index.wxss',
+    'pages/watch/index.wxss',
+    'pages/account/index.wxss',
+  ]) {
+    const pageStyleText = await fs.readFile(path.join(miniRoot, relativePath), 'utf8')
+    if (!pageStyleText.includes('styles/shell.wxss')) {
+      throw new Error(`${relativePath} must import the shared shell stylesheet`)
+    }
   }
 
-  if (!sourceText.includes('project.private.config.json')) {
-    throw new Error('pages/home/index.wxml must surface the local-only DevTools private config path')
+  if (
+    !watchSourceText.includes('placeholder-preview') ||
+    !watchSourceText.includes('mini/config/runtime.local.js') ||
+    !watchSourceText.includes('project.private.config.json') ||
+    !watchSourceText.includes('auth-required')
+  ) {
+    throw new Error('Watch source must visibly disclose the placeholder runtime mode, local override paths, and auth-required state')
   }
 
-  if (!sourceText.includes('auth-required')) {
-    throw new Error('pages/home/index.wxml must visibly disclose the auth-required state')
+  if (
+    !accountPageText.includes('Account pages') ||
+    !shellContentText.includes('Settings') ||
+    !shellContentText.includes('About') ||
+    !shellContentText.includes('Privacy') ||
+    !shellContentText.includes('Help')
+  ) {
+    throw new Error('Account source must keep Settings / About / Privacy / Help as real in-app destinations')
   }
 
+  if (!customTabBarText.includes('TradingAgents Mini')) {
+    throw new Error('custom-tab-bar/index.wxml must render branded shell navigation chrome')
+  }
+}
+
+async function ensureBuildArtifacts() {
   const testResult = spawnSync(
     'node',
     [
@@ -119,6 +228,7 @@ async function ensureDisclosures() {
       'tests/auth-session-boundary.test.mjs',
       'tests/home-digest-rendering.test.mjs',
       'tests/runtime-config-boundary.test.mjs',
+      'tests/publish-shell-navigation.test.mjs',
     ],
     {
       cwd: miniRoot,
@@ -160,12 +270,22 @@ async function ensureDisclosures() {
   }
 
   if (
+    !previewText.includes('Home stays overview-first') ||
+    !previewText.includes('Watch owns the protected read path') ||
+    !previewText.includes('Account owns identity and support navigation') ||
+    !previewText.includes('Account → Settings → Account') ||
+    !previewText.includes('Dark premium visual system')
+  ) {
+    throw new Error('dist/local-preview.html must prove distinct Home / Watch / Account responsibilities, Account round trips, and the shared dark visual system')
+  }
+
+  if (
     !previewText.includes('one-card-per-stock_code') ||
     !previewText.includes('Ready digest content wins over duplicate placeholder rows') ||
     !previewText.includes('Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists') ||
     !previewText.includes('compact shared fields')
   ) {
-    throw new Error('dist/local-preview.html must show ready-over-placeholder dedupe precedence, placeholder-card, and compact-field evidence')
+    throw new Error('dist/local-preview.html must show Watch ready-over-placeholder dedupe precedence, placeholder-card, and compact-field evidence')
   }
 
   const summary = JSON.parse(await fs.readFile(path.join(miniRoot, 'dist/validation-summary.json'), 'utf8'))
@@ -181,22 +301,47 @@ async function ensureDisclosures() {
   }
 
   if (
-    !summary.homeDigestRendering ||
-    summary.homeDigestRendering.rawPayloadCardCount < summary.homeDigestRendering.renderedCardCount ||
-    summary.homeDigestRendering.dedupedCount < 1 ||
-    summary.homeDigestRendering.placeholderCount < 1 ||
-    summary.homeDigestRendering.readyDigestPreferredOverPendingDuplicate !== true ||
-    summary.homeDigestRendering.waitingStateRetainedWithoutReady !== true
+    !Array.isArray(summary.primarySurfaces) ||
+    JSON.stringify(summary.primarySurfaces.map((item) => item.key)) !==
+      JSON.stringify(['home', 'watch', 'account']) ||
+    !Array.isArray(summary.accountSecondaryPages) ||
+    summary.accountSecondaryPages.length !== 4 ||
+    summary.accountSecondaryPages.some((item) => item.returnPath !== '/pages/account/index')
   ) {
-    throw new Error('dist/validation-summary.json must prove ready-over-placeholder dedupe precedence and waiting-state card retention for the Mini home surface')
+    throw new Error('dist/validation-summary.json must capture primary shell surfaces plus Account secondary-page round trips')
+  }
+
+  if (
+    !summary.visualSystem ||
+    summary.visualSystem.sharedStylesheet !== 'styles/shell.wxss' ||
+    summary.visualSystem.rootBackground !== '#05070B' ||
+    summary.visualSystem.accentColor !== '#1ED760' ||
+    summary.visualSystem.elevatedCardClass !== 'shell-surface-card' ||
+    summary.visualSystem.primaryActionClass !== 'shell-primary-action'
+  ) {
+    throw new Error('dist/validation-summary.json must capture the shared dark-premium visual system evidence')
+  }
+
+  if (
+    !summary.homeOverview ||
+    summary.homeOverview.distinctFromWatch !== true ||
+    !summary.watchDigestRendering ||
+    summary.watchDigestRendering.rawPayloadCardCount < summary.watchDigestRendering.renderedCardCount ||
+    summary.watchDigestRendering.dedupedCount < 1 ||
+    summary.watchDigestRendering.placeholderCount < 1 ||
+    summary.watchDigestRendering.readyDigestPreferredOverPendingDuplicate !== true ||
+    summary.watchDigestRendering.waitingStateRetainedWithoutReady !== true
+  ) {
+    throw new Error('dist/validation-summary.json must prove distinct Home overview behavior plus Watch ready-over-placeholder dedupe and waiting-state retention')
   }
 }
 
 await ensureFilesExist()
 await ensureConfigShape()
 await ensurePrivateOverridesStayLocal()
-await ensureDisclosures()
+await ensureShellSourceReuse()
+await ensureBuildArtifacts()
 
-console.log('mini_validate passed: verified import-shell config, placeholder runtime boundary, and source/build evidence from mini/')
+console.log('mini_validate passed: verified publish shell registration, dark-premium tokens, placeholder runtime boundary, and source/build evidence from mini/')
 console.log(`required files: ${requiredFiles.join(', ')}`)
 console.log('artifacts: dist/local-preview.html, dist/validation-summary.json')

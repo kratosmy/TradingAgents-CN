@@ -47,12 +47,15 @@ function createPreviewMeta(runtimeConfig = getCheckedInRuntimeConfig()) {
       swapSummary: runtimeConfig.operatorOverrides.swapSummary,
     },
     hero: {
-      eyebrow: 'TradingAgents Mini import shell',
-      title: runtimeConfig.shell.entryName,
+      eyebrow: 'TradingAgents Mini dark-premium shell',
+      title: `${runtimeConfig.shell.entryName} · Watch`,
       subtitle:
-        '已提交的 Mini 导入壳围绕固定 AppID 与占位预览运行时构建；后续切换到真实 HTTPS 后端时只需替换本地私有配置，不需要修改页面或业务逻辑源码。',
+        '已提交的 Mini 壳层围绕固定 AppID、深色高级感视觉系统与占位预览运行时构建；后续切换到真实 HTTPS 后端时只需替换本地私有配置，不需要修改页面或业务逻辑源码。',
     },
     checkpoints: [
+      'Home overview shell',
+      'Watch protected digest surface',
+      'Account identity/help hub',
       'checked-in AppID wiring',
       'placeholder-safe runtime default',
       'config-driven runtime swap path',
@@ -61,6 +64,7 @@ function createPreviewMeta(runtimeConfig = getCheckedInRuntimeConfig()) {
       'protected digest read path',
       'one card per stock_code',
       'placeholder cards preserved',
+      'account round-trip pages',
       'source-build honesty only',
     ],
     previewAuthFailures: [

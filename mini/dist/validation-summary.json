@@ -26,6 +26,76 @@
     "navigationBarTitle": "TradingAgents Mini",
     "brandMarkPath": "/assets/tradingagents-mini-logo.png"
   },
+  "primarySurfaces": [
+    {
+      "key": "home",
+      "label": "Home",
+      "pagePath": "/pages/home/index",
+      "navHint": "Overview",
+      "responsibility": "Product overview, highlight-level watch summary, and runtime posture."
+    },
+    {
+      "key": "watch",
+      "label": "Watch",
+      "pagePath": "/pages/watch/index",
+      "navHint": "Protected digests",
+      "responsibility": "Primary protected digest surface for login, loading, waiting, and ready cards."
+    },
+    {
+      "key": "account",
+      "label": "Account",
+      "pagePath": "/pages/account/index",
+      "navHint": "Identity hub",
+      "responsibility": "Identity state plus entry to Settings, About, Privacy, and Help."
+    }
+  ],
+  "accountSecondaryPages": [
+    {
+      "key": "settings",
+      "label": "Settings",
+      "pagePath": "/pages/account/settings/index",
+      "returnPath": "/pages/account/index",
+      "description": "Shell preferences, notification posture, and runtime-boundary reminders.",
+      "roundTripLabel": "Account → Settings → Account"
+    },
+    {
+      "key": "about",
+      "label": "About",
+      "pagePath": "/pages/account/about/index",
+      "returnPath": "/pages/account/index",
+      "description": "Mini product positioning, shell responsibilities, and delivery scope.",
+      "roundTripLabel": "Account → About → Account"
+    },
+    {
+      "key": "privacy",
+      "label": "Privacy",
+      "pagePath": "/pages/account/privacy/index",
+      "returnPath": "/pages/account/index",
+      "description": "Privacy posture for bearer-session auth and deferred runtime boundaries.",
+      "roundTripLabel": "Account → Privacy → Account"
+    },
+    {
+      "key": "help",
+      "label": "Help",
+      "pagePath": "/pages/account/help/index",
+      "returnPath": "/pages/account/index",
+      "description": "Support paths, sign-in guidance, and deferred operator/runtime next steps.",
+      "roundTripLabel": "Account → Help → Account"
+    }
+  ],
+  "visualSystem": {
+    "rootBackground": "#05070B",
+    "accentColor": "#1ED760",
+    "elevatedCardClass": "shell-surface-card",
+    "primaryActionClass": "shell-primary-action",
+    "typographyClasses": [
+      "shell-eyebrow",
+      "shell-title",
+      "shell-copy"
+    ],
+    "spacingRule": "24rpx surface gaps with 28rpx card padding",
+    "sharedStylesheet": "styles/shell.wxss"
+  },
   "authStates": {
     "authRequired": "missing_or_invalid_session",
     "loginFailures": [
@@ -44,7 +114,30 @@
     ],
     "authenticatedCardCount": 2
   },
-  "homeDigestRendering": {
+  "homeOverview": {
+    "distinctFromWatch": true,
+    "overviewHeadline": "Signed in as mini-preview",
+    "featuredStockCode": "600519",
+    "metrics": [
+      {
+        "label": "Tracked",
+        "value": "2"
+      },
+      {
+        "label": "Ready",
+        "value": "1"
+      },
+      {
+        "label": "Waiting",
+        "value": "1"
+      },
+      {
+        "label": "Rules",
+        "value": "1"
+      }
+    ]
+  },
+  "watchDigestRendering": {
     "rawPayloadCardCount": 3,
     "renderedCardCount": 2,
     "dedupedCount": 1,
@@ -73,24 +166,69 @@
       "task_updated_at"
     ]
   },
+  "accountRoundTrips": [
+    "Round-trip path: Account → Settings → Account.",
+    "Round-trip path: Account → About → Account.",
+    "Round-trip path: Account → Privacy → Account.",
+    "Round-trip path: Account → Help → Account."
+  ],
   "entryFiles": [
     "app.js",
     "app.json",
     "app.wxss",
     "project.config.json",
     "sitemap.json",
+    "assets/tradingagents-mini-logo.png",
+    "assets/tradingagents-mini-logo.svg",
     "config/runtime.shared.js",
+    "custom-tab-bar/index.js",
+    "custom-tab-bar/index.json",
+    "custom-tab-bar/index.wxml",
+    "custom-tab-bar/index.wxss",
+    "components/shell-chrome/index.js",
+    "components/shell-chrome/index.json",
+    "components/shell-chrome/index.wxml",
+    "components/shell-chrome/index.wxss",
+    "data/digest-cards.js",
+    "data/shell-content.js",
     "lib/runtime-config.js",
     "lib/auth-session-boundary.js",
     "lib/home-controller.js",
+    "lib/shell-navigation.js",
+    "lib/shell-surface-state.js",
+    "lib/account-secondary-page.js",
+    "styles/shell.wxss",
     "pages/home/index.js",
+    "pages/home/index.json",
     "pages/home/index.wxml",
     "pages/home/index.wxss",
-    "pages/home/index.json",
-    "assets/tradingagents-mini-logo.png",
-    "assets/tradingagents-mini-logo.svg",
+    "pages/watch/index.js",
+    "pages/watch/index.json",
+    "pages/watch/index.wxml",
+    "pages/watch/index.wxss",
+    "pages/account/index.js",
+    "pages/account/index.json",
+    "pages/account/index.wxml",
+    "pages/account/index.wxss",
+    "pages/account/settings/index.js",
+    "pages/account/settings/index.json",
+    "pages/account/settings/index.wxml",
+    "pages/account/settings/index.wxss",
+    "pages/account/about/index.js",
+    "pages/account/about/index.json",
+    "pages/account/about/index.wxml",
+    "pages/account/about/index.wxss",
+    "pages/account/privacy/index.js",
+    "pages/account/privacy/index.json",
+    "pages/account/privacy/index.wxml",
+    "pages/account/privacy/index.wxss",
+    "pages/account/help/index.js",
+    "pages/account/help/index.json",
+    "pages/account/help/index.wxml",
+    "pages/account/help/index.wxss",
     "tests/auth-session-boundary.test.mjs",
     "tests/home-digest-rendering.test.mjs",
-    "tests/runtime-config-boundary.test.mjs"
+    "tests/runtime-config-boundary.test.mjs",
+    "tests/publish-shell-navigation.test.mjs"
   ]
 }
