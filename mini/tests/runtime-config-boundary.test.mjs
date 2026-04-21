@@ -90,6 +90,9 @@ test('loopback detection rejects full 127.0.0.0/8 and bracketed IPv6 spellings',
     'https://127.255.255.255',
     'https://[::1]',
     'https://[0:0:0:0:0:0:0:1]',
+    'https://[::ffff:127.0.0.1]',
+    'https://[::ffff:127.255.255.255]',
+    'https://[::ffff:7f00:1]',
   ]) {
     assert.equal(
       runtimeConfigModule.isLoopbackUrl(url),

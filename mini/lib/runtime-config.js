@@ -4,6 +4,11 @@ const net = require('node:net')
 const LOCAL_OVERRIDE_MODULE_PATH = '../config/runtime.local.js'
 const LOCAL_OVERRIDE_RELATIVE_PATH = 'mini/config/runtime.local.js'
 const DEVTOOLS_PRIVATE_CONFIG_RELATIVE_PATH = 'mini/project.private.config.json'
+const LOOPBACK_BLOCKLIST = new net.BlockList()
+
+LOOPBACK_BLOCKLIST.addSubnet('127.0.0.0', 8, 'ipv4')
+LOOPBACK_BLOCKLIST.addAddress('::1', 'ipv6')
+LOOPBACK_BLOCKLIST.addSubnet('::ffff:7f00:0', 104, 'ipv6')
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -81,11 +86,11 @@ function normalizeHostname(hostname) {
 }
 
 function isIPv4LoopbackHost(hostname) {
-  return net.isIP(hostname) === 4 && hostname.split('.')[0] === '127'
+  return net.isIP(hostname) === 4 && LOOPBACK_BLOCKLIST.check(hostname, 'ipv4')
 }
 
 function isIPv6LoopbackHost(hostname) {
-  return net.isIP(hostname) === 6 && (hostname === '::1' || hostname === '0:0:0:0:0:0:0:1')
+  return net.isIP(hostname) === 6 && LOOPBACK_BLOCKLIST.check(hostname, 'ipv6')
 }
 
 function isLoopbackUrl(url) {
