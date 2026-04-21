@@ -1,0 +1,48 @@
+{
+  "featureId": "mini-runtime-config-and-import-shell",
+  "reviewedAt": "2026-04-21T06:06:03.658859+00:00",
+  "commitId": "a85f6452221d4fd62169727baae88350f50e79dd",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "issues": [
+    {
+      "file": "mini/lib/runtime-config.js",
+      "line": 109,
+      "severity": "blocking",
+      "description": "`loadOperatorOverrides()` swallows any `MODULE_NOT_FOUND` whose message mentions `runtime.local` and treats it as if `mini/config/runtime.local.js` were absent. In Node, a broken override file that itself imports a missing dependency produces exactly that message (`Cannot find module './missing-dep.js' ... /runtime.local.js`), so the Mini shell silently falls back to the checked-in placeholder runtime instead of surfacing the operator error. That makes the promised config-driven swap path fail open: a misconfigured local runtime override looks like a successful start, but the app keeps targeting the placeholder backend."
+    },
+    {
+      "file": "mini/lib/runtime-config.js",
+      "line": 73,
+      "severity": "blocking",
+      "description": "`isLoopbackUrl()` only rejects a few exact host strings (`localhost`, `127.0.0.1`, `0.0.0.0`, `::1`, and `.localhost`). It returns `false` for other loopback spellings such as `https://127.0.0.2` and `https://[::1]` (confirmed with a local Node probe), so the validator/build summary can misclassify loopback targets as safe. That means VAL-PUBLISH-001 / VAL-PUBLISH-006 can be falsely green-lit for checked-in configs that still point at a loopback-only runtime."
+    }
+  ],
+  "codeReview": {
+    "summary": "The feature does introduce a repo-owned placeholder runtime boundary and publish-facing import-shell metadata, but two correctness bugs remain in the runtime-config helper: broken local overrides are silently ignored, and the loopback detector does not actually cover the full set of loopback host spellings that the validator is meant to reject.",
+    "issues": [
+      {
+        "file": "mini/lib/runtime-config.js",
+        "line": 109,
+        "severity": "blocking",
+        "description": "`loadOperatorOverrides()` swallows any `MODULE_NOT_FOUND` whose message mentions `runtime.local` and treats it as if `mini/config/runtime.local.js` were absent. In Node, a broken override file that itself imports a missing dependency produces exactly that message (`Cannot find module './missing-dep.js' ... /runtime.local.js`), so the Mini shell silently falls back to the checked-in placeholder runtime instead of surfacing the operator error. That makes the promised config-driven swap path fail open: a misconfigured local runtime override looks like a successful start, but the app keeps targeting the placeholder backend."
+      },
+      {
+        "file": "mini/lib/runtime-config.js",
+        "line": 73,
+        "severity": "blocking",
+        "description": "`isLoopbackUrl()` only rejects a few exact host strings (`localhost`, `127.0.0.1`, `0.0.0.0`, `::1`, and `.localhost`). It returns `false` for other loopback spellings such as `https://127.0.0.2` and `https://[::1]` (confirmed with a local Node probe), so the validator/build summary can misclassify loopback targets as safe. That means VAL-PUBLISH-001 / VAL-PUBLISH-006 can be falsely green-lit for checked-in configs that still point at a loopback-only runtime."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "validation coverage",
+      "observation": "The feature handoff reports `npm --prefix mini run test`, `build`, and `validate` all passing, but the added runtime-config tests only cover the checked-in `.invalid` default and an in-memory happy-path override object. They never exercise broken `runtime.local.js` loading or alternate loopback spellings, so both bugs remain invisible to the current scrutiny/validator path.",
+      "evidence": "See `mini/tests/runtime-config-boundary.test.mjs` plus the handoff at `/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/handoffs/2026-04-21T05-03-46-841Z__mini-runtime-config-and-import-shell__66cbb3a4-d45b-4e71-b5f3-77bb2bf6a37d.json`."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed the feature metadata, worker handoff/transcript skeleton, validation contract, and commit `a85f6452221d4fd62169727baae88350f50e79dd`. Result: fail — the checked-in Mini import shell generally matches the publish-facing runtime-boundary goal, but the runtime-config helper can silently ignore broken local overrides and can falsely classify some loopback runtime targets as safe."
+}

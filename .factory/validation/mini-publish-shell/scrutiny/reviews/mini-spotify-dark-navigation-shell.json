@@ -1,0 +1,30 @@
+{
+  "featureId": "mini-spotify-dark-navigation-shell",
+  "status": "fail",
+  "issues": [
+    {
+      "severity": "medium",
+      "description": "Account secondary pages do not reliably round-trip back to Account. In `mini/lib/shell-navigation.js`, `returnToAccountSurface()` always calls `wx.navigateBack({ delta: 1 })` whenever `navigateBack` exists and never falls back to `redirectTo('/pages/account/index')` or `switchTab(...)` if the leaf page is the current stack root. Opening Settings/About/Privacy/Help as an entry page or restored page therefore leaves the back action failing instead of returning to Account, which breaks VAL-PUBLISH-005's usable round-trip requirement."
+    }
+  ],
+  "sharedStateObservations": [
+    "Commit `c21dcfa4` registers real Home, Watch, and Account primary surfaces plus the Settings/About/Privacy/Help leaf pages in `mini/app.json`.",
+    "The primary shell surfaces share `mini/styles/shell.wxss` and objective dark-premium tokens such as the `#05070B` root background, restrained `#1ED760` accent usage, and elevated `shell-surface-card` containers, which aligns with VAL-PUBLISH-008.",
+    "Home, Watch, and Account responsibilities are explicitly differentiated in `mini/lib/shell-navigation.js`, the page wiring, and the generated `mini/dist/validation-summary.json`."
+  ],
+  "reviewedCommit": "c21dcfa4",
+  "validationAssertions": [
+    "VAL-PUBLISH-002",
+    "VAL-PUBLISH-005",
+    "VAL-PUBLISH-008"
+  ],
+  "evidence": [
+    "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/handoffs/2026-04-21T05-32-09-456Z__mini-spotify-dark-navigation-shell__843343e2-de10-4723-8ab4-92968d0aeff0.json",
+    "/home/kratos/.factory/missions/622dc8a5-ffed-4616-907e-cdf2a59179b4/worker-transcripts.jsonl",
+    "/home/kratos/projects/TradingAgents-CN/mini/app.json",
+    "/home/kratos/projects/TradingAgents-CN/mini/lib/shell-navigation.js",
+    "/home/kratos/projects/TradingAgents-CN/mini/lib/account-secondary-page.js",
+    "/home/kratos/projects/TradingAgents-CN/mini/pages/account/settings/index.wxml",
+    "/home/kratos/projects/TradingAgents-CN/mini/dist/validation-summary.json"
+  ]
+}

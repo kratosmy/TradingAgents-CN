@@ -1,0 +1,87 @@
+{
+  "milestone": "mini-publish-shell",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": ".venv-mission/bin/python -m pytest tests/services/test_watch_api_baseline.py tests/services/test_watch_digest_service.py tests/services/test_mini_auth_session_boundary.py -v && npm --prefix mini run test",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "npm --prefix mini run validate",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "npm --prefix mini run validate",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 3,
+    "passed": 0,
+    "failed": 3,
+    "failedFeatures": [
+      "mini-runtime-config-and-import-shell",
+      "mini-spotify-dark-navigation-shell",
+      "mini-stateful-watch-auth-shell"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "mini-runtime-config-and-import-shell",
+      "severity": "blocking",
+      "description": "mini/lib/runtime-config.js swallows broken runtime.local.js loads as if the override file were missing, so a misconfigured operator override silently falls back to the placeholder backend instead of surfacing the local configuration error."
+    },
+    {
+      "featureId": "mini-runtime-config-and-import-shell",
+      "severity": "blocking",
+      "description": "mini/lib/runtime-config.js only rejects a few exact loopback hosts and misses loopback spellings such as 127.0.0.2 and [::1], allowing VAL-PUBLISH-001 and VAL-PUBLISH-006 to be falsely green-lit for loopback-only runtime targets."
+    },
+    {
+      "featureId": "mini-spotify-dark-navigation-shell",
+      "severity": "blocking",
+      "description": "mini/lib/shell-navigation.js always calls wx.navigateBack for Account secondary-page returns and never falls back to Account when the leaf page is the current stack root, so Settings/About/Privacy/Help do not guarantee the required round-trip navigation."
+    },
+    {
+      "featureId": "mini-stateful-watch-auth-shell",
+      "severity": "blocking",
+      "description": "Home derives signed-in posture from digestResult.ok instead of session state, so authenticated users with non-401 digest failures or zero-card responses can be shown signed-out copy while Account still shows them as signed in, breaking honest surface-specific messaging."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [],
+  "rejectedObservations": [
+    {
+      "observation": "The runtime-config tests do not cover broken runtime.local.js loads or alternate loopback spellings, so both runtime-config bugs escaped the current validator path.",
+      "reason": "feature-specific coverage gap that should be fixed with a follow-up implementation feature rather than a shared-state or guidance update"
+    },
+    {
+      "observation": "Commit c21dcfa4 registers real Home, Watch, and Account primary surfaces plus the Account leaf pages in mini/app.json.",
+      "reason": "positive implementation evidence only; no shared-state update needed"
+    },
+    {
+      "observation": "The primary shell surfaces share objective dark-premium tokens and elevated card styling in mini/styles/shell.wxss.",
+      "reason": "positive implementation evidence only; no shared-state update needed"
+    },
+    {
+      "observation": "Home, Watch, and Account responsibilities are explicitly differentiated in navigation wiring and generated validation proof.",
+      "reason": "positive implementation evidence only; no shared-state update needed"
+    },
+    {
+      "observation": "Watch stays contract-first by deduping to one compact card per canonical stock_code and rendering only compact mapped fields.",
+      "reason": "positive implementation evidence only; no shared-state update needed"
+    },
+    {
+      "observation": "The shell proof artifacts still show signed-out navigation and distinct Watch auth/loading/waiting/empty/ready states.",
+      "reason": "positive implementation evidence only; no shared-state update needed"
+    },
+    {
+      "observation": "Session posture is derived unevenly across Home, Watch, and Account surfaces.",
+      "reason": "captured directly by the blocking Home-state issue and not broad enough on its own to justify a separate shared-state update"
+    }
+  ],
+  "previousRound": null
+}

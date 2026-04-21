@@ -1,0 +1,15 @@
+{
+  "featureId": "mini-stateful-watch-auth-shell",
+  "status": "fail",
+  "issues": [
+    {
+      "severity": "medium",
+      "description": "Home does not keep its signed-in/empty posture honest. In `mini/pages/home/index.js`, the page always rebuilds Home from `authBoundary.loadDigests()`, but `buildHomeSurfaceState` in `mini/lib/shell-surface-state.js` treats the user as signed in only when `digestResult.ok` is true and otherwise falls back to the signed-out headline. That means any authenticated session with a non-401 digest read failure is rendered as `Signed out, but the shell remains usable`, while Account still shows the session as signed in. The same helper also reuses `highlightSignedOutCopy` when an authenticated digest read succeeds with zero cards, so the authenticated-empty Home state tells the user `Signed-out users can still review...`. This violates the feature requirement to keep surface-specific placeholder/deferred-runtime messaging honest on Home."
+    }
+  ],
+  "sharedStateObservations": [
+    "Watch stays contract-first: `mini/lib/home-controller.js` dedupes to one compact card per canonical `stock_code` and `mini/pages/watch/index.wxml` renders only compact mapped fields.",
+    "The shell still preserves signed-out navigation and distinct Watch states in shipped proof artifacts: `mini/dist/local-preview.html` and `mini/dist/validation-summary.json` show auth-required, authenticated-empty, waiting, and ready Watch evidence plus public Home/Account entry.",
+    "Session state is shared unevenly across surfaces: Home derives posture from digest-read success, Watch derives posture from controller state, and Account derives posture from persisted session presence."
+  ]
+}
