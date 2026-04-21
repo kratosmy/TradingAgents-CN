@@ -184,7 +184,7 @@
           <h3>Watch</h3>
           <span class="badge badge--accent">Protected digests</span>
         </div>
-        <p>Primary protected digest surface for login, loading, waiting, and ready cards.</p>
+        <p>Primary protected digest surface for auth-required, loading, waiting, ready, and authenticated-empty states.</p>
       </article>
     
       <article class="panel">
@@ -205,8 +205,23 @@
         </div>
         <p style="margin-top: 12px;"><strong>Home stays overview-first</strong></p>
         <p>Home frames the Mini product, preview posture, and a single highlight-level summary. Full protected digest detail stays in Watch.</p>
-        <p>Signed in as mini-preview</p>
-        <p>Home shows a concise watch summary and one highlight, while Watch continues to own the full protected digest experience.</p>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">signed-out navigation</span>
+            <span class="badge badge--info">Home remains public</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>Signed out, but the shell remains usable</strong></p>
+          <p>Home and Account remain public. Watch keeps the auth gate and protected digest surface.</p>
+          <p class="muted">Signed-out users can still review the shell posture here, then move into Watch for the protected digest flow.</p>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--accent">signed-in overview</span>
+            <span class="badge badge--info">highlight only</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>Signed in as mini-preview</strong></p>
+          <p>Home shows a concise watch summary and one highlight, while Watch continues to own the full protected digest experience.</p>
+        </div>
         <div class="metrics" style="margin-top: 16px;">
           
         <div class="metric-card">
@@ -250,15 +265,65 @@
           <span class="badge badge--accent">protected digest surface</span>
         </div>
         <p style="margin-top: 12px;"><strong>Watch owns the protected read path</strong></p>
-        <p>Watch is the only primary surface that handles login, auth-required gating, and the full protected digest list.</p>
-        <p>If auth is missing or invalid, Watch blocks protected cards and keeps the rest of the shell navigable.</p>
-        <div class="panel" style="margin-top: 16px;">
-          <div class="row">
-            <span class="badge badge--warn">auth-required</span>
-            <span class="badge badge--info">missing_or_invalid_session</span>
+        <p>Watch is the only primary surface that handles sign-in, auth-required gating, and the full protected digest list.</p>
+        <p>Signed-out navigation remains usable on Home and Account while Watch keeps auth-required, loading, waiting, ready, and authenticated-empty states distinct.</p>
+        <div class="surface-grid" style="margin-top: 16px;">
+          
+        <article class="panel">
+          <div class="row split">
+            <h3>loading</h3>
+            <span class="badge badge--info">loading</span>
           </div>
-          <h3 style="margin-top: 10px;">需要重新登录后才能查看受保护盯盘内容</h3>
-          <p>当前未检测到可用 Bearer 会话，页面已阻止显示任何受保护盯盘卡片。</p>
+          <p style="margin-top: 10px;"><strong>Watch 正在准备受保护盯盘视图</strong></p>
+          <p>Watch 会先检查 Bearer 会话与受保护 digest 读取结果，再决定显示登录入口、等待态卡片或已就绪摘要。</p>
+          <p>Until the contract check finishes, Watch does not reveal protected cards or reuse stale content from a previous session.</p>
+          <p class="muted">cards 0 · ready 0 · waiting 0</p>
+        </article>
+      
+        <article class="panel">
+          <div class="row split">
+            <h3>auth-required</h3>
+            <span class="badge badge--warn">auth gate</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>登录后即可查看 Watch</strong></p>
+          <p>当前未检测到可用 Bearer 会话，因此 Watch 会继续保持受保护状态，不显示任何受保护盯盘卡片。</p>
+          <p>No protected digest cards render until a valid bearer session unlocks the shared `/api/watch/digests` contract.</p>
+          <p class="muted">cards 0 · ready 0 · waiting 0</p>
+        </article>
+      
+        <article class="panel">
+          <div class="row split">
+            <h3>authenticated-empty</h3>
+            <span class="badge badge--warn">authenticated empty</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>已登录，但 Watch 暂无受保护摘要</strong></p>
+          <p>当前会话已经通过认证，但还没有可展示的受保护摘要卡片；这与未登录或加载中不同，也不会回退到 Home 的概览内容。</p>
+          <p>Watch stays unlocked for this session, but it does not fabricate cards from Home or any mock source.</p>
+          <p class="muted">cards 0 · ready 0 · waiting 0</p>
+        </article>
+      
+        <article class="panel">
+          <div class="row split">
+            <h3>waiting</h3>
+            <span class="badge badge--warn">waiting</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>已登录，Watch 正等待摘要完成</strong></p>
+          <p>当前受保护 watch 成员仍在等待 digest 完成；Watch 会继续展示等待态卡片，而不是把页面误判为空白或伪成功。</p>
+          <p>Waiting stays distinct from authenticated-empty so pending protected members are not dropped or collapsed into a blank state.</p>
+          <p class="muted">cards 1 · ready 0 · waiting 1</p>
+        </article>
+      
+        <article class="panel">
+          <div class="row split">
+            <h3>ready</h3>
+            <span class="badge badge--accent">ready</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>已登录，Watch 已准备好受保护摘要</strong></p>
+          <p>Watch 当前展示 1 张已就绪摘要卡片，并保留 1 张等待态卡片，避免遗漏仍在排队的受保护成员。</p>
+          <p>Watch prefers ready digest content over duplicate placeholder rows for the same canonical `stock_code` without leaking extra fields.</p>
+          <p class="muted">cards 2 · ready 1 · waiting 1</p>
+        </article>
+      
         </div>
         <div class="failure-grid" style="margin-top: 16px;">
           
@@ -298,7 +363,7 @@
             <span class="badge badge--info">one-card-per-stock_code</span>
             <span class="badge badge--warn">deduped 1</span>
           </div>
-          <p style="margin-top: 10px;">Authenticated preview payload contained 3 digest rows and rendered 2 visible cards for canonical stock_code values: 600519, 000001.</p>
+          <p style="margin-top: 10px;">Ready preview payload contained 3 digest rows and rendered 2 visible cards for canonical stock_code values: 600519, 000001.</p>
           <p>Ready digest content wins over duplicate placeholder rows for the same canonical stock_code, even when the placeholder row is newer by timestamp.</p>
           <p>Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists, so pending watched stocks are not dropped from Watch.</p>
         </div>
@@ -311,6 +376,40 @@
           <div class="visual-system" style="margin-top: 12px;">
             <span class="visual-chip">stock_code</span><span class="visual-chip">stock_name</span><span class="visual-chip">market</span><span class="visual-chip">board</span><span class="visual-chip">exchange</span><span class="visual-chip">current_price</span><span class="visual-chip">change_percent</span><span class="visual-chip">digest_status</span><span class="visual-chip">summary</span><span class="visual-chip">risk_level</span><span class="visual-chip">rule_status</span><span class="visual-chip">task_status</span><span class="visual-chip">task_id</span><span class="visual-chip">updated_at</span><span class="visual-chip">task_updated_at</span>
           </div>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">waiting proof</span>
+            <span class="badge badge--neutral">1 protected cards</span>
+          </div>
+          <p style="margin-top: 10px;">Watch keeps signed-in waiting cards visible when no ready digest exists yet, so authenticated-empty and waiting never collapse together.</p>
+        </div>
+        <div class="failure-grid" style="margin-top: 16px;">
+          
+        <article class="panel digest-card">
+          <div class="row split">
+            <div>
+              <h4>平安银行 · 000001</h4>
+              <p class="muted">A股 · 主板 · SZSE</p>
+            </div>
+            <span class="badge badge--neutral">等待解读</span>
+          </div>
+          <div class="row split">
+            <div class="price">¥11.28</div>
+            <span class="badge badge--accent">+0.43%</span>
+          </div>
+          <p>等待态仍来自受保护 digest 读取结果，而不是未认证时的假成功空列表。</p>
+          <div class="status-grid">
+            <div class="status-card"><span>digest_status</span><strong>pending</strong></div>
+            <div class="status-card"><span>rule_status</span><strong>pending</strong></div>
+            <div class="status-card"><span>task_status</span><strong>waiting</strong></div>
+          </div>
+          <div class="row split meta">
+            <span>任务 task-preview-2</span>
+            <span>2026-04-20T15:40:00+08:00</span>
+          </div>
+        </article>
+      
         </div>
         <div class="failure-grid" style="margin-top: 16px;">
           
@@ -372,7 +471,22 @@
         </div>
         <p style="margin-top: 12px;"><strong>Account owns identity and support navigation</strong></p>
         <p>Account shows session state and routes into Settings, About, Privacy, and Help without trapping users on a dead leaf page.</p>
-        <p>Account session is ready · mini-preview · user-preview-1</p>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">signed out</span>
+            <span class="badge badge--info">Account remains public</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>Account remains available before sign-in</strong></p>
+          <p>Use Watch to sign in, then return here for session actions and legal/help pages.</p>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--accent">signed in</span>
+            <span class="badge badge--info">identity stays here</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>Account session is ready</strong> · mini-preview · user-preview-1</p>
+          <p>Identity state lives here while detailed protected digests continue to belong to Watch.</p>
+        </div>
         <div style="margin-top: 16px;">
           
         <article class="menu-item">

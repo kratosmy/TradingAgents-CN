@@ -6,15 +6,17 @@ const {
 } = require('../../lib/auth-session-boundary.js')
 const { buildBaseState, createMiniHomeController } = require('../../lib/home-controller.js')
 const { syncShellTabBar } = require('../../lib/shell-navigation.js')
-const { buildWatchSurfaceMeta } = require('../../lib/shell-surface-state.js')
+const { buildWatchSurfaceState } = require('../../lib/shell-surface-state.js')
 
 const previewMeta = previewMetaModule.createPreviewMeta()
+const initialState = buildBaseState(previewMeta)
 
 Page({
   data: {
-    ...buildBaseState(previewMeta),
-    ...buildWatchSurfaceMeta({
+    ...initialState,
+    ...buildWatchSurfaceState({
       previewMeta,
+      watchData: initialState,
     }),
   },
 
@@ -23,6 +25,7 @@ Page({
     const runtimeConfig = (app && app.globalData && app.globalData.runtimeConfig) || null
     const nextPreviewMeta = previewMetaModule.createPreviewMeta(runtimeConfig)
     const baseUrl = (app && app.globalData && app.globalData.apiBaseUrl) || DEFAULT_BASE_URL
+    this.previewMeta = nextPreviewMeta
 
     this.controller = createMiniHomeController({
       authBoundary: createMiniAuthSessionBoundary({
@@ -33,12 +36,7 @@ Page({
       previewMeta: nextPreviewMeta,
     })
 
-    this.setData({
-      ...buildBaseState(nextPreviewMeta),
-      ...buildWatchSurfaceMeta({
-        previewMeta: nextPreviewMeta,
-      }),
-    })
+    this.applyWatchData(buildBaseState(nextPreviewMeta))
     this.refreshProtectedCards()
   },
 
@@ -55,7 +53,7 @@ Page({
     }
 
     const nextState = await this.controller.hydrate()
-    this.setData(nextState)
+    this.applyWatchData(nextState)
   },
 
   onUsernameInput(event) {
@@ -63,7 +61,7 @@ Page({
       return
     }
 
-    this.setData(
+    this.applyWatchData(
       this.controller.setCredentials({
         username: event.detail.value,
       }),
@@ -75,7 +73,7 @@ Page({
       return
     }
 
-    this.setData(
+    this.applyWatchData(
       this.controller.setCredentials({
         password: event.detail.value,
       }),
@@ -91,7 +89,7 @@ Page({
       username: this.data.username,
       password: this.data.password,
     })
-    this.setData(nextState)
+    this.applyWatchData(nextState)
   },
 
   onLogout() {
@@ -99,6 +97,16 @@ Page({
       return
     }
 
-    this.setData(this.controller.logout())
+    this.applyWatchData(this.controller.logout())
+  },
+
+  applyWatchData(nextState) {
+    this.setData({
+      ...nextState,
+      ...buildWatchSurfaceState({
+        previewMeta: this.previewMeta || previewMeta,
+        watchData: nextState,
+      }),
+    })
   },
 })

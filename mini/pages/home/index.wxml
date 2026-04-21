@@ -47,7 +47,7 @@
   </view>
 
   <view class="shell-surface-card">
-    <text class="shell-section-heading">Preview runtime posture</text>
+    <text class="shell-section-heading">Placeholder runtime posture</text>
     <text class="shell-copy">checked-in mode：{{runtimeBoundary.mode}}</text>
     <text class="shell-copy">checked-in baseUrl：{{runtimeBoundary.baseUrl}}</text>
     <text class="shell-support-copy">{{runtimeBoundary.disclosure}}</text>

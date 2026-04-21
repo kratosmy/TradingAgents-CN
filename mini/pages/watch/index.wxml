@@ -5,42 +5,33 @@
     <text class="shell-section-heading">{{watchRoleTitle}}</text>
     <text class="shell-copy">{{watchRoleCopy}}</text>
     <text class="shell-support-copy">{{watchSupportCopy}}</text>
-  </view>
-
-  <view class="shell-surface-card">
-    <text class="shell-section-heading">Watch runtime boundary</text>
-    <text class="shell-copy">checked-in mode：placeholder-preview（当前：{{runtimeBoundary.mode}}）</text>
-    <text class="shell-copy">checked-in baseUrl：{{runtimeBoundary.baseUrl}}</text>
-    <text class="shell-copy">shared config：{{runtimeBoundary.sharedConfigPath}}</text>
-    <text class="shell-copy">local override：mini/config/runtime.local.js</text>
-    <text class="shell-copy">private DevTools config：mini/project.private.config.json</text>
-    <text class="shell-support-copy">{{runtimeBoundary.disclosure}}</text>
-    <text class="shell-support-copy">{{localOnlyDisclosure}}</text>
-    <text class="shell-support-copy">{{previewEvidenceLabel}}</text>
+    <text class="shell-support-copy">Watch remains the primary protected digest surface for this shell.</text>
   </view>
 
   <view class="shell-surface-card watch-auth-card">
     <view class="shell-card-header">
       <view class="shell-link-copy">
-        <text class="shell-section-heading">{{authTitle}}</text>
-        <text class="shell-copy">{{authMessage}}</text>
+        <text class="shell-section-heading">{{watchStateTitle}}</text>
+        <text class="shell-copy">{{watchStateCopy}}</text>
       </view>
-      <text class="shell-badge shell-badge--{{authState === 'authenticated' ? 'accent' : authState === 'checking' ? 'info' : 'warn'}}">
-        {{authState}}
+      <text class="shell-badge shell-badge--{{watchStateTone}}">
+        {{watchStateLabel}}
       </text>
     </view>
+
+    <text class="shell-support-copy">{{watchStateSupportCopy}}</text>
 
     <view wx:if="{{loginErrorCode}}" class="watch-stack">
       <text class="shell-badge shell-badge--warn">{{loginErrorCode}}</text>
       <text class="shell-copy">{{loginErrorMessage}}</text>
     </view>
 
-    <view wx:if="{{sessionUserLabel}}" class="shell-action-row">
+    <view wx:if="{{showSessionSummary}}" class="shell-action-row">
       <text class="shell-support-copy">session_user {{sessionUserLabel}}</text>
-      <button class="shell-secondary-action" bindtap="onLogout">Clear session</button>
+      <button wx:if="{{showLogoutAction}}" class="shell-secondary-action" bindtap="onLogout">{{clearSessionLabel}}</button>
     </view>
 
-    <view wx:else class="watch-stack">
+    <view wx:if="{{showLoginForm}}" class="watch-stack">
       <input
         class="watch-auth-input"
         type="text"
@@ -55,64 +46,116 @@
         value="{{password}}"
         bindinput="onPasswordInput"
       />
-      <button class="shell-primary-action" bindtap="onSubmitLogin">调用 /api/auth/login</button>
+      <button class="shell-primary-action" bindtap="onSubmitLogin">{{loginActionLabel}}</button>
     </view>
   </view>
 
-  <view wx:if="{{authState === 'authenticated'}}" class="watch-stack">
+  <view wx:if="{{watchState === 'loading'}}" class="shell-surface-card">
+    <text class="shell-section-heading">loading</text>
+    <text class="shell-copy">Watch keeps loading distinct while it checks whether a stored bearer session can unlock protected digest content.</text>
+    <text class="shell-support-copy">Until that check finishes, the protected digest surface remains closed and no stale cards are reused.</text>
+  </view>
+
+  <view wx:if="{{watchState === 'auth-required'}}" class="shell-surface-card">
+    <text class="shell-section-heading">auth-required</text>
+    <text class="shell-copy">Signed-out navigation stays usable across Home and Account, but Watch does not reveal protected cards without a valid bearer session.</text>
+    <text class="shell-support-copy">未认证或认证失败时，Watch 不显示任何 mock、stale 或 fake-success 空盯盘卡片。</text>
+  </view>
+
+  <view wx:if="{{watchState === 'authenticated-empty'}}" class="shell-surface-card">
+    <text class="shell-section-heading">authenticated-empty</text>
+    <text class="shell-copy">Watch is signed in for this session, but there are no protected digest cards to render yet.</text>
+    <text class="shell-support-copy">This empty state stays distinct from auth-required and loading, and it never borrows overview content from Home.</text>
+  </view>
+
+  <view wx:if="{{watchState === 'waiting'}}" class="shell-surface-card">
+    <text class="shell-section-heading">waiting</text>
+    <text class="shell-copy">Protected watch members exist, but the current digest payload is still pending, so Watch preserves waiting cards instead of collapsing into a blank state.</text>
+    <text class="shell-support-copy">Waiting remains different from authenticated-empty because there is protected work in flight for this signed-in session.</text>
+  </view>
+
+  <view wx:if="{{watchState === 'ready'}}" class="shell-surface-card">
+    <text class="shell-section-heading">ready</text>
+    <text class="shell-copy">Ready digest cards are available on the primary protected surface, while any remaining waiting cards continue to render honestly.</text>
+    <text class="shell-support-copy">Watch keeps ready content and waiting content distinct without leaking extra report fields or mock cards.</text>
+  </view>
+
+  <view wx:if="{{showProtectedDigestSummary}}" class="watch-stack">
     <view class="shell-surface-card">
-      <text class="shell-section-heading">{{watchContractTitle}}</text>
-      <text class="shell-copy">{{watchContractCopy}}</text>
-      <text class="shell-support-copy">当前页面从 {{rawPayloadCount}} 条受保护 digest payload 中渲染 {{monitoredCount}} 张卡；重复 canonical `stock_code` 已去重 {{dedupedCount}} 次。</text>
+      <view class="shell-card-header">
+        <view class="shell-link-copy">
+          <text class="shell-section-heading">{{protectedSummaryTitle}}</text>
+          <text class="shell-copy">{{protectedSummaryCopy}}</text>
+        </view>
+        <text class="shell-badge shell-badge--{{watchState === 'ready' ? 'accent' : watchState === 'waiting' ? 'warn' : 'neutral'}}">
+          {{protectedSummaryBadge}}
+        </text>
+      </view>
+      <text class="shell-support-copy">当前页面从 {{rawPayloadCount}} 条受保护 digest payload 中渲染 {{monitoredCount}} 张卡；ready {{readyCount}} · waiting {{waitingCount}} · 去重 {{dedupedCount}}。</text>
       <text class="shell-support-copy">若同一 `stock_code` 同时出现 ready digest 与更新更晚的等待/占位重复行，页面仍优先展示 ready digest；若不存在 ready digest，则等待态卡片继续保留。</text>
       <text class="shell-support-copy">已渲染 stock_code：{{renderedStockCodes}}</text>
       <text class="shell-support-copy">仅消费共享紧凑字段：{{compactFieldKeysText}}</text>
     </view>
 
-    <view wx:for="{{cards}}" wx:key="stockCode" class="shell-surface-card watch-digest-card">
-      <view class="shell-card-header">
-        <view class="shell-link-copy">
-          <text class="shell-section-heading">{{item.stockName}} · {{item.stockCode}}</text>
-          <text class="shell-support-copy">{{item.market}} · {{item.board}} · {{item.exchange}}</text>
-        </view>
-        <text class="shell-badge shell-badge--{{item.riskTone === 'positive' ? 'accent' : item.riskTone === 'warning' ? 'warn' : 'neutral'}}">
-          {{item.riskLabel}}
-        </text>
-      </view>
+    <view wx:if="{{showAuthenticatedEmptyState}}" class="shell-surface-card">
+      <text class="shell-section-heading">No protected cards yet</text>
+      <text class="shell-copy">Watch stays unlocked for this session, but there is nothing to render until the protected digest contract returns tracked cards.</text>
+      <text class="shell-support-copy">This honest empty state remains separate from the sign-in gate and from loading.</text>
+    </view>
 
-      <view class="shell-inline-row watch-quote-row">
-        <text class="watch-price">¥{{item.currentPrice}}</text>
-        <text class="shell-badge shell-badge--{{item.changeDirection === 'up' ? 'accent' : item.changeDirection === 'down' ? 'warn' : 'neutral'}}">
-          {{item.changePercent}}
-        </text>
-      </view>
-
-      <text class="shell-copy">{{item.summary}}</text>
-
-      <view class="watch-status-grid">
-        <view class="watch-status-card">
-          <text class="shell-metric-label">digest_status</text>
-          <text class="shell-section-heading">{{item.digestStatus}}</text>
+    <view wx:if="{{showDigestCards}}" class="watch-stack">
+      <view wx:for="{{cards}}" wx:key="stockCode" class="shell-surface-card watch-digest-card">
+        <view class="shell-card-header">
+          <view class="shell-link-copy">
+            <text class="shell-section-heading">{{item.stockName}} · {{item.stockCode}}</text>
+            <text class="shell-support-copy">{{item.market}} · {{item.board}} · {{item.exchange}}</text>
+          </view>
+          <text class="shell-badge shell-badge--{{item.riskTone === 'positive' ? 'accent' : item.riskTone === 'warning' ? 'warn' : 'neutral'}}">
+            {{item.riskLabel}}
+          </text>
         </view>
-        <view class="watch-status-card">
-          <text class="shell-metric-label">rule_status</text>
-          <text class="shell-section-heading">{{item.ruleStatus}}</text>
-        </view>
-        <view class="watch-status-card">
-          <text class="shell-metric-label">task_status</text>
-          <text class="shell-section-heading">{{item.taskStatus}}</text>
-        </view>
-      </view>
 
-      <view class="shell-meta-row">
-        <text class="shell-meta-copy">{{item.taskLabel}}</text>
-        <text class="shell-meta-copy">{{item.updatedAt}}</text>
+        <view class="shell-inline-row watch-quote-row">
+          <text class="watch-price">¥{{item.currentPrice}}</text>
+          <text class="shell-badge shell-badge--{{item.changeDirection === 'up' ? 'accent' : item.changeDirection === 'down' ? 'warn' : 'neutral'}}">
+            {{item.changePercent}}
+          </text>
+        </view>
+
+        <text class="shell-copy">{{item.summary}}</text>
+
+        <view class="watch-status-grid">
+          <view class="watch-status-card">
+            <text class="shell-metric-label">digest_status</text>
+            <text class="shell-section-heading">{{item.digestStatus}}</text>
+          </view>
+          <view class="watch-status-card">
+            <text class="shell-metric-label">rule_status</text>
+            <text class="shell-section-heading">{{item.ruleStatus}}</text>
+          </view>
+          <view class="watch-status-card">
+            <text class="shell-metric-label">task_status</text>
+            <text class="shell-section-heading">{{item.taskStatus}}</text>
+          </view>
+        </view>
+
+        <view class="shell-meta-row">
+          <text class="shell-meta-copy">{{item.taskLabel}}</text>
+          <text class="shell-meta-copy">{{item.updatedAt}}</text>
+        </view>
       </view>
     </view>
   </view>
 
-  <view wx:else class="shell-surface-card">
-    <text class="shell-section-heading">auth-required</text>
-    <text class="shell-copy">未认证或认证失败时，Watch 不显示任何 mock、stale 或 fake-success 空盯盘卡片。</text>
+  <view class="shell-surface-card">
+    <text class="shell-section-heading">{{runtimeBoundaryTitle}}</text>
+    <text class="shell-copy">{{runtimeBoundaryCopy}}</text>
+    <text class="shell-support-copy">checked-in mode：placeholder-preview（当前：{{runtimeBoundary.mode}}）</text>
+    <text class="shell-support-copy">checked-in baseUrl：{{runtimeBoundary.baseUrl}}</text>
+    <text class="shell-support-copy">shared config：{{runtimeBoundary.sharedConfigPath}}</text>
+    <text class="shell-support-copy">local override：mini/config/runtime.local.js</text>
+    <text class="shell-support-copy">private DevTools config：mini/project.private.config.json</text>
+    <text class="shell-support-copy">{{runtimeBoundarySupport}}</text>
+    <text class="shell-support-copy">{{localOnlyDisclosure}}</text>
   </view>
 </view>

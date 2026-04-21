@@ -39,7 +39,7 @@
       "label": "Watch",
       "pagePath": "/pages/watch/index",
       "navHint": "Protected digests",
-      "responsibility": "Primary protected digest surface for login, loading, waiting, and ready cards."
+      "responsibility": "Primary protected digest surface for auth-required, loading, waiting, ready, and authenticated-empty states."
     },
     {
       "key": "account",
@@ -114,8 +114,16 @@
     ],
     "authenticatedCardCount": 2
   },
+  "watchSurfaceStates": {
+    "loading": "loading",
+    "authRequired": "auth-required",
+    "authenticatedEmpty": "authenticated-empty",
+    "waiting": "waiting",
+    "ready": "ready"
+  },
   "homeOverview": {
     "distinctFromWatch": true,
+    "signedOutHeadline": "Signed out, but the shell remains usable",
     "overviewHeadline": "Signed in as mini-preview",
     "featuredStockCode": "600519",
     "metrics": [

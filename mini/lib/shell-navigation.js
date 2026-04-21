@@ -11,7 +11,8 @@ const PRIMARY_SURFACES = Object.freeze([
     label: 'Watch',
     pagePath: '/pages/watch/index',
     navHint: 'Protected digests',
-    responsibility: 'Primary protected digest surface for login, loading, waiting, and ready cards.',
+    responsibility:
+      'Primary protected digest surface for auth-required, loading, waiting, ready, and authenticated-empty states.',
   }),
   Object.freeze({
     key: 'account',

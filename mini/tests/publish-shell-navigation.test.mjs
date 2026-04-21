@@ -116,3 +116,32 @@ test('account secondary pages remain in-app destinations with an explicit return
     assert.match(pageTemplate, /返回 Account/)
   }
 })
+
+test('signed-out Home and Account copy stays usable while Watch remains the protected destination', () => {
+  const {
+    buildAccountSurfaceState,
+    buildHomeSurfaceState,
+  } = require('../lib/shell-surface-state.js')
+
+  const homeState = buildHomeSurfaceState()
+  assert.equal(homeState.overviewHeadline, 'Signed out, but the shell remains usable')
+  assert.match(homeState.overviewCopy, /Home and Account remain public/)
+  assert.match(homeState.highlightCopy, /move into Watch/i)
+  assert.equal(homeState.featuredBadgeLabel, 'watch preview')
+
+  const accountState = buildAccountSurfaceState()
+  assert.equal(accountState.identityBadge, 'signed out')
+  assert.match(accountState.identityCopy, /Use Watch to sign in/)
+  assert.equal(accountState.showLogout, false)
+})
+
+test('Watch source keeps loading, auth-required, authenticated-empty, waiting, and ready states distinct', () => {
+  const watchSource = readText('pages/watch/index.wxml')
+
+  assert.match(watchSource, /watchState === 'loading'/)
+  assert.match(watchSource, /watchState === 'auth-required'/)
+  assert.match(watchSource, /watchState === 'authenticated-empty'/)
+  assert.match(watchSource, /watchState === 'waiting'/)
+  assert.match(watchSource, /watchState === 'ready'/)
+  assert.match(watchSource, /protected digest surface/i)
+})

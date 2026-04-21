@@ -200,9 +200,13 @@ async function ensureShellSourceReuse() {
     !watchSourceText.includes('placeholder-preview') ||
     !watchSourceText.includes('mini/config/runtime.local.js') ||
     !watchSourceText.includes('project.private.config.json') ||
-    !watchSourceText.includes('auth-required')
+    !watchSourceText.includes("watchState === 'loading'") ||
+    !watchSourceText.includes("watchState === 'auth-required'") ||
+    !watchSourceText.includes("watchState === 'authenticated-empty'") ||
+    !watchSourceText.includes("watchState === 'waiting'") ||
+    !watchSourceText.includes("watchState === 'ready'")
   ) {
-    throw new Error('Watch source must visibly disclose the placeholder runtime mode, local override paths, and auth-required state')
+    throw new Error('Watch source must visibly disclose the placeholder runtime mode, local override paths, and distinct loading/auth-required/authenticated-empty/waiting/ready states')
   }
 
   if (
@@ -261,22 +265,28 @@ async function ensureBuildArtifacts() {
   }
 
   if (
+    !previewText.includes('loading') ||
     !previewText.includes('auth-required') ||
+    !previewText.includes('authenticated-empty') ||
+    !previewText.includes('waiting') ||
+    !previewText.includes('ready') ||
     !previewText.includes('blank_credentials') ||
     !previewText.includes('invalid_credentials') ||
     !previewText.includes('missing_fields')
   ) {
-    throw new Error('dist/local-preview.html must surface auth-required and distinct login failure states')
+    throw new Error('dist/local-preview.html must surface distinct Watch loading/auth-required/authenticated-empty/waiting/ready states plus login failure states')
   }
 
   if (
     !previewText.includes('Home stays overview-first') ||
     !previewText.includes('Watch owns the protected read path') ||
     !previewText.includes('Account owns identity and support navigation') ||
+    !previewText.includes('Signed out, but the shell remains usable') ||
+    !previewText.includes('Account remains available before sign-in') ||
     !previewText.includes('Account → Settings → Account') ||
     !previewText.includes('Dark premium visual system')
   ) {
-    throw new Error('dist/local-preview.html must prove distinct Home / Watch / Account responsibilities, Account round trips, and the shared dark visual system')
+    throw new Error('dist/local-preview.html must prove distinct Home / Watch / Account responsibilities, signed-out navigation, Account round trips, and the shared dark visual system')
   }
 
   if (
@@ -325,6 +335,12 @@ async function ensureBuildArtifacts() {
   if (
     !summary.homeOverview ||
     summary.homeOverview.distinctFromWatch !== true ||
+    !summary.watchSurfaceStates ||
+    summary.watchSurfaceStates.loading !== 'loading' ||
+    summary.watchSurfaceStates.authRequired !== 'auth-required' ||
+    summary.watchSurfaceStates.authenticatedEmpty !== 'authenticated-empty' ||
+    summary.watchSurfaceStates.waiting !== 'waiting' ||
+    summary.watchSurfaceStates.ready !== 'ready' ||
     !summary.watchDigestRendering ||
     summary.watchDigestRendering.rawPayloadCardCount < summary.watchDigestRendering.renderedCardCount ||
     summary.watchDigestRendering.dedupedCount < 1 ||
@@ -332,7 +348,7 @@ async function ensureBuildArtifacts() {
     summary.watchDigestRendering.readyDigestPreferredOverPendingDuplicate !== true ||
     summary.watchDigestRendering.waitingStateRetainedWithoutReady !== true
   ) {
-    throw new Error('dist/validation-summary.json must prove distinct Home overview behavior plus Watch ready-over-placeholder dedupe and waiting-state retention')
+    throw new Error('dist/validation-summary.json must prove Home overview separation plus distinct Watch states, ready-over-placeholder dedupe, and waiting-state retention')
   }
 }
 

@@ -220,3 +220,121 @@ test('authenticated Mini home state renders deduped digest cards and preserves p
   assert.match(state.renderedStockCodes, /600519/)
   assert.match(state.renderedStockCodes, /000001/)
 })
+
+test('Watch controller keeps loading, auth-required, authenticated-empty, waiting, and ready states distinct', async () => {
+  const missingSessionController = createMiniHomeController({
+    authBoundary: createMiniAuthSessionBoundary({
+      baseUrl: 'https://mini-runtime-placeholder.invalid',
+      storage: createMemoryStorage(),
+      request: async () => ({
+        statusCode: 401,
+        data: { detail: 'Invalid token' },
+      }),
+    }),
+  })
+
+  assert.equal(missingSessionController.getState().watchState, 'loading')
+
+  const authRequiredState = await missingSessionController.hydrate()
+  assert.equal(authRequiredState.watchState, 'auth-required')
+  assert.equal(authRequiredState.cards.length, 0)
+
+  const emptyStorage = createMemoryStorage()
+  persistSession(emptyStorage, createSession())
+  const authenticatedEmptyController = createMiniHomeController({
+    authBoundary: createMiniAuthSessionBoundary({
+      baseUrl: 'https://mini-runtime-placeholder.invalid',
+      storage: emptyStorage,
+      request: async () => ({
+        statusCode: 200,
+        data: {
+          success: true,
+          data: [],
+        },
+      }),
+    }),
+  })
+
+  const authenticatedEmptyState = await authenticatedEmptyController.hydrate()
+  assert.equal(authenticatedEmptyState.watchState, 'authenticated-empty')
+  assert.equal(authenticatedEmptyState.authState, 'authenticated')
+  assert.equal(authenticatedEmptyState.cards.length, 0)
+
+  const waitingStorage = createMemoryStorage()
+  persistSession(waitingStorage, createSession())
+  const waitingController = createMiniHomeController({
+    authBoundary: createMiniAuthSessionBoundary({
+      baseUrl: 'https://mini-runtime-placeholder.invalid',
+      storage: waitingStorage,
+      request: async () => ({
+        statusCode: 200,
+        data: {
+          success: true,
+          data: [
+            {
+              stock_code: '000001',
+              stock_name: '平安银行',
+              market: 'A股',
+              board: '主板',
+              exchange: 'SZSE',
+              current_price: 11.28,
+              change_percent: '+0.43%',
+              digest_status: 'pending',
+              summary: 'placeholder still visible',
+              risk_level: '等待解读',
+              rule_status: 'pending',
+              task_status: 'waiting',
+              task_id: 'task-waiting',
+              updated_at: '2026-04-20T15:40:00+08:00',
+              task_updated_at: '2026-04-20T15:40:00+08:00',
+            },
+          ],
+        },
+      }),
+    }),
+  })
+
+  const waitingState = await waitingController.hydrate()
+  assert.equal(waitingState.watchState, 'waiting')
+  assert.equal(waitingState.placeholderCount, 1)
+  assert.equal(waitingState.cards.length, 1)
+
+  const readyStorage = createMemoryStorage()
+  persistSession(readyStorage, createSession())
+  const readyController = createMiniHomeController({
+    authBoundary: createMiniAuthSessionBoundary({
+      baseUrl: 'https://mini-runtime-placeholder.invalid',
+      storage: readyStorage,
+      request: async () => ({
+        statusCode: 200,
+        data: {
+          success: true,
+          data: [
+            {
+              stock_code: '600519',
+              stock_name: '贵州茅台',
+              market: 'A股',
+              board: '主板',
+              exchange: 'SSE',
+              current_price: 1688.5,
+              change_percent: '+1.82%',
+              digest_status: 'ready',
+              summary: 'newer ready digest',
+              risk_level: '低风险',
+              rule_status: 'active',
+              task_status: 'completed',
+              task_id: 'task-ready',
+              updated_at: '2026-04-20T15:45:00+08:00',
+              task_updated_at: '2026-04-20T15:45:00+08:00',
+            },
+          ],
+        },
+      }),
+    }),
+  })
+
+  const readyState = await readyController.hydrate()
+  assert.equal(readyState.watchState, 'ready')
+  assert.equal(readyState.cards.length, 1)
+  assert.equal(readyState.placeholderCount, 0)
+})

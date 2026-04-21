@@ -78,6 +78,46 @@ function isReadyDigestCard(card) {
     .toLowerCase() === 'ready'
 }
 
+function isReadyMappedDigestCard(card) {
+  return String(card?.digestStatus || '')
+    .trim()
+    .toLowerCase() === 'ready'
+}
+
+function deriveWatchState(mappedCards) {
+  if (!Array.isArray(mappedCards) || mappedCards.length === 0) {
+    return 'authenticated-empty'
+  }
+
+  return mappedCards.some(isReadyMappedDigestCard) ? 'ready' : 'waiting'
+}
+
+function buildAuthenticatedWatchCopy({ watchState, readyCount, waitingCount }) {
+  switch (watchState) {
+    case 'authenticated-empty':
+      return {
+        title: '已登录，但 Watch 暂无受保护摘要',
+        message:
+          '当前会话已经通过认证，但还没有可展示的受保护摘要卡片；这与未登录或加载中不同，也不会回退到 Home 的概览内容。',
+      }
+    case 'waiting':
+      return {
+        title: '已登录，Watch 正等待摘要完成',
+        message:
+          '当前受保护 watch 成员仍在等待 digest 完成；Watch 会继续展示等待态卡片，而不是把页面误判为空白或伪成功。',
+      }
+    case 'ready':
+    default:
+      return {
+        title: '已登录，Watch 已准备好受保护摘要',
+        message:
+          waitingCount > 0
+            ? `Watch 当前展示 ${readyCount} 张已就绪摘要卡片，并保留 ${waitingCount} 张等待态卡片，避免遗漏仍在排队的受保护成员。`
+            : `Watch 当前展示 ${readyCount} 张已就绪摘要卡片，并保持受保护 digest 读取结果与共享紧凑合同一致。`,
+      }
+  }
+}
+
 function shouldReplaceDigestCard(existingCard, nextCard) {
   const existingReady = isReadyDigestCard(existingCard)
   const nextReady = isReadyDigestCard(nextCard)
@@ -182,8 +222,10 @@ function buildBaseState(previewMeta = {}) {
     username: '',
     password: '',
     authState: 'checking',
-    authTitle: '正在检查本地 Bearer 会话',
-    authMessage: '当前 Mini 页面会先读取本地 Bearer 会话，再决定是否允许展示受保护盯盘卡片。',
+    watchState: 'loading',
+    authTitle: 'Watch 正在准备受保护盯盘视图',
+    authMessage:
+      'Watch 会先检查 Bearer 会话与受保护 digest 读取结果，再决定显示登录入口、等待态卡片或已就绪摘要。',
     authIssueCode: '',
     loginErrorCode: '',
     loginErrorMessage: '',
@@ -198,6 +240,7 @@ function buildBaseState(previewMeta = {}) {
     cards: [],
     monitoredCount: 0,
     activeRuleCount: 0,
+    readyCount: 0,
     sessionUserLabel: '',
   }
 }
@@ -229,6 +272,7 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
 
   function applyAuthRequiredState({ code, title, message, loginErrorCode = '', loginErrorMessage = '' }) {
     state.authState = 'auth-required'
+    state.watchState = 'auth-required'
     state.authIssueCode = code
     state.authTitle = title
     state.authMessage = message
@@ -241,6 +285,7 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
     state.cards = []
     state.monitoredCount = 0
     state.activeRuleCount = 0
+    state.readyCount = 0
     state.sessionUserLabel = ''
   }
 
@@ -248,20 +293,29 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
     const compactCards = selectCompactDigestCards(cards)
     const mappedCards = compactCards.map(mapDigestCard)
     const rawPayloadCount = Array.isArray(cards) ? cards.length : 0
+    const readyCount = mappedCards.filter(isReadyMappedDigestCard).length
+    const waitingCount = mappedCards.length - readyCount
+    const watchState = deriveWatchState(mappedCards)
+    const watchCopy = buildAuthenticatedWatchCopy({
+      watchState,
+      readyCount,
+      waitingCount,
+    })
     state.authState = 'authenticated'
+    state.watchState = watchState
     state.authIssueCode = ''
-    state.authTitle = '已使用 Bearer 会话读取受保护盯盘摘要'
-    state.authMessage =
-      '当前卡片来自受保护的 `/api/watch/digests` 读取结果；如果会话缺失或失效，页面会立即回到 auth-required 状态。'
+    state.authTitle = watchCopy.title
+    state.authMessage = watchCopy.message
     state.loginErrorCode = ''
     state.loginErrorMessage = ''
     state.rawPayloadCount = rawPayloadCount
     state.dedupedCount = Math.max(rawPayloadCount - mappedCards.length, 0)
-    state.placeholderCount = mappedCards.filter((card) => card.digestStatus !== 'ready').length
+    state.placeholderCount = waitingCount
     state.renderedStockCodes = mappedCards.map((card) => card.stockCode).join(', ')
     state.cards = mappedCards
     state.monitoredCount = mappedCards.length
     state.activeRuleCount = mappedCards.filter((card) => card.ruleStatus === 'active').length
+    state.readyCount = readyCount
     state.sessionUserLabel = session ? `${session.user.username} · ${session.user.id}` : ''
   }
 
@@ -276,16 +330,17 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
     if (digestResult.authRequired) {
       applyAuthRequiredState({
         code: digestResult.code,
-        title: '需要重新登录后才能查看受保护盯盘内容',
-        message: '当前未检测到可用 Bearer 会话，页面已阻止显示任何受保护盯盘卡片。',
+        title: '登录后即可查看 Watch',
+        message:
+          '当前未检测到可用 Bearer 会话，因此 Watch 会继续保持受保护状态，不显示任何受保护盯盘卡片。',
       })
       return snapshot()
     }
 
     applyAuthRequiredState({
       code: digestResult.code,
-      title: '盯盘摘要读取失败',
-      message: '摘要读取未成功完成，已保持受保护内容关闭，避免显示过期或伪成功数据。',
+      title: 'Watch 暂时无法打开受保护摘要',
+      message: '本次摘要读取未成功完成，Watch 已保持受保护内容关闭，避免显示过期或伪成功数据。',
     })
     return snapshot()
   }
@@ -301,7 +356,7 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
     if (!loginResult.ok) {
       applyAuthRequiredState({
         code: 'login_failed',
-        title: '登录未通过，受保护盯盘内容仍保持关闭',
+        title: '登录未通过，Watch 仍保持受保护',
         message: loginResult.failure.message,
         loginErrorCode: loginResult.failure.code,
         loginErrorMessage: loginResult.failure.message,
@@ -317,8 +372,8 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
 
     applyAuthRequiredState({
       code: digestResult.code || 'missing_or_invalid_session',
-      title: '登录后摘要读取仍未通过认证',
-      message: '登录会话未能完成受保护摘要读取，页面已清空所有盯盘卡片并返回 auth-required 状态。',
+      title: '登录后仍未拿到受保护摘要',
+      message: '登录会话未能完成受保护摘要读取，Watch 已清空所有受保护卡片并回到 auth-required 状态。',
     })
     return snapshot()
   }
@@ -327,8 +382,8 @@ function createMiniHomeController({ authBoundary, previewMeta } = {}) {
     authBoundary.clearSession()
     applyAuthRequiredState({
       code: 'missing_or_invalid_session',
-      title: '已清除本地 Bearer 会话',
-      message: '退出后不会保留任何受保护盯盘卡片，直到再次通过 `/api/auth/login` 建立会话。',
+      title: '已清除本地会话，Watch 已重新上锁',
+      message: '退出后 Watch 不会保留任何受保护盯盘卡片；Home 与 Account 仍可继续浏览。',
     })
     return snapshot()
   }

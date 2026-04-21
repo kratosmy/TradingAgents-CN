@@ -20,6 +20,7 @@ const {
   buildAccountSecondarySurfaceState,
   buildAccountSurfaceState,
   buildHomeSurfaceState,
+  buildWatchSurfaceState,
 } = require('../lib/shell-surface-state.js')
 const { getCheckedInRuntimeConfig, isLoopbackUrl } = require('../lib/runtime-config.js')
 
@@ -41,6 +42,20 @@ function escapeHtml(value) {
 }
 
 async function buildWatchPreviewStates() {
+  const loadingController = createMiniHomeController({
+    previewMeta,
+    authBoundary: createMiniAuthSessionBoundary({
+      storage: createMemoryStorage(),
+      request: async () => ({
+        statusCode: 200,
+        data: {
+          success: true,
+          data: [],
+        },
+      }),
+    }),
+  })
+
   const authRequiredController = createMiniHomeController({
     previewMeta,
     authBoundary: createMiniAuthSessionBoundary({
@@ -81,10 +96,55 @@ async function buildWatchPreviewStates() {
     })
   }
 
-  const authenticatedController = createMiniHomeController({
+  const authenticatedEmptyStorage = createMemoryStorage()
+  const authenticatedWaitingStorage = createMemoryStorage()
+  const authenticatedReadyStorage = createMemoryStorage()
+
+  authenticatedEmptyStorage.setItem(
+    'tradingagents-mini.auth-session',
+    JSON.stringify(previewSession),
+  )
+  authenticatedWaitingStorage.setItem(
+    'tradingagents-mini.auth-session',
+    JSON.stringify(previewSession),
+  )
+  authenticatedReadyStorage.setItem(
+    'tradingagents-mini.auth-session',
+    JSON.stringify(previewSession),
+  )
+
+  const authenticatedEmptyController = createMiniHomeController({
     previewMeta,
     authBoundary: createMiniAuthSessionBoundary({
-      storage: createMemoryStorage(),
+      storage: authenticatedEmptyStorage,
+      request: async () => ({
+        statusCode: 200,
+        data: {
+          success: true,
+          data: [],
+        },
+      }),
+    }),
+  })
+
+  const waitingController = createMiniHomeController({
+    previewMeta,
+    authBoundary: createMiniAuthSessionBoundary({
+      storage: authenticatedWaitingStorage,
+      request: async () => ({
+        statusCode: 200,
+        data: {
+          success: true,
+          data: previewMeta.previewCards.filter((card) => card.stock_code === '000001'),
+        },
+      }),
+    }),
+  })
+
+  const readyController = createMiniHomeController({
+    previewMeta,
+    authBoundary: createMiniAuthSessionBoundary({
+      storage: authenticatedReadyStorage,
       request: async (options) => {
         if (options.url.endsWith('/api/auth/login')) {
           return {
@@ -107,15 +167,28 @@ async function buildWatchPreviewStates() {
     }),
   })
 
-  const authenticatedState = await authenticatedController.submitLogin({
+  const authenticatedEmptyState = await authenticatedEmptyController.hydrate()
+  const waitingState = await waitingController.hydrate()
+  const readyState = await readyController.submitLogin({
     username: 'mini-preview',
     password: 'correct-password',
   })
 
+  const decorateWatchState = (state) => ({
+    ...state,
+    ...buildWatchSurfaceState({
+      previewMeta,
+      watchData: state,
+    }),
+  })
+
   return {
-    authRequiredState,
+    loadingState: decorateWatchState(loadingController.getState()),
+    authRequiredState: decorateWatchState(authRequiredState),
     loginFailureStates,
-    authenticatedState,
+    authenticatedEmptyState: decorateWatchState(authenticatedEmptyState),
+    waitingState: decorateWatchState(waitingState),
+    readyState: decorateWatchState(readyState),
   }
 }
 
@@ -195,6 +268,25 @@ function renderFailureStates(failureStates) {
     .join('')
 }
 
+function renderWatchStatePanels(watchStates) {
+  return watchStates
+    .map(
+      (state) => `
+        <article class="panel">
+          <div class="row split">
+            <h3>${escapeHtml(state.watchState)}</h3>
+            <span class="badge badge--${escapeHtml(state.watchStateTone)}">${escapeHtml(state.watchStateLabel)}</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>${escapeHtml(state.watchStateTitle)}</strong></p>
+          <p>${escapeHtml(state.watchStateCopy)}</p>
+          <p>${escapeHtml(state.watchStateSupportCopy)}</p>
+          <p class="muted">cards ${escapeHtml(state.monitoredCount)} · ready ${escapeHtml(state.readyCount)} · waiting ${escapeHtml(state.waitingCount)}</p>
+        </article>
+      `,
+    )
+    .join('')
+}
+
 function renderPrimarySurfaces() {
   return PRIMARY_SURFACES.map(
     (surface) => `
@@ -247,7 +339,10 @@ function renderLeafPages(leafStates) {
 }
 
 const watchPreviewStates = await buildWatchPreviewStates()
-const homeSurfaceState = buildHomeSurfaceState({
+const signedOutHomeSurfaceState = buildHomeSurfaceState({
+  previewMeta,
+})
+const signedInHomeSurfaceState = buildHomeSurfaceState({
   previewMeta,
   digestResult: {
     ok: true,
@@ -255,7 +350,10 @@ const homeSurfaceState = buildHomeSurfaceState({
     session: previewSession,
   },
 })
-const accountSurfaceState = buildAccountSurfaceState({
+const signedOutAccountSurfaceState = buildAccountSurfaceState({
+  previewMeta,
+})
+const signedInAccountSurfaceState = buildAccountSurfaceState({
   previewMeta,
   session: previewSession,
 })
@@ -444,28 +542,43 @@ const html = `<!DOCTYPE html>
 
       <section class="panel">
         <div class="row split">
-          <h2>${escapeHtml(homeSurfaceState.chrome.title)}</h2>
-          ${renderBadges(homeSurfaceState.chrome.badges)}
+          <h2>${escapeHtml(signedOutHomeSurfaceState.chrome.title)}</h2>
+          ${renderBadges(signedOutHomeSurfaceState.chrome.badges)}
         </div>
-        <p style="margin-top: 12px;"><strong>${escapeHtml(homeSurfaceState.roleTitle)}</strong></p>
-        <p>${escapeHtml(homeSurfaceState.roleCopy)}</p>
-        <p>${escapeHtml(homeSurfaceState.overviewHeadline)}</p>
-        <p>${escapeHtml(homeSurfaceState.overviewCopy)}</p>
+        <p style="margin-top: 12px;"><strong>${escapeHtml(signedOutHomeSurfaceState.roleTitle)}</strong></p>
+        <p>${escapeHtml(signedOutHomeSurfaceState.roleCopy)}</p>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">signed-out navigation</span>
+            <span class="badge badge--info">Home remains public</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>${escapeHtml(signedOutHomeSurfaceState.overviewHeadline)}</strong></p>
+          <p>${escapeHtml(signedOutHomeSurfaceState.overviewCopy)}</p>
+          <p class="muted">${escapeHtml(signedOutHomeSurfaceState.highlightCopy)}</p>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--accent">signed-in overview</span>
+            <span class="badge badge--info">highlight only</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>${escapeHtml(signedInHomeSurfaceState.overviewHeadline)}</strong></p>
+          <p>${escapeHtml(signedInHomeSurfaceState.overviewCopy)}</p>
+        </div>
         <div class="metrics" style="margin-top: 16px;">
-          ${renderHomeMetrics(homeSurfaceState.overviewMetrics)}
+          ${renderHomeMetrics(signedInHomeSurfaceState.overviewMetrics)}
         </div>
         <div class="panel" style="margin-top: 16px;">
           <div class="row split">
-            <h3>${escapeHtml(homeSurfaceState.highlightTitle)}</h3>
-            <span class="badge badge--${escapeHtml(homeSurfaceState.featuredBadgeTone || 'neutral')}">${escapeHtml(homeSurfaceState.featuredBadgeLabel)}</span>
+            <h3>${escapeHtml(signedInHomeSurfaceState.highlightTitle)}</h3>
+            <span class="badge badge--${escapeHtml(signedInHomeSurfaceState.featuredBadgeTone || 'neutral')}">${escapeHtml(signedInHomeSurfaceState.featuredBadgeLabel)}</span>
           </div>
-          <p style="margin-top: 8px;">${escapeHtml(homeSurfaceState.highlightCopy)}</p>
+          <p style="margin-top: 8px;">${escapeHtml(signedInHomeSurfaceState.highlightCopy)}</p>
           ${
-            homeSurfaceState.featuredCard
+            signedInHomeSurfaceState.featuredCard
               ? `
-                <p style="margin-top: 8px;"><strong>${escapeHtml(homeSurfaceState.featuredCard.stockName)} · ${escapeHtml(homeSurfaceState.featuredCard.stockCode)}</strong></p>
-                <p>${escapeHtml(homeSurfaceState.featuredCard.summary)}</p>
-                <p class="muted">${escapeHtml(homeSurfaceState.featuredCard.market)} · ${escapeHtml(homeSurfaceState.featuredCard.board)} · ${escapeHtml(homeSurfaceState.featuredCard.exchange)}</p>
+                <p style="margin-top: 8px;"><strong>${escapeHtml(signedInHomeSurfaceState.featuredCard.stockName)} · ${escapeHtml(signedInHomeSurfaceState.featuredCard.stockCode)}</strong></p>
+                <p>${escapeHtml(signedInHomeSurfaceState.featuredCard.summary)}</p>
+                <p class="muted">${escapeHtml(signedInHomeSurfaceState.featuredCard.market)} · ${escapeHtml(signedInHomeSurfaceState.featuredCard.board)} · ${escapeHtml(signedInHomeSurfaceState.featuredCard.exchange)}</p>
               `
               : `<p class="muted" style="margin-top: 8px;">No featured card is shown when the shell is signed out.</p>`
           }
@@ -480,13 +593,14 @@ const html = `<!DOCTYPE html>
         <p style="margin-top: 12px;"><strong>${escapeHtml(shellContent.watch.roleTitle)}</strong></p>
         <p>${escapeHtml(shellContent.watch.roleCopy)}</p>
         <p>${escapeHtml(shellContent.watch.supportCopy)}</p>
-        <div class="panel" style="margin-top: 16px;">
-          <div class="row">
-            <span class="badge badge--warn">auth-required</span>
-            <span class="badge badge--info">${escapeHtml(watchPreviewStates.authRequiredState.authIssueCode)}</span>
-          </div>
-          <h3 style="margin-top: 10px;">${escapeHtml(watchPreviewStates.authRequiredState.authTitle)}</h3>
-          <p>${escapeHtml(watchPreviewStates.authRequiredState.authMessage)}</p>
+        <div class="surface-grid" style="margin-top: 16px;">
+          ${renderWatchStatePanels([
+            watchPreviewStates.loadingState,
+            watchPreviewStates.authRequiredState,
+            watchPreviewStates.authenticatedEmptyState,
+            watchPreviewStates.waitingState,
+            watchPreviewStates.readyState,
+          ])}
         </div>
         <div class="failure-grid" style="margin-top: 16px;">
           ${renderFailureStates(watchPreviewStates.loginFailureStates)}
@@ -494,9 +608,9 @@ const html = `<!DOCTYPE html>
         <div class="panel" style="margin-top: 16px;">
           <div class="row">
             <span class="badge badge--info">one-card-per-stock_code</span>
-            <span class="badge badge--warn">deduped ${watchPreviewStates.authenticatedState.dedupedCount}</span>
+            <span class="badge badge--warn">deduped ${watchPreviewStates.readyState.dedupedCount}</span>
           </div>
-          <p style="margin-top: 10px;">Authenticated preview payload contained ${watchPreviewStates.authenticatedState.rawPayloadCount} digest rows and rendered ${watchPreviewStates.authenticatedState.cards.length} visible cards for canonical stock_code values: ${escapeHtml(watchPreviewStates.authenticatedState.renderedStockCodes)}.</p>
+          <p style="margin-top: 10px;">Ready preview payload contained ${watchPreviewStates.readyState.rawPayloadCount} digest rows and rendered ${watchPreviewStates.readyState.cards.length} visible cards for canonical stock_code values: ${escapeHtml(watchPreviewStates.readyState.renderedStockCodes)}.</p>
           <p>Ready digest content wins over duplicate placeholder rows for the same canonical stock_code, even when the placeholder row is newer by timestamp.</p>
           <p>Placeholder/waiting-state cards remain visible after dedupe when no ready digest exists, so pending watched stocks are not dropped from Watch.</p>
         </div>
@@ -512,21 +626,46 @@ const html = `<!DOCTYPE html>
               .join('')}
           </div>
         </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">waiting proof</span>
+            <span class="badge badge--neutral">${escapeHtml(watchPreviewStates.waitingState.protectedSummaryBadge)}</span>
+          </div>
+          <p style="margin-top: 10px;">Watch keeps signed-in waiting cards visible when no ready digest exists yet, so authenticated-empty and waiting never collapse together.</p>
+        </div>
         <div class="failure-grid" style="margin-top: 16px;">
-          ${renderDigestCards(watchPreviewStates.authenticatedState.cards)}
+          ${renderDigestCards(watchPreviewStates.waitingState.cards)}
+        </div>
+        <div class="failure-grid" style="margin-top: 16px;">
+          ${renderDigestCards(watchPreviewStates.readyState.cards)}
         </div>
       </section>
 
       <section class="panel">
         <div class="row split">
-          <h2>${escapeHtml(accountSurfaceState.chrome.title)}</h2>
-          ${renderBadges(accountSurfaceState.chrome.badges)}
+          <h2>${escapeHtml(signedOutAccountSurfaceState.chrome.title)}</h2>
+          ${renderBadges(signedOutAccountSurfaceState.chrome.badges)}
         </div>
-        <p style="margin-top: 12px;"><strong>${escapeHtml(accountSurfaceState.roleTitle)}</strong></p>
-        <p>${escapeHtml(accountSurfaceState.roleCopy)}</p>
-        <p>${escapeHtml(accountSurfaceState.identityTitle)} · ${escapeHtml(accountSurfaceState.sessionUserLabel)}</p>
+        <p style="margin-top: 12px;"><strong>${escapeHtml(signedOutAccountSurfaceState.roleTitle)}</strong></p>
+        <p>${escapeHtml(signedOutAccountSurfaceState.roleCopy)}</p>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">signed out</span>
+            <span class="badge badge--info">Account remains public</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>${escapeHtml(signedOutAccountSurfaceState.identityTitle)}</strong></p>
+          <p>${escapeHtml(signedOutAccountSurfaceState.identityCopy)}</p>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--accent">signed in</span>
+            <span class="badge badge--info">identity stays here</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>${escapeHtml(signedInAccountSurfaceState.identityTitle)}</strong> · ${escapeHtml(signedInAccountSurfaceState.sessionUserLabel)}</p>
+          <p>${escapeHtml(signedInAccountSurfaceState.identityCopy)}</p>
+        </div>
         <div style="margin-top: 16px;">
-          ${renderAccountMenu(accountSurfaceState.menuItems)}
+          ${renderAccountMenu(signedOutAccountSurfaceState.menuItems)}
         </div>
       </section>
 
@@ -614,29 +753,39 @@ const summary = {
       statusCode: item.statusCode,
       code: item.state.loginErrorCode,
     })),
-    authenticatedCardCount: watchPreviewStates.authenticatedState.cards.length,
+    authenticatedCardCount: watchPreviewStates.readyState.cards.length,
+  },
+  watchSurfaceStates: {
+    loading: watchPreviewStates.loadingState.watchState,
+    authRequired: watchPreviewStates.authRequiredState.watchState,
+    authenticatedEmpty: watchPreviewStates.authenticatedEmptyState.watchState,
+    waiting: watchPreviewStates.waitingState.watchState,
+    ready: watchPreviewStates.readyState.watchState,
   },
   homeOverview: {
     distinctFromWatch: true,
-    overviewHeadline: homeSurfaceState.overviewHeadline,
-    featuredStockCode: homeSurfaceState.featuredCard ? homeSurfaceState.featuredCard.stockCode : null,
-    metrics: homeSurfaceState.overviewMetrics,
+    signedOutHeadline: signedOutHomeSurfaceState.overviewHeadline,
+    overviewHeadline: signedInHomeSurfaceState.overviewHeadline,
+    featuredStockCode: signedInHomeSurfaceState.featuredCard
+      ? signedInHomeSurfaceState.featuredCard.stockCode
+      : null,
+    metrics: signedInHomeSurfaceState.overviewMetrics,
   },
   watchDigestRendering: {
-    rawPayloadCardCount: watchPreviewStates.authenticatedState.rawPayloadCount,
-    renderedCardCount: watchPreviewStates.authenticatedState.cards.length,
-    dedupedCount: watchPreviewStates.authenticatedState.dedupedCount,
-    placeholderCount: watchPreviewStates.authenticatedState.placeholderCount,
-    readyDigestPreferredOverPendingDuplicate: watchPreviewStates.authenticatedState.cards.some(
+    rawPayloadCardCount: watchPreviewStates.readyState.rawPayloadCount,
+    renderedCardCount: watchPreviewStates.readyState.cards.length,
+    dedupedCount: watchPreviewStates.readyState.dedupedCount,
+    placeholderCount: watchPreviewStates.readyState.placeholderCount,
+    readyDigestPreferredOverPendingDuplicate: watchPreviewStates.readyState.cards.some(
       (card) =>
         card.stockCode === '600519' &&
         card.digestStatus === 'ready' &&
         card.summary.includes('优先显示 ready digest'),
     ),
-    waitingStateRetainedWithoutReady: watchPreviewStates.authenticatedState.cards.some(
+    waitingStateRetainedWithoutReady: watchPreviewStates.waitingState.cards.some(
       (card) => card.stockCode === '000001' && card.digestStatus !== 'ready',
     ),
-    renderedStockCodes: watchPreviewStates.authenticatedState.cards.map((card) => card.stockCode),
+    renderedStockCodes: watchPreviewStates.readyState.cards.map((card) => card.stockCode),
     compactFieldKeys: previewMeta.compactFieldKeys,
   },
   accountRoundTrips: accountLeafStates.map((state) => state.roundTripCopy),
