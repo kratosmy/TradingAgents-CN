@@ -10,6 +10,7 @@ const {
   persistSession,
 } = require('../lib/auth-session-boundary.js')
 const { createMiniHomeController, selectCompactDigestCards } = require('../lib/home-controller.js')
+const { buildHomeSurfaceState } = require('../lib/shell-surface-state.js')
 
 function createSession() {
   return {
@@ -337,4 +338,52 @@ test('Watch controller keeps loading, auth-required, authenticated-empty, waitin
   assert.equal(readyState.watchState, 'ready')
   assert.equal(readyState.cards.length, 1)
   assert.equal(readyState.placeholderCount, 0)
+})
+
+test('Home overview keeps authenticated-empty and authenticated-error states signed in and distinct from signed-out copy', () => {
+  const session = createSession()
+  const signedOutState = buildHomeSurfaceState()
+
+  const authenticatedEmptyState = buildHomeSurfaceState({
+    session,
+    digestResult: {
+      ok: true,
+      cards: [],
+      session,
+    },
+  })
+
+  assert.equal(authenticatedEmptyState.overviewHeadline, 'Signed in as mini-user')
+  assert.notEqual(authenticatedEmptyState.overviewCopy, signedOutState.overviewCopy)
+  assert.match(authenticatedEmptyState.overviewCopy, /zero protected digest cards|已登录/i)
+  assert.equal(authenticatedEmptyState.featuredBadgeLabel, 'authenticated empty')
+  assert.equal(authenticatedEmptyState.sessionUserLabel, 'mini-user · user-1')
+  assert.deepEqual(
+    authenticatedEmptyState.overviewMetrics.map((metric) => metric.value),
+    ['0', '0', '0', '0'],
+  )
+  assert.match(authenticatedEmptyState.highlightCopy, /authenticated-empty|零张|zero/i)
+  assert.match(authenticatedEmptyState.emptyStateCopy, /已登录|authenticated-empty/i)
+
+  const authenticatedErrorState = buildHomeSurfaceState({
+    session,
+    digestResult: {
+      ok: false,
+      authRequired: false,
+      code: 'digest_read_failed',
+      cards: [],
+    },
+  })
+
+  assert.equal(authenticatedErrorState.overviewHeadline, 'Signed in as mini-user')
+  assert.notEqual(authenticatedErrorState.overviewCopy, signedOutState.overviewCopy)
+  assert.match(authenticatedErrorState.overviewCopy, /temporarily unavailable|暂时不可用/i)
+  assert.equal(authenticatedErrorState.featuredBadgeLabel, 'watch unavailable')
+  assert.equal(authenticatedErrorState.sessionUserLabel, 'mini-user · user-1')
+  assert.deepEqual(
+    authenticatedErrorState.overviewMetrics.map((metric) => metric.value),
+    ['—', 'Retry', '—', 'Session'],
+  )
+  assert.match(authenticatedErrorState.highlightCopy, /temporary digest read failure|temporarily unavailable|暂时不可用/i)
+  assert.match(authenticatedErrorState.emptyStateCopy, /不会伪造|temporarily unavailable|重新尝试/i)
 })

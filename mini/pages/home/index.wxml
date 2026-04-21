@@ -32,7 +32,7 @@
     </view>
 
     <view wx:else class="shell-empty-stack">
-      <text class="shell-copy">Home 不展示完整的受保护摘要堆栈；请前往 Watch 查看登录与详情卡片。</text>
+      <text class="shell-copy">{{emptyStateCopy}}</text>
       <text class="shell-support-copy">{{sessionUserLabel}}</text>
     </view>
   </view>

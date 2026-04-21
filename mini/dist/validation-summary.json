@@ -123,7 +123,17 @@
   },
   "homeOverview": {
     "distinctFromWatch": true,
+    "states": {
+      "signedOut": "signed-out",
+      "authenticatedEmpty": "authenticated-empty",
+      "authenticatedError": "authenticated-error",
+      "highlight": "authenticated-highlight"
+    },
     "signedOutHeadline": "Signed out, but the shell remains usable",
+    "authenticatedEmptyHeadline": "Signed in as mini-preview",
+    "authenticatedEmptyCopy": "The persisted bearer session is ready, but Watch returned zero protected digest cards. Home keeps this authenticated-empty overview distinct from signed-out copy.",
+    "authenticatedErrorHeadline": "Signed in as mini-preview",
+    "authenticatedErrorCopy": "The persisted bearer session is still active, but the Watch overview is temporarily unavailable. Home keeps the signed-in posture honest instead of falling back to signed-out copy.",
     "overviewHeadline": "Signed in as mini-preview",
     "featuredStockCode": "600519",
     "metrics": [

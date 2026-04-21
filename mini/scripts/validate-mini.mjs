@@ -282,11 +282,15 @@ async function ensureBuildArtifacts() {
     !previewText.includes('Watch owns the protected read path') ||
     !previewText.includes('Account owns identity and support navigation') ||
     !previewText.includes('Signed out, but the shell remains usable') ||
+    !previewText.includes('authenticated-empty overview') ||
+    !previewText.includes('authenticated-error overview') ||
+    !previewText.includes('zero protected digest cards') ||
+    !previewText.includes('temporarily unavailable') ||
     !previewText.includes('Account remains available before sign-in') ||
     !previewText.includes('Account → Settings → Account') ||
     !previewText.includes('Dark premium visual system')
   ) {
-    throw new Error('dist/local-preview.html must prove distinct Home / Watch / Account responsibilities, signed-out navigation, Account round trips, and the shared dark visual system')
+    throw new Error('dist/local-preview.html must prove distinct Home / Watch / Account responsibilities, signed-out plus authenticated-empty/error Home states, Account round trips, and the shared dark visual system')
   }
 
   if (
@@ -335,6 +339,14 @@ async function ensureBuildArtifacts() {
   if (
     !summary.homeOverview ||
     summary.homeOverview.distinctFromWatch !== true ||
+    !summary.homeOverview.states ||
+    summary.homeOverview.states.signedOut !== 'signed-out' ||
+    summary.homeOverview.states.authenticatedEmpty !== 'authenticated-empty' ||
+    summary.homeOverview.states.authenticatedError !== 'authenticated-error' ||
+    summary.homeOverview.authenticatedEmptyHeadline !== 'Signed in as mini-preview' ||
+    !String(summary.homeOverview.authenticatedEmptyCopy || '').includes('zero protected digest cards') ||
+    summary.homeOverview.authenticatedErrorHeadline !== 'Signed in as mini-preview' ||
+    !String(summary.homeOverview.authenticatedErrorCopy || '').includes('temporarily unavailable') ||
     !summary.watchSurfaceStates ||
     summary.watchSurfaceStates.loading !== 'loading' ||
     summary.watchSurfaceStates.authRequired !== 'auth-required' ||
@@ -348,7 +360,7 @@ async function ensureBuildArtifacts() {
     summary.watchDigestRendering.readyDigestPreferredOverPendingDuplicate !== true ||
     summary.watchDigestRendering.waitingStateRetainedWithoutReady !== true
   ) {
-    throw new Error('dist/validation-summary.json must prove Home overview separation plus distinct Watch states, ready-over-placeholder dedupe, and waiting-state retention')
+    throw new Error('dist/validation-summary.json must prove Home signed-out/authenticated-empty/authenticated-error separation plus distinct Watch states, ready-over-placeholder dedupe, and waiting-state retention')
   }
 }
 

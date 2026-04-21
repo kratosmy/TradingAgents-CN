@@ -342,8 +342,28 @@ const watchPreviewStates = await buildWatchPreviewStates()
 const signedOutHomeSurfaceState = buildHomeSurfaceState({
   previewMeta,
 })
+const authenticatedEmptyHomeSurfaceState = buildHomeSurfaceState({
+  previewMeta,
+  session: previewSession,
+  digestResult: {
+    ok: true,
+    cards: [],
+    session: previewSession,
+  },
+})
+const authenticatedErrorHomeSurfaceState = buildHomeSurfaceState({
+  previewMeta,
+  session: previewSession,
+  digestResult: {
+    ok: false,
+    authRequired: false,
+    code: 'digest_read_failed',
+    cards: [],
+  },
+})
 const signedInHomeSurfaceState = buildHomeSurfaceState({
   previewMeta,
+  session: previewSession,
   digestResult: {
     ok: true,
     cards: previewMeta.previewCards,
@@ -558,7 +578,33 @@ const html = `<!DOCTYPE html>
         </div>
         <div class="panel" style="margin-top: 16px;">
           <div class="row">
-            <span class="badge badge--accent">signed-in overview</span>
+            <span class="badge badge--info">authenticated-empty overview</span>
+            <span class="badge badge--info">${escapeHtml(authenticatedEmptyHomeSurfaceState.featuredBadgeLabel)}</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>${escapeHtml(authenticatedEmptyHomeSurfaceState.overviewHeadline)}</strong></p>
+          <p>${escapeHtml(authenticatedEmptyHomeSurfaceState.overviewCopy)}</p>
+          <p class="muted">${escapeHtml(authenticatedEmptyHomeSurfaceState.highlightCopy)}</p>
+          <p class="muted">${escapeHtml(authenticatedEmptyHomeSurfaceState.emptyStateCopy)}</p>
+        </div>
+        <div class="metrics" style="margin-top: 16px;">
+          ${renderHomeMetrics(authenticatedEmptyHomeSurfaceState.overviewMetrics)}
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">authenticated-error overview</span>
+            <span class="badge badge--warn">${escapeHtml(authenticatedErrorHomeSurfaceState.featuredBadgeLabel)}</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>${escapeHtml(authenticatedErrorHomeSurfaceState.overviewHeadline)}</strong></p>
+          <p>${escapeHtml(authenticatedErrorHomeSurfaceState.overviewCopy)}</p>
+          <p class="muted">${escapeHtml(authenticatedErrorHomeSurfaceState.highlightCopy)}</p>
+          <p class="muted">${escapeHtml(authenticatedErrorHomeSurfaceState.emptyStateCopy)}</p>
+        </div>
+        <div class="metrics" style="margin-top: 16px;">
+          ${renderHomeMetrics(authenticatedErrorHomeSurfaceState.overviewMetrics)}
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--accent">signed-in highlight</span>
             <span class="badge badge--info">highlight only</span>
           </div>
           <p style="margin-top: 10px;"><strong>${escapeHtml(signedInHomeSurfaceState.overviewHeadline)}</strong></p>
@@ -764,7 +810,17 @@ const summary = {
   },
   homeOverview: {
     distinctFromWatch: true,
+    states: {
+      signedOut: signedOutHomeSurfaceState.homeState,
+      authenticatedEmpty: authenticatedEmptyHomeSurfaceState.homeState,
+      authenticatedError: authenticatedErrorHomeSurfaceState.homeState,
+      highlight: signedInHomeSurfaceState.homeState,
+    },
     signedOutHeadline: signedOutHomeSurfaceState.overviewHeadline,
+    authenticatedEmptyHeadline: authenticatedEmptyHomeSurfaceState.overviewHeadline,
+    authenticatedEmptyCopy: authenticatedEmptyHomeSurfaceState.overviewCopy,
+    authenticatedErrorHeadline: authenticatedErrorHomeSurfaceState.overviewHeadline,
+    authenticatedErrorCopy: authenticatedErrorHomeSurfaceState.overviewCopy,
     overviewHeadline: signedInHomeSurfaceState.overviewHeadline,
     featuredStockCode: signedInHomeSurfaceState.featuredCard
       ? signedInHomeSurfaceState.featuredCard.stockCode

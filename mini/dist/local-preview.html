@@ -216,7 +216,73 @@
         </div>
         <div class="panel" style="margin-top: 16px;">
           <div class="row">
-            <span class="badge badge--accent">signed-in overview</span>
+            <span class="badge badge--info">authenticated-empty overview</span>
+            <span class="badge badge--info">authenticated empty</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>Signed in as mini-preview</strong></p>
+          <p>The persisted bearer session is ready, but Watch returned zero protected digest cards. Home keeps this authenticated-empty overview distinct from signed-out copy.</p>
+          <p class="muted">Home keeps authenticated-empty distinct so Account and Home stay aligned when Watch has zero protected cards.</p>
+          <p class="muted">当前会话已登录，但 Watch 还没有可展示的受保护摘要高亮；请前往 Watch 查看空态说明。</p>
+        </div>
+        <div class="metrics" style="margin-top: 16px;">
+          
+        <div class="metric-card">
+          <span>Tracked</span>
+          <strong>0</strong>
+        </div>
+      
+        <div class="metric-card">
+          <span>Ready</span>
+          <strong>0</strong>
+        </div>
+      
+        <div class="metric-card">
+          <span>Waiting</span>
+          <strong>0</strong>
+        </div>
+      
+        <div class="metric-card">
+          <span>Rules</span>
+          <strong>0</strong>
+        </div>
+      
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--warn">authenticated-error overview</span>
+            <span class="badge badge--warn">watch unavailable</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>Signed in as mini-preview</strong></p>
+          <p>The persisted bearer session is still active, but the Watch overview is temporarily unavailable. Home keeps the signed-in posture honest instead of falling back to signed-out copy.</p>
+          <p class="muted">Home treats a temporary digest read failure differently from both authenticated-empty and signed-out states.</p>
+          <p class="muted">摘要概览暂时不可用，因此 Home 不会伪造高亮卡片；请前往 Watch 重新尝试。</p>
+        </div>
+        <div class="metrics" style="margin-top: 16px;">
+          
+        <div class="metric-card">
+          <span>Tracked</span>
+          <strong>—</strong>
+        </div>
+      
+        <div class="metric-card">
+          <span>Ready</span>
+          <strong>Retry</strong>
+        </div>
+      
+        <div class="metric-card">
+          <span>Waiting</span>
+          <strong>—</strong>
+        </div>
+      
+        <div class="metric-card">
+          <span>Rules</span>
+          <strong>Session</strong>
+        </div>
+      
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--accent">signed-in highlight</span>
             <span class="badge badge--info">highlight only</span>
           </div>
           <p style="margin-top: 10px;"><strong>Signed in as mini-preview</strong></p>

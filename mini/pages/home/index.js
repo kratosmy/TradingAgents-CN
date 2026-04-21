@@ -3,15 +3,18 @@ const {
   DEFAULT_BASE_URL,
   createMiniAuthSessionBoundary,
   createWxRequestTransport,
+  readPersistedSession,
 } = require('../../lib/auth-session-boundary.js')
 const { switchToPrimarySurface, syncShellTabBar } = require('../../lib/shell-navigation.js')
 const { buildHomeSurfaceState } = require('../../lib/shell-surface-state.js')
 
 const previewMeta = previewMetaModule.createPreviewMeta()
+const initialSession = typeof wx !== 'undefined' ? readPersistedSession(wx) : null
 
 Page({
   data: buildHomeSurfaceState({
     previewMeta,
+    session: initialSession,
   }),
 
   onLoad() {
@@ -25,10 +28,12 @@ Page({
       storage: wx,
       request: createWxRequestTransport(wx),
     })
+    const session = this.authBoundary.getSession()
 
     this.setData(
       buildHomeSurfaceState({
         previewMeta: this.previewMeta,
+        session,
       }),
     )
     this.refreshOverview()
@@ -47,10 +52,12 @@ Page({
     }
 
     const digestResult = await this.authBoundary.loadDigests()
+    const session = this.authBoundary.getSession()
     this.setData(
       buildHomeSurfaceState({
         previewMeta: this.previewMeta,
         digestResult,
+        session,
       }),
     )
   },

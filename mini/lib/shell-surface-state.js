@@ -17,13 +17,31 @@ function buildChrome({ eyebrow, title, subtitle, badges }, runtimeConfig = getCh
   }
 }
 
-function buildHomeMetrics(cards, signedIn) {
-  if (!signedIn) {
+function buildHomeMetrics(cards, homeState) {
+  if (homeState === 'signed-out') {
     return [
       { label: 'Tracked', value: '—' },
       { label: 'Ready', value: 'Watch' },
       { label: 'Waiting', value: 'Gate' },
       { label: 'Rules', value: 'Live' },
+    ]
+  }
+
+  if (homeState === 'authenticated-loading') {
+    return [
+      { label: 'Tracked', value: '—' },
+      { label: 'Ready', value: 'Sync' },
+      { label: 'Waiting', value: '—' },
+      { label: 'Rules', value: 'Session' },
+    ]
+  }
+
+  if (homeState === 'authenticated-error') {
+    return [
+      { label: 'Tracked', value: '—' },
+      { label: 'Ready', value: 'Retry' },
+      { label: 'Waiting', value: '—' },
+      { label: 'Rules', value: 'Session' },
     ]
   }
 
@@ -37,6 +55,89 @@ function buildHomeMetrics(cards, signedIn) {
     { label: 'Waiting', value: String(waitingCount) },
     { label: 'Rules', value: String(activeRuleCount) },
   ]
+}
+
+function deriveHomeSurfaceState({ session, digestResult, cards }) {
+  if (!session) {
+    return 'signed-out'
+  }
+
+  if (!digestResult) {
+    return 'authenticated-loading'
+  }
+
+  if (digestResult.ok) {
+    return cards.length > 0 ? 'authenticated-highlight' : 'authenticated-empty'
+  }
+
+  if (digestResult.authRequired) {
+    return 'signed-out'
+  }
+
+  return 'authenticated-error'
+}
+
+function buildHomeSurfaceCopy({ homeState, session, shellContent }) {
+  const username = session?.user?.username || 'Mini user'
+
+  switch (homeState) {
+    case 'signed-out':
+      return {
+        overviewHeadline: 'Signed out, but the shell remains usable',
+        overviewCopy:
+          'Home and Account remain public. Watch keeps the auth gate and protected digest surface.',
+        highlightCopy: shellContent.home.highlightSignedOutCopy,
+        emptyStateCopy: 'Home 不展示完整的受保护摘要堆栈；请前往 Watch 查看登录与详情卡片。',
+        featuredBadgeLabel: 'watch preview',
+        featuredBadgeTone: 'neutral',
+      }
+    case 'authenticated-loading':
+      return {
+        overviewHeadline: `Signed in as ${username}`,
+        overviewCopy:
+          'Home keeps the persisted session signed in while it refreshes the Watch overview for a concise highlight.',
+        highlightCopy:
+          'Until Watch responds, Home avoids signed-out copy and waits to summarize the protected digest surface honestly.',
+        emptyStateCopy: '概览仍在刷新中；请稍候或前往 Watch 查看受保护摘要状态。',
+        featuredBadgeLabel: 'refreshing overview',
+        featuredBadgeTone: 'info',
+      }
+    case 'authenticated-empty':
+      return {
+        overviewHeadline: `Signed in as ${username}`,
+        overviewCopy:
+          'The persisted bearer session is ready, but Watch returned zero protected digest cards. Home keeps this authenticated-empty overview distinct from signed-out copy.',
+        highlightCopy:
+          'Home keeps authenticated-empty distinct so Account and Home stay aligned when Watch has zero protected cards.',
+        emptyStateCopy:
+          '当前会话已登录，但 Watch 还没有可展示的受保护摘要高亮；请前往 Watch 查看空态说明。',
+        featuredBadgeLabel: 'authenticated empty',
+        featuredBadgeTone: 'info',
+      }
+    case 'authenticated-error':
+      return {
+        overviewHeadline: `Signed in as ${username}`,
+        overviewCopy:
+          'The persisted bearer session is still active, but the Watch overview is temporarily unavailable. Home keeps the signed-in posture honest instead of falling back to signed-out copy.',
+        highlightCopy:
+          'Home treats a temporary digest read failure differently from both authenticated-empty and signed-out states.',
+        emptyStateCopy: '摘要概览暂时不可用，因此 Home 不会伪造高亮卡片；请前往 Watch 重新尝试。',
+        featuredBadgeLabel: 'watch unavailable',
+        featuredBadgeTone: 'warn',
+      }
+    case 'authenticated-highlight':
+    default:
+      return {
+        overviewHeadline: `Signed in as ${username}`,
+        overviewCopy:
+          'Home shows a concise watch summary and one highlight, while Watch continues to own the full protected digest experience.',
+        highlightCopy:
+          'Home keeps this highlight concise so the detailed protected card stack stays in Watch.',
+        emptyStateCopy: 'Home 不展示完整的受保护摘要堆栈；请前往 Watch 查看登录与详情卡片。',
+        featuredBadgeLabel: null,
+        featuredBadgeTone: null,
+      }
+  }
 }
 
 function getWatchStateLabel(watchState) {
@@ -112,14 +213,28 @@ function getDefaultWatchStateCopy(watchState) {
 function buildHomeSurfaceState({
   previewMeta,
   digestResult,
+  session,
   runtimeConfig = getCheckedInRuntimeConfig(),
   shellContent = createShellContent(runtimeConfig),
 } = {}) {
-  const signedIn = Boolean(digestResult && digestResult.ok)
-  const cards = signedIn
-    ? selectCompactDigestCards(digestResult.cards).map(mapDigestCard)
-    : []
-  const featuredCard = cards.find((card) => card.digestStatus === 'ready') || cards[0] || null
+  const persistedSession = session || digestResult?.session || null
+  const cards =
+    digestResult && digestResult.ok
+      ? selectCompactDigestCards(digestResult.cards).map(mapDigestCard)
+      : []
+  const homeState = deriveHomeSurfaceState({
+    session: persistedSession,
+    digestResult,
+    cards,
+  })
+  const featuredCard = homeState === 'authenticated-highlight'
+    ? cards.find((card) => card.digestStatus === 'ready') || cards[0] || null
+    : null
+  const homeCopy = buildHomeSurfaceCopy({
+    homeState,
+    session: persistedSession,
+    shellContent,
+  })
 
   return {
     chrome: buildChrome(
@@ -137,27 +252,29 @@ function buildHomeSurfaceState({
     ),
     roleTitle: shellContent.home.roleTitle,
     roleCopy: shellContent.home.roleCopy,
-    overviewHeadline: signedIn
-      ? `Signed in as ${digestResult.session.user.username}`
-      : 'Signed out, but the shell remains usable',
-    overviewCopy: signedIn
-      ? 'Home shows a concise watch summary and one highlight, while Watch continues to own the full protected digest experience.'
-      : 'Home and Account remain public. Watch keeps the auth gate and protected digest surface.',
-    overviewMetrics: buildHomeMetrics(cards, signedIn),
+    homeState,
+    overviewHeadline: homeCopy.overviewHeadline,
+    overviewCopy: homeCopy.overviewCopy,
+    overviewMetrics: buildHomeMetrics(cards, homeState),
     hasFeaturedCard: Boolean(featuredCard),
-    featuredBadgeTone: featuredCard && featuredCard.digestStatus === 'ready' ? 'accent' : 'warn',
-    featuredBadgeLabel: featuredCard
-      ? featuredCard.digestStatus === 'ready'
-        ? 'ready highlight'
-        : 'waiting highlight'
-      : 'watch preview',
+    featuredBadgeTone:
+      featuredCard && featuredCard.digestStatus === 'ready'
+        ? 'accent'
+        : featuredCard
+          ? 'warn'
+          : homeCopy.featuredBadgeTone,
+    featuredBadgeLabel:
+      featuredCard
+        ? featuredCard.digestStatus === 'ready'
+          ? 'ready highlight'
+          : 'waiting highlight'
+        : homeCopy.featuredBadgeLabel,
     highlightTitle: shellContent.home.highlightTitle,
-    highlightCopy: featuredCard
-      ? 'Home keeps this highlight concise so the detailed protected card stack stays in Watch.'
-      : shellContent.home.highlightSignedOutCopy,
+    highlightCopy: homeCopy.highlightCopy,
     featuredCard,
-    sessionUserLabel: signedIn
-      ? `${digestResult.session.user.username} · ${digestResult.session.user.id}`
+    emptyStateCopy: homeCopy.emptyStateCopy,
+    sessionUserLabel: persistedSession
+      ? `${persistedSession.user.username} · ${persistedSession.user.id}`
       : 'No active bearer session yet.',
     runtimeBoundary: previewMeta?.runtimeBoundary || {},
     quickActionCopy: shellContent.home.quickActionCopy,
