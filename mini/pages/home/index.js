@@ -51,13 +51,21 @@ Page({
       return
     }
 
-    const digestResult = await this.authBoundary.loadDigests()
     const session = this.authBoundary.getSession()
     this.setData(
       buildHomeSurfaceState({
         previewMeta: this.previewMeta,
-        digestResult,
         session,
+      }),
+    )
+
+    const digestResult = await this.authBoundary.loadDigests()
+    const latestSession = this.authBoundary.getSession()
+    this.setData(
+      buildHomeSurfaceState({
+        previewMeta: this.previewMeta,
+        digestResult,
+        session: latestSession,
       }),
     )
   },

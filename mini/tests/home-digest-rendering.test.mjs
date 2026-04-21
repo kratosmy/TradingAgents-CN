@@ -11,6 +11,7 @@ const {
 } = require('../lib/auth-session-boundary.js')
 const { createMiniHomeController, selectCompactDigestCards } = require('../lib/home-controller.js')
 const { buildHomeSurfaceState } = require('../lib/shell-surface-state.js')
+const homePageModulePath = require.resolve('../pages/home/index.js')
 
 function createSession() {
   return {
@@ -23,6 +24,71 @@ function createSession() {
       username: 'mini-user',
     },
     savedAt: '2026-04-20T08:00:00.000Z',
+  }
+}
+
+function cloneData(data) {
+  return JSON.parse(JSON.stringify(data))
+}
+
+function loadHomePageDefinition({ wxLike } = {}) {
+  delete require.cache[homePageModulePath]
+
+  const previousPage = globalThis.Page
+  const previousWx = globalThis.wx
+  const previousGetApp = globalThis.getApp
+  let pageDefinition = null
+
+  globalThis.Page = (definition) => {
+    pageDefinition = definition
+    return definition
+  }
+  globalThis.wx = wxLike || createMemoryStorage()
+  globalThis.getApp = () => ({
+    globalData: {
+      apiBaseUrl: 'https://mini-runtime-placeholder.invalid',
+      runtimeConfig: null,
+    },
+  })
+
+  try {
+    require(homePageModulePath)
+  } finally {
+    delete require.cache[homePageModulePath]
+
+    if (previousPage === undefined) {
+      delete globalThis.Page
+    } else {
+      globalThis.Page = previousPage
+    }
+
+    if (previousWx === undefined) {
+      delete globalThis.wx
+    } else {
+      globalThis.wx = previousWx
+    }
+
+    if (previousGetApp === undefined) {
+      delete globalThis.getApp
+    } else {
+      globalThis.getApp = previousGetApp
+    }
+  }
+
+  assert.ok(pageDefinition, 'Home page definition should register through Page()')
+  return pageDefinition
+}
+
+function createPageInstance(pageDefinition) {
+  return {
+    ...pageDefinition,
+    data: cloneData(pageDefinition.data),
+    setData(nextData) {
+      this.data = {
+        ...this.data,
+        ...nextData,
+      }
+    },
   }
 }
 
@@ -338,6 +404,56 @@ test('Watch controller keeps loading, auth-required, authenticated-empty, waitin
   assert.equal(readyState.watchState, 'ready')
   assert.equal(readyState.cards.length, 1)
   assert.equal(readyState.placeholderCount, 0)
+})
+
+test('Home page refreshOverview immediately enters a signed-in loading posture before loadDigests resolves', async () => {
+  const session = createSession()
+  const pageDefinition = loadHomePageDefinition()
+  const page = createPageInstance(pageDefinition)
+
+  page.previewMeta = {
+    runtimeBoundary: {
+      mode: 'placeholder-preview',
+      baseUrl: 'https://mini-runtime-placeholder.invalid',
+      disclosure: 'Local preview only.',
+    },
+  }
+  page.data = buildHomeSurfaceState({
+    previewMeta: page.previewMeta,
+  })
+
+  let resolveDigest
+  const digestPromise = new Promise((resolve) => {
+    resolveDigest = resolve
+  })
+
+  page.authBoundary = {
+    getSession() {
+      return session
+    },
+    loadDigests() {
+      return digestPromise
+    },
+  }
+
+  assert.equal(page.data.homeState, 'signed-out')
+
+  const pendingRefresh = page.refreshOverview()
+
+  assert.equal(page.data.homeState, 'authenticated-loading')
+  assert.equal(page.data.overviewHeadline, 'Signed in as mini-user')
+  assert.match(page.data.overviewCopy, /refreshes the Watch overview|refreshing/i)
+  assert.equal(page.data.sessionUserLabel, 'mini-user · user-1')
+
+  resolveDigest({
+    ok: true,
+    cards: [],
+    session,
+  })
+  await pendingRefresh
+
+  assert.equal(page.data.homeState, 'authenticated-empty')
+  assert.equal(page.data.overviewHeadline, 'Signed in as mini-user')
 })
 
 test('Home overview keeps authenticated-empty and authenticated-error states signed in and distinct from signed-out copy', () => {

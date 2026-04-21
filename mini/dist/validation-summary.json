@@ -125,11 +125,14 @@
     "distinctFromWatch": true,
     "states": {
       "signedOut": "signed-out",
+      "authenticatedLoading": "authenticated-loading",
       "authenticatedEmpty": "authenticated-empty",
       "authenticatedError": "authenticated-error",
       "highlight": "authenticated-highlight"
     },
     "signedOutHeadline": "Signed out, but the shell remains usable",
+    "authenticatedLoadingHeadline": "Signed in as mini-preview",
+    "authenticatedLoadingCopy": "Home keeps the persisted session signed in while it refreshes the Watch overview for a concise highlight.",
     "authenticatedEmptyHeadline": "Signed in as mini-preview",
     "authenticatedEmptyCopy": "The persisted bearer session is ready, but Watch returned zero protected digest cards. Home keeps this authenticated-empty overview distinct from signed-out copy.",
     "authenticatedErrorHeadline": "Signed in as mini-preview",

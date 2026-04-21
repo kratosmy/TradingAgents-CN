@@ -283,15 +283,17 @@ async function ensureBuildArtifacts() {
     !previewText.includes('Watch owns the protected read path') ||
     !previewText.includes('Account owns identity and support navigation') ||
     !previewText.includes('Signed out, but the shell remains usable') ||
+    !previewText.includes('authenticated-loading overview') ||
     !previewText.includes('authenticated-empty overview') ||
     !previewText.includes('authenticated-error overview') ||
+    !previewText.includes('refreshes the Watch overview') ||
     !previewText.includes('zero protected digest cards') ||
     !previewText.includes('temporarily unavailable') ||
     !previewText.includes('Account remains available before sign-in') ||
     !previewText.includes('Account → Settings → Account') ||
     !previewText.includes('Dark premium visual system')
   ) {
-    throw new Error('dist/local-preview.html must prove distinct Home / Watch / Account responsibilities, signed-out plus authenticated-empty/error Home states, Account round trips, and the shared dark visual system')
+    throw new Error('dist/local-preview.html must prove distinct Home / Watch / Account responsibilities, signed-out plus authenticated-loading/empty/error Home states, Account round trips, and the shared dark visual system')
   }
 
   if (
@@ -342,6 +344,9 @@ async function ensureBuildArtifacts() {
     summary.homeOverview.distinctFromWatch !== true ||
     !summary.homeOverview.states ||
     summary.homeOverview.states.signedOut !== 'signed-out' ||
+    summary.homeOverview.states.authenticatedLoading !== 'authenticated-loading' ||
+    summary.homeOverview.authenticatedLoadingHeadline !== 'Signed in as mini-preview' ||
+    !String(summary.homeOverview.authenticatedLoadingCopy || '').includes('refreshes the Watch overview') ||
     summary.homeOverview.states.authenticatedEmpty !== 'authenticated-empty' ||
     summary.homeOverview.states.authenticatedError !== 'authenticated-error' ||
     summary.homeOverview.authenticatedEmptyHeadline !== 'Signed in as mini-preview' ||
@@ -361,7 +366,7 @@ async function ensureBuildArtifacts() {
     summary.watchDigestRendering.readyDigestPreferredOverPendingDuplicate !== true ||
     summary.watchDigestRendering.waitingStateRetainedWithoutReady !== true
   ) {
-    throw new Error('dist/validation-summary.json must prove Home signed-out/authenticated-empty/authenticated-error separation plus distinct Watch states, ready-over-placeholder dedupe, and waiting-state retention')
+    throw new Error('dist/validation-summary.json must prove Home signed-out/authenticated-loading/authenticated-empty/authenticated-error separation plus distinct Watch states, ready-over-placeholder dedupe, and waiting-state retention')
   }
 }
 

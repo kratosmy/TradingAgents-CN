@@ -342,6 +342,10 @@ const watchPreviewStates = await buildWatchPreviewStates()
 const signedOutHomeSurfaceState = buildHomeSurfaceState({
   previewMeta,
 })
+const authenticatedLoadingHomeSurfaceState = buildHomeSurfaceState({
+  previewMeta,
+  session: previewSession,
+})
 const authenticatedEmptyHomeSurfaceState = buildHomeSurfaceState({
   previewMeta,
   session: previewSession,
@@ -575,6 +579,19 @@ const html = `<!DOCTYPE html>
           <p style="margin-top: 10px;"><strong>${escapeHtml(signedOutHomeSurfaceState.overviewHeadline)}</strong></p>
           <p>${escapeHtml(signedOutHomeSurfaceState.overviewCopy)}</p>
           <p class="muted">${escapeHtml(signedOutHomeSurfaceState.highlightCopy)}</p>
+        </div>
+        <div class="panel" style="margin-top: 16px;">
+          <div class="row">
+            <span class="badge badge--info">authenticated-loading overview</span>
+            <span class="badge badge--info">${escapeHtml(authenticatedLoadingHomeSurfaceState.featuredBadgeLabel)}</span>
+          </div>
+          <p style="margin-top: 10px;"><strong>${escapeHtml(authenticatedLoadingHomeSurfaceState.overviewHeadline)}</strong></p>
+          <p>${escapeHtml(authenticatedLoadingHomeSurfaceState.overviewCopy)}</p>
+          <p class="muted">${escapeHtml(authenticatedLoadingHomeSurfaceState.highlightCopy)}</p>
+          <p class="muted">${escapeHtml(authenticatedLoadingHomeSurfaceState.emptyStateCopy)}</p>
+        </div>
+        <div class="metrics" style="margin-top: 16px;">
+          ${renderHomeMetrics(authenticatedLoadingHomeSurfaceState.overviewMetrics)}
         </div>
         <div class="panel" style="margin-top: 16px;">
           <div class="row">
@@ -812,11 +829,14 @@ const summary = {
     distinctFromWatch: true,
     states: {
       signedOut: signedOutHomeSurfaceState.homeState,
+      authenticatedLoading: authenticatedLoadingHomeSurfaceState.homeState,
       authenticatedEmpty: authenticatedEmptyHomeSurfaceState.homeState,
       authenticatedError: authenticatedErrorHomeSurfaceState.homeState,
       highlight: signedInHomeSurfaceState.homeState,
     },
     signedOutHeadline: signedOutHomeSurfaceState.overviewHeadline,
+    authenticatedLoadingHeadline: authenticatedLoadingHomeSurfaceState.overviewHeadline,
+    authenticatedLoadingCopy: authenticatedLoadingHomeSurfaceState.overviewCopy,
     authenticatedEmptyHeadline: authenticatedEmptyHomeSurfaceState.overviewHeadline,
     authenticatedEmptyCopy: authenticatedEmptyHomeSurfaceState.overviewCopy,
     authenticatedErrorHeadline: authenticatedErrorHomeSurfaceState.overviewHeadline,
