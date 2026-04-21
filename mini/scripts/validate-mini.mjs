@@ -26,6 +26,7 @@ const requiredFiles = [
   'data/digest-cards.js',
   'data/shell-content.js',
   'lib/release-handoff.js',
+  'lib/wechat-ci-upload.js',
   'custom-tab-bar/index.js',
   'custom-tab-bar/index.json',
   'custom-tab-bar/index.wxml',
@@ -72,11 +73,13 @@ const requiredFiles = [
   'pages/account/help/index.wxss',
   'scripts/build-local-preview.mjs',
   'scripts/preflight-manual-upload.mjs',
+  'scripts/upload-wechat.mjs',
   'tests/auth-session-boundary.test.mjs',
   'tests/home-digest-rendering.test.mjs',
   'tests/runtime-config-boundary.test.mjs',
   'tests/publish-shell-navigation.test.mjs',
   'tests/release-preflight.test.mjs',
+  'tests/wechat-ci-upload-scaffold.test.mjs',
 ]
 
 async function ensureFilesExist() {
@@ -137,6 +140,10 @@ async function ensureConfigShape() {
 
   if (projectConfig.projectname.includes('LocalValidation')) {
     throw new Error('project.config.json must use publish-facing import-shell metadata instead of local-validation naming')
+  }
+
+  if (packageJson.scripts['upload:wechat'] !== 'node ./scripts/upload-wechat.mjs') {
+    throw new Error('mini/package.json must expose upload:wechat -> node ./scripts/upload-wechat.mjs for the gated miniprogram-ci scaffold')
   }
 
   if (
@@ -247,6 +254,7 @@ async function ensureBuildArtifacts() {
       'tests/runtime-config-boundary.test.mjs',
       'tests/publish-shell-navigation.test.mjs',
       'tests/release-preflight.test.mjs',
+      'tests/wechat-ci-upload-scaffold.test.mjs',
     ],
     {
       cwd: miniRoot,
@@ -413,6 +421,6 @@ await ensurePrivateOverridesStayLocal()
 await ensureShellSourceReuse()
 await ensureBuildArtifacts()
 
-console.log('mini_validate passed: verified publish shell registration, dark-premium tokens, placeholder runtime boundary, manual-upload handoff artifacts, and source/build evidence from mini/')
+console.log('mini_validate passed: verified publish shell registration, dark-premium tokens, placeholder runtime boundary, manual-upload handoff artifacts, gated miniprogram-ci scaffold, and source/build evidence from mini/')
 console.log(`required files: ${requiredFiles.join(', ')}`)
 console.log('artifacts: dist/local-preview.html, dist/validation-summary.json, dist/manual-upload-handoff.json, dist/manual-upload-handoff.md')

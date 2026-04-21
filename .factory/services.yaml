@@ -4,6 +4,7 @@ commands:
   lint: npm --prefix mini run validate
   typecheck: npm --prefix mini run validate
   build: npm --prefix mini run build
+  mini_upload_dry_run: npm --prefix mini run upload:wechat -- --dry-run
   mini_install: test -f mini/package.json && npm --prefix mini install || echo mini-package-not-yet-created
   mini_validate: test -f mini/package.json && (npm --prefix mini run validate || npm --prefix mini run build || npm --prefix mini run lint) || echo mini-package-not-yet-created
 

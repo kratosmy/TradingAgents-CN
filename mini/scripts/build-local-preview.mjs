@@ -941,6 +941,7 @@ const summary = {
     'data/digest-cards.js',
     'data/shell-content.js',
     'lib/release-handoff.js',
+    'lib/wechat-ci-upload.js',
     'lib/runtime-config.js',
     'lib/auth-session-boundary.js',
     'lib/home-controller.js',
@@ -977,11 +978,14 @@ const summary = {
     'pages/account/help/index.json',
     'pages/account/help/index.wxml',
     'pages/account/help/index.wxss',
+    'scripts/build-local-preview.mjs',
+    'scripts/upload-wechat.mjs',
     'tests/auth-session-boundary.test.mjs',
     'tests/home-digest-rendering.test.mjs',
     'tests/runtime-config-boundary.test.mjs',
     'tests/publish-shell-navigation.test.mjs',
     'tests/release-preflight.test.mjs',
+    'tests/wechat-ci-upload-scaffold.test.mjs',
   ],
 }
 

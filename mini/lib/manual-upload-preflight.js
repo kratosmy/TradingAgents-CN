@@ -85,9 +85,11 @@ function validateManualUploadReadiness(snapshot = loadCheckedInManualUploadSnaps
 
   record(
     'release metadata shape',
-    isSemver(packageJson.version) && packageJson.scripts?.preflight === 'node ./scripts/preflight-manual-upload.mjs',
-    `mini/package.json version ${packageJson.version} is semver and the manual-upload preflight command is exposed.`,
-    'mini/package.json must expose a semver version and npm script preflight -> node ./scripts/preflight-manual-upload.mjs.',
+    isSemver(packageJson.version) &&
+      packageJson.scripts?.preflight === 'node ./scripts/preflight-manual-upload.mjs' &&
+      packageJson.scripts?.['upload:wechat'] === 'node ./scripts/upload-wechat.mjs',
+    `mini/package.json version ${packageJson.version} is semver and the manual-upload preflight plus gated upload scaffold commands are exposed.`,
+    'mini/package.json must expose a semver version plus npm scripts preflight -> node ./scripts/preflight-manual-upload.mjs and upload:wechat -> node ./scripts/upload-wechat.mjs.',
   )
 
   const requiredGitignoreEntries = [
@@ -136,6 +138,9 @@ function formatManualUploadPreflightReport(result) {
     '',
     'Keep local-only / untracked:',
     ...result.handoff.localOnlyPaths.map((item) => `- ${item}`),
+    '',
+    'Operator handoff checklist:',
+    ...result.handoff.operatorHandoffSteps.map((item, index) => `${index + 1}. ${item}`),
     '',
     'Checks:',
     ...result.checks.map((check) => `- [${check.ok ? 'pass' : 'fail'}] ${check.name}: ${check.detail}`),

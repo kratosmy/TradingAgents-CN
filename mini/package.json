@@ -5,9 +5,10 @@
   "description": "Publish-facing WeChat Mini import shell with a placeholder-safe runtime boundary.",
   "scripts": {
     "build": "node ./scripts/build-local-preview.mjs",
-    "test": "node --test --test-concurrency=1 ./tests/auth-session-boundary.test.mjs ./tests/home-digest-rendering.test.mjs ./tests/runtime-config-boundary.test.mjs ./tests/publish-shell-navigation.test.mjs ./tests/release-preflight.test.mjs",
+    "test": "node --test --test-concurrency=1 ./tests/auth-session-boundary.test.mjs ./tests/home-digest-rendering.test.mjs ./tests/runtime-config-boundary.test.mjs ./tests/publish-shell-navigation.test.mjs ./tests/release-preflight.test.mjs ./tests/wechat-ci-upload-scaffold.test.mjs",
     "validate": "node ./scripts/validate-mini.mjs",
-    "preflight": "node ./scripts/preflight-manual-upload.mjs"
+    "preflight": "node ./scripts/preflight-manual-upload.mjs",
+    "upload:wechat": "node ./scripts/upload-wechat.mjs"
   },
   "engines": {
     "node": ">=18.0.0",

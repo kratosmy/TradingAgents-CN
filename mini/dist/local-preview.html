@@ -698,7 +698,7 @@
             <span class="badge badge--info">checked-in shell evidence</span>
           </div>
           <ul class="bullet-list" style="margin-top: 12px;">
-            <li>Checked-in AppID wx1d02a932c4f9a4ae remains wired through mini/project.config.json and mini/config/runtime.shared.js.</li><li>The delivered Home / Watch / Account shell is validated here through committed source, local tests, generated build proof, and offline preflight output.</li><li>The checked-in runtime boundary stays in placeholder-preview mode with a non-loopback HTTPS target (https://mini-runtime-placeholder.invalid).</li><li>Manual-upload readiness here means the import shell can be handed off for operator-controlled DevTools work without claiming live backend, runtime, upload, audit, or publish completion.</li>
+            <li>Checked-in AppID wx1d02a932c4f9a4ae remains wired through mini/project.config.json and mini/config/runtime.shared.js.</li><li>The delivered Home / Watch / Account shell is validated here through committed source, local tests, generated build proof, and offline preflight output.</li><li>The checked-in runtime boundary stays in placeholder-preview mode with a non-loopback HTTPS target (https://mini-runtime-placeholder.invalid).</li><li>A checked-in miniprogram-ci upload scaffold exists, but it refuses to proceed until operator-injected secrets and upload metadata are provided at runtime.</li><li>Manual-upload readiness here means the import shell can be handed off for operator-controlled DevTools work without claiming live backend, runtime, upload, audit, or publish completion.</li>
           </ul>
         </div>
         <div class="panel" style="margin-top: 16px;">
@@ -719,7 +719,7 @@
             <li>mini/config/runtime.local.js</li><li>mini/project.private.config.json</li><li>mini/upload-secrets/</li><li>mini/upload-secrets/code-upload.private.key</li>
           </ul>
           <ol class="bullet-list" style="margin-top: 12px; padding-left: 18px;">
-            <li>Run npm --prefix mini run preflight to confirm the checked-in shell still fails closed on illegal repo-owned config.</li><li>Review mini/dist/manual-upload-handoff.md alongside mini/dist/local-preview.html and mini/dist/validation-summary.json before handing the shell to the operator.</li><li>Hand off only the checked-in mini/ shell plus instructions for local-only overrides and secrets; do not hand off committed credentials because none should exist.</li>
+            <li>Run npm --prefix mini run preflight to confirm the checked-in shell still fails closed on illegal repo-owned config.</li><li>Run npm --prefix mini run upload:wechat -- --dry-run; without injected secrets it should refuse with actionable guidance, and with injected operator inputs it should print a no-upload plan.</li><li>Review mini/dist/manual-upload-handoff.md alongside mini/dist/local-preview.html and mini/dist/validation-summary.json before handing the shell to the operator.</li><li>Hand off only the checked-in mini/ shell plus instructions for local-only overrides and secrets; do not hand off committed credentials because none should exist.</li>
           </ol>
         </div>
       </section>
