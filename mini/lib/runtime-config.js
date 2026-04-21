@@ -1,4 +1,5 @@
 const sharedRuntimeConfig = require('../config/runtime.shared.js')
+const net = require('node:net')
 
 const LOCAL_OVERRIDE_MODULE_PATH = '../config/runtime.local.js'
 const LOCAL_OVERRIDE_RELATIVE_PATH = 'mini/config/runtime.local.js'
@@ -70,6 +71,23 @@ function normalizeBaseUrl(baseUrl) {
   return String(baseUrl || '').trim().replace(/\/+$/, '')
 }
 
+function normalizeHostname(hostname) {
+  const normalized = String(hostname || '').trim().toLowerCase()
+  if (normalized.startsWith('[') && normalized.endsWith(']')) {
+    return normalized.slice(1, -1)
+  }
+
+  return normalized
+}
+
+function isIPv4LoopbackHost(hostname) {
+  return net.isIP(hostname) === 4 && hostname.split('.')[0] === '127'
+}
+
+function isIPv6LoopbackHost(hostname) {
+  return net.isIP(hostname) === 6 && (hostname === '::1' || hostname === '0:0:0:0:0:0:0:1')
+}
+
 function isLoopbackUrl(url) {
   if (typeof url !== 'string' || !url.trim()) {
     return true
@@ -77,13 +95,14 @@ function isLoopbackUrl(url) {
 
   try {
     const parsed = new URL(url)
-    const host = parsed.hostname.toLowerCase()
+    const host = normalizeHostname(parsed.hostname)
 
     if (
+      !host ||
       host === 'localhost' ||
-      host === '127.0.0.1' ||
       host === '0.0.0.0' ||
-      host === '::1' ||
+      isIPv4LoopbackHost(host) ||
+      isIPv6LoopbackHost(host) ||
       host.endsWith('.localhost')
     ) {
       return true
@@ -93,6 +112,20 @@ function isLoopbackUrl(url) {
   } catch (_error) {
     return true
   }
+}
+
+function isMissingLocalOverrideError(error) {
+  if (!error || error.code !== 'MODULE_NOT_FOUND') {
+    return false
+  }
+
+  const message = String(error.message || '')
+  return (
+    message.includes(`'${LOCAL_OVERRIDE_MODULE_PATH}'`) ||
+    message.includes(`"${LOCAL_OVERRIDE_MODULE_PATH}"`) ||
+    message.includes(`'${LOCAL_OVERRIDE_RELATIVE_PATH}'`) ||
+    message.includes(`"${LOCAL_OVERRIDE_RELATIVE_PATH}"`)
+  )
 }
 
 function createRuntimeConfig({ operatorOverrides } = {}) {
@@ -108,13 +141,10 @@ function createRuntimeConfig({ operatorOverrides } = {}) {
 
 function loadOperatorOverrides() {
   try {
-    return require(LOCAL_OVERRIDE_MODULE_PATH)
+    const resolvedOverrideModulePath = require.resolve(LOCAL_OVERRIDE_MODULE_PATH)
+    return require(resolvedOverrideModulePath)
   } catch (error) {
-    if (
-      error &&
-      error.code === 'MODULE_NOT_FOUND' &&
-      String(error.message || '').includes('runtime.local')
-    ) {
+    if (isMissingLocalOverrideError(error)) {
       return null
     }
 
