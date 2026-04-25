@@ -1,0 +1,17 @@
+{
+  "description": "TradingAgents-CN WeChat Mini Program skeleton",
+  "packOptions": {
+    "ignore": []
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "minified": true,
+    "postcss": true
+  },
+  "compileType": "miniprogram",
+  "appid": "wx1d02a932c4f9a4ae",
+  "projectname": "TradingAgentsCNMini",
+  "miniprogramRoot": "./"
+}

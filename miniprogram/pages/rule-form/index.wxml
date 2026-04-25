@@ -1,0 +1,27 @@
+<view class="page">
+  <view class="section-card form-card">
+    <view class="form-title">监控策略</view>
+    <view class="muted-text">
+      {{form.stock_name || form.stock_code}}（{{form.stock_code}}）使用现有 `/api/watch/rules/{stock_code}` 合约。
+    </view>
+
+    <view class="field-label">策略状态</view>
+    <picker mode="selector" range="{{statusOptions}}" value="{{statusIndex}}" bindchange="handleStatusChange">
+      <view class="field-input picker-value">{{statusOptions[statusIndex]}}</view>
+    </picker>
+
+    <view class="field-label">执行频率</view>
+    <picker mode="selector" range="{{scheduleOptions}}" value="{{scheduleIndex}}" bindchange="handleScheduleChange">
+      <view class="field-input picker-value">{{scheduleOptions[scheduleIndex]}}</view>
+    </picker>
+  </view>
+
+  <view class="section-card status-card" wx:if="{{errorMessage}}">
+    <view class="status-title">保存失败</view>
+    <view class="muted-text">{{errorMessage}}</view>
+  </view>
+
+  <button class="primary-button" bindtap="handleSubmit" loading="{{loading}}" disabled="{{loading}}">
+    保存监控策略
+  </button>
+</view>

@@ -1,0 +1,129 @@
+<view class="page">
+  <view class="section-card hero-card">
+    <view class="hero-title">微信小程序盯盘首页</view>
+    <view class="hero-subtitle">
+      直接消费后端聚合盯盘卡片契约，保留平台无关的移动端边界。
+    </view>
+    <view class="hero-footer">
+      <text class="muted-text">{{lastUpdatedText}}</text>
+      <button class="secondary-button compact-button" bindtap="handleOpenSettings">运行设置</button>
+    </view>
+  </view>
+
+  <view class="section-card status-card" wx:if="{{!configReady}}">
+    <view class="status-title">还差运行信息</view>
+    <view class="muted-text">
+      当前仍是占位配置。请先填写后端地址与访问令牌，再拉取真实盯盘数据。
+    </view>
+    <button class="primary-button" bindtap="handleOpenAuth">微信登录 / 绑定</button>
+    <button class="primary-button" bindtap="handleOpenSettings">前往设置</button>
+  </view>
+
+  <view class="section-card status-card" wx:if="{{errorMessage}}">
+    <view class="status-title">接口返回了错误</view>
+    <view class="muted-text">{{errorMessage}}</view>
+    <button class="secondary-button" bindtap="loadPage">重新加载</button>
+  </view>
+
+  <view class="toolbar" wx:if="{{configReady}}">
+    <button
+      class="primary-button"
+      bindtap="handleRefreshAll"
+      loading="{{refreshingAll}}"
+      disabled="{{loading || refreshingAll}}"
+    >
+      一键刷新全部解读
+    </button>
+    <button class="secondary-button" bindtap="handleOpenAddFavorite" disabled="{{loading}}">
+      添加自选股
+    </button>
+  </view>
+
+  <view class="section-card status-card" wx:if="{{loading}}">
+    <view class="status-title">正在同步盯盘快照</view>
+    <view class="muted-text">小程序会拉取紧凑的自选股解读卡片。</view>
+  </view>
+
+  <block wx:if="{{configReady && !loading && cards.length}}">
+    <view class="section-card watch-card" wx:for="{{cards}}" wx:key="stockCode">
+      <view class="watch-card__header">
+        <view class="watch-card__title">
+          <view class="stock-name">{{item.stockName}}</view>
+          <view class="stock-meta">
+            <text class="stock-code">{{item.stockCode}}</text>
+            <text class="badge badge--neutral">{{item.market}}</text>
+            <text class="badge badge--neutral" wx:if="{{item.board}}">{{item.board}}</text>
+          </view>
+        </view>
+
+        <view class="watch-card__metrics">
+          <text class="price-text">{{item.priceText}}</text>
+          <text class="change-text {{item.changeClass}}">{{item.changeText}}</text>
+        </view>
+      </view>
+
+      <view class="summary-block">
+        <view class="block-title">AI 摘要</view>
+        <view class="summary-text">{{item.summaryText}}</view>
+        <view class="muted-text" wx:if="{{item.recommendationText}}">
+          建议：{{item.recommendationText}}
+        </view>
+      </view>
+
+      <view class="badge-row">
+        <text class="badge {{item.riskTone}}">{{item.riskText}}</text>
+        <text class="badge {{item.ruleStatusTone}}">{{item.ruleStatusText}}</text>
+        <text class="badge badge--neutral">{{item.scheduleText}}</text>
+      </view>
+
+      <view class="notes-row" wx:if="{{item.tagsText || item.notesText || item.taskStatusText || item.reportId}}">
+        <view class="muted-text" wx:if="{{item.tagsText}}">标签：{{item.tagsText}}</view>
+        <view class="muted-text" wx:if="{{item.notesText}}">备注：{{item.notesText}}</view>
+        <view class="muted-text" wx:if="{{item.taskStatusText}}">{{item.taskStatusText}}</view>
+        <view class="muted-text" wx:if="{{item.reportId}}">报告 ID：{{item.reportId}}</view>
+      </view>
+
+      <view class="watch-card__footer">
+        <text class="muted-text">{{item.updatedAtText}}</text>
+        <button
+          class="secondary-button compact-button"
+          bindtap="handleOpenRuleForm"
+          data-stock-code="{{item.stockCode}}"
+          data-stock-name="{{item.stockName}}"
+          data-market="{{item.market}}"
+          data-schedule-type="{{item.scheduleType}}"
+          data-status="{{item.ruleStatus}}"
+        >
+          策略
+        </button>
+        <button
+          class="secondary-button compact-button"
+          bindtap="handleRefreshCard"
+          data-stock-code="{{item.stockCode}}"
+          data-stock-name="{{item.stockName}}"
+          data-market="{{item.market}}"
+          loading="{{refreshingCode === item.stockCode}}"
+          disabled="{{refreshingAll}}"
+        >
+          重新解读
+        </button>
+        <button
+          class="secondary-button compact-button"
+          bindtap="handleRemoveFavorite"
+          data-stock-code="{{item.stockCode}}"
+          disabled="{{refreshingAll || refreshingCode === item.stockCode}}"
+        >
+          移除
+        </button>
+      </view>
+    </view>
+  </block>
+
+  <view class="section-card status-card" wx:if="{{configReady && !loading && !cards.length}}">
+    <view class="status-title">暂无自选股监控卡片</view>
+    <view class="muted-text">
+      当后端已有自选股时，这里会展示聚合后的自选股快照和最新解读摘要。
+    </view>
+    <button class="primary-button" bindtap="handleOpenAddFavorite">添加第一只自选股</button>
+  </view>
+</view>

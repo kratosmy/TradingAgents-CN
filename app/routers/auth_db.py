@@ -11,6 +11,13 @@ from pydantic import BaseModel
 
 from app.services.auth_service import AuthService
 from app.services.user_service import user_service
+from app.services.wechat_auth_service import (
+    WechatAuthError,
+    WechatCodeExchangeError,
+    WechatCredentialError,
+    WechatIdentityConflictError,
+    wechat_auth_service,
+)
 from app.models.user import UserCreate, UserUpdate
 from app.services.operation_log_service import log_operation
 from app.models.operation_log import ActionType
@@ -65,6 +72,11 @@ class CreateUserRequest(BaseModel):
     email: str
     password: str
     is_admin: bool = False
+
+class WechatAuthRequest(BaseModel):
+    code: str
+    nickname: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 async def get_current_user(authorization: Optional[str] = Header(default=None)) -> dict:
     """获取当前用户信息"""
@@ -308,6 +320,89 @@ async def me(user: dict = Depends(get_current_user)):
         "data": user,
         "message": "获取用户信息成功"
     }
+
+def _wechat_profile_from_payload(payload: WechatAuthRequest) -> dict:
+    return {
+        "nickname": payload.nickname,
+        "avatar_url": payload.avatar_url,
+    }
+
+def _raise_wechat_http_error(exc: Exception) -> None:
+    if isinstance(exc, WechatCredentialError):
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if isinstance(exc, WechatIdentityConflictError):
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if isinstance(exc, WechatCodeExchangeError):
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if isinstance(exc, WechatAuthError):
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    raise HTTPException(status_code=500, detail=f"微信认证失败: {str(exc)}") from exc
+
+@router.post("/wechat/login")
+async def wechat_login(payload: WechatAuthRequest):
+    """微信小程序登录：将 WeChat openid 解析为稳定内部用户。"""
+    try:
+        data = await wechat_auth_service.login_with_code(
+            payload.code,
+            _wechat_profile_from_payload(payload),
+        )
+        return {
+            "success": True,
+            "data": data,
+            "message": "微信登录成功",
+        }
+    except Exception as exc:
+        _raise_wechat_http_error(exc)
+
+@router.post("/wechat/bind")
+async def wechat_bind(
+    payload: WechatAuthRequest,
+    user: dict = Depends(get_current_user),
+):
+    """把微信小程序身份绑定到当前内部账号。"""
+    try:
+        data = await wechat_auth_service.bind_with_code(
+            user["id"],
+            payload.code,
+            _wechat_profile_from_payload(payload),
+        )
+        return {
+            "success": True,
+            "data": data,
+            "message": "微信身份绑定成功",
+        }
+    except Exception as exc:
+        _raise_wechat_http_error(exc)
+
+@router.get("/wechat/bind-status")
+async def wechat_bind_status(user: dict = Depends(get_current_user)):
+    """查询当前内部账号是否已绑定微信小程序身份。"""
+    try:
+        data = await wechat_auth_service.get_bind_status(user["id"])
+        return {
+            "success": True,
+            "data": data,
+            "message": "获取微信绑定状态成功",
+        }
+    except Exception as exc:
+        _raise_wechat_http_error(exc)
+
+@router.delete("/wechat/bind")
+async def wechat_unbind(user: dict = Depends(get_current_user)):
+    """解除当前内部账号的微信小程序身份绑定。"""
+    try:
+        removed = await wechat_auth_service.unbind_user(user["id"])
+        return {
+            "success": True,
+            "data": {
+                "bound": False,
+                "removed": removed,
+                "provider": "wechat_miniprogram",
+            },
+            "message": "微信身份已解绑" if removed else "当前账号未绑定微信身份",
+        }
+    except Exception as exc:
+        _raise_wechat_http_error(exc)
 
 @router.put("/me")
 async def update_me(

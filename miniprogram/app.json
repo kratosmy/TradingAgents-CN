@@ -1,0 +1,19 @@
+{
+  "pages": [
+    "pages/auth/index",
+    "pages/watch/index",
+    "pages/favorite-form/index",
+    "pages/rule-form/index",
+    "pages/settings/index"
+  ],
+  "entryPagePath": "pages/auth/index",
+  "window": {
+    "backgroundColor": "#0f172a",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#0f172a",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "TradingAgents-CN Mini"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

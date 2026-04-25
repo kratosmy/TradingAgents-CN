@@ -1,0 +1,59 @@
+<view class="page">
+  <view class="section-card form-card">
+    <view class="form-title">添加自选股</view>
+    <view class="muted-text">
+      写入现有 `/api/favorites/` canonical watchlist contract，股票标识统一使用 stock_code。
+    </view>
+
+    <view class="field-label">股票代码</view>
+    <input
+      class="field-input"
+      value="{{form.stock_code}}"
+      data-field="stock_code"
+      bindinput="handleInput"
+      placeholder="例如 600519"
+    />
+
+    <view class="field-label">股票名称</view>
+    <input
+      class="field-input"
+      value="{{form.stock_name}}"
+      data-field="stock_name"
+      bindinput="handleInput"
+      placeholder="例如 贵州茅台"
+    />
+
+    <view class="field-label">市场</view>
+    <picker mode="selector" range="{{marketOptions}}" value="{{marketIndex}}" bindchange="handleMarketChange">
+      <view class="field-input picker-value">{{form.market}}</view>
+    </picker>
+
+    <view class="field-label">标签</view>
+    <input
+      class="field-input"
+      value="{{form.tags}}"
+      data-field="tags"
+      bindinput="handleInput"
+      placeholder="多个标签用逗号或空格分隔"
+    />
+
+    <view class="field-label">备注</view>
+    <textarea
+      class="field-textarea"
+      value="{{form.notes}}"
+      data-field="notes"
+      bindinput="handleInput"
+      auto-height="true"
+      placeholder="可选"
+    />
+  </view>
+
+  <view class="section-card status-card" wx:if="{{errorMessage}}">
+    <view class="status-title">添加失败</view>
+    <view class="muted-text">{{errorMessage}}</view>
+  </view>
+
+  <button class="primary-button" bindtap="handleSubmit" loading="{{loading}}" disabled="{{loading}}">
+    保存到自选股
+  </button>
+</view>

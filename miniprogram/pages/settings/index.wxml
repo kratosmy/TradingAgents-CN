@@ -1,0 +1,56 @@
+<view class="page">
+  <view class="section-card intro-card">
+    <view class="intro-title">Mini 运行设置</view>
+    <view class="muted-text">
+      这里先用占位信息承接需要你补充的内容，不依赖尚未稳定的微信登录后端语义。
+    </view>
+  </view>
+
+  <view class="section-card form-card">
+    <view class="field-label">API Base URL</view>
+    <input
+      class="field-input"
+      value="{{form.apiBaseUrl}}"
+      data-field="apiBaseUrl"
+      bindinput="handleFieldInput"
+      placeholder="http://localhost:8001"
+    />
+    <view class="field-help">DevTools 模拟器预览默认使用 `http://localhost:8001`；真机预览需改成可访问的 HTTPS 地址。</view>
+
+    <view class="field-label">访问令牌</view>
+    <textarea
+      class="field-textarea"
+      value="{{form.accessToken}}"
+      data-field="accessToken"
+      bindinput="handleFieldInput"
+      maxlength="-1"
+      auto-height="true"
+      placeholder="paste-your-jwt-access-token-here"
+    />
+    <view class="field-help">
+      当前小程序骨架直接消费现有受保护接口，因此先使用访问令牌占位，后续可替换成真实微信登录绑定。
+    </view>
+
+    <view class="field-label">语言</view>
+    <input
+      class="field-input"
+      value="{{form.language}}"
+      data-field="language"
+      bindinput="handleFieldInput"
+      placeholder="zh-CN"
+    />
+  </view>
+
+  <view class="section-card status-card">
+    <view class="status-title">{{isConfigured ? '当前配置可直接请求盯盘接口' : '当前仍是占位配置'}}</view>
+    <view class="muted-text">
+      WeChat AppID 已写入 `project.config.json`：{{configuredAppId}}；App Secret 只应通过后端环境变量注入。
+    </view>
+  </view>
+
+  <view class="button-stack">
+    <button class="primary-button" bindtap="handleSave">保存运行设置</button>
+    <button class="secondary-button" bindtap="handleReset">恢复占位值</button>
+    <button class="secondary-button" bindtap="handleBackToWatch">返回盯盘首页</button>
+  </view>
+</view>

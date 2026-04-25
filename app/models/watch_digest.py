@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,6 +42,10 @@ class WatchDigestCard(BaseModel):
     exchange: Optional[str] = None
     current_price: Optional[float] = None
     change_percent: Optional[float] = None
+    tags: List[str] = Field(default_factory=list)
+    notes: str = ""
+    alert_price_high: Optional[float] = None
+    alert_price_low: Optional[float] = None
     digest_status: str = "not_started"
     summary: str = ""
     recommendation: Optional[str] = None

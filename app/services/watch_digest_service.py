@@ -118,6 +118,10 @@ class WatchDigestService:
                 exchange=favorite.get("exchange"),
                 current_price=favorite.get("current_price"),
                 change_percent=favorite.get("change_percent"),
+                tags=self._normalize_tags(favorite.get("tags")),
+                notes=favorite.get("notes") or "",
+                alert_price_high=favorite.get("alert_price_high"),
+                alert_price_low=favorite.get("alert_price_low"),
                 digest_status=digest.get("status") or task.get("status") or "not_started",
                 summary=digest.get("summary") or "暂无摘要，请先执行一次解读。",
                 recommendation=digest.get("recommendation"),
@@ -382,6 +386,19 @@ class WatchDigestService:
         if favorite.get("alert_price_high") or favorite.get("alert_price_low"):
             return "关注"
         return "未解读"
+
+    def _normalize_tags(self, tags: Any) -> List[str]:
+        if not isinstance(tags, list):
+            return []
+
+        normalized_tags: List[str] = []
+        for tag in tags:
+            if tag is None:
+                continue
+            normalized = str(tag).strip()
+            if normalized:
+                normalized_tags.append(normalized)
+        return normalized_tags
 
     def _extract_stock_code(self, payload: Dict[str, Any]) -> Optional[str]:
         raw_stock_code = payload.get("stock_code") or payload.get("stock_symbol") or payload.get("symbol")
